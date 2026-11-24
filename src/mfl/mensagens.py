@@ -4,6 +4,7 @@ Cada arquivo em cfg/mensagens tem variantes separadas por uma linha com só `---
 template_id = "<arquivo>:<índice>".
 """
 
+import json
 import re
 import sqlite3
 import string
@@ -35,10 +36,12 @@ def variantes(arquivo: str) -> list[str]:
     return [v.strip() for v in re.split(r"^---$", texto, flags=re.M) if v.strip()]
 
 
-def arquivo_d0(categoria: str | None, fontes: set[str]) -> str:
-    """Quem está no grupo recebe o texto do grupo, mesmo depois de ganhar CNPJ ou Maps."""
+def arquivo_d0(categoria: str | None, fontes: set[str], sinais: list[str] = ()) -> str:
+    """Quem está no grupo recebe o texto do grupo, mesmo depois de ganhar CNPJ ou Maps. Quem usa concorrente, o de troca."""
     if "grupo" in fontes:
         return "grupo"
+    if "usa_concorrente" in sinais:
+        return "concorrente"
     limpo = normalizar(categoria or "")
     return next((nome for nome, padrao in CATEGORIAS if re.search(padrao, limpo)), "restaurante")
 
@@ -74,7 +77,8 @@ def preencher(texto: str, valores: dict[str, str]) -> str:
 
 def sugerir(con: sqlite3.Connection, lead: sqlite3.Row, etapa: str, fontes: set[str], hoje: date) -> tuple[str, str]:
     """(template_id, texto) para a etapa da cadência (d0, d3, d7)."""
-    arquivo = etapa if etapa in ("d3", "d7") else arquivo_d0(lead["categoria"], fontes)
+    sinais = json.loads(lead["sinais"] or "[]")
+    arquivo = etapa if etapa in ("d3", "d7") else arquivo_d0(lead["categoria"], fontes, sinais)
     indice = proxima_variante(con, arquivo)
     valores = {"nome": lead["fantasia"] or lead["nome"], "bairro": lead["bairro"], "sinal": "", "horario": horario(hoje)}
     return f"{arquivo}:{indice}", preencher(variantes(arquivo)[indice], valores)

@@ -14,7 +14,7 @@
   <div><b>{{ c.lead.fantasia or c.lead.nome }}</b>
     <span class="suave">· {{ c.lead.categoria or "sem categoria" }} · {{ c.lead.bairro or "sem bairro" }} · {{ c.etapa | upper }} · score {{ c.lead.score | int }}</span></div>
   <div class="suave">{{ c.lead.tel1 }}</div>
-  {% if c.sinais %}<div>{% for s in c.sinais %}<span class="chip">{{ s }}</span>{% endfor %}</div>{% endif %}
+  {% if c.sinais %}<div>{% for s in c.sinais %}<span class="chip">{{ s | replace("_", " ") }}</span>{% endfor %}</div>{% endif %}
   <pre class="texto">{{ c.texto }}</pre>
   <div class="acoes">
     <a class="botao primario abrir" href="{{ c.link }}" target="whatsapp" data-template="{{ c.template_id }}">Abrir WhatsApp</a>

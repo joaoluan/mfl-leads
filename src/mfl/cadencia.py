@@ -4,6 +4,7 @@ import sqlite3
 import tomllib
 from datetime import date, datetime, time, timedelta
 
+from mfl import score
 from mfl.db import FUSO, RAIZ, agora
 
 TETOS = RAIZ / "cfg" / "tetos.toml"
@@ -90,9 +91,9 @@ def fila(con: sqlite3.Connection, hoje: date, vagas: int) -> list[tuple[sqlite3.
     ).fetchall()
     novos = con.execute(
         "SELECT e.*, 'd0' AS etapa FROM entity e WHERE e.status IN ('novo','qualificado','na_fila')"
-        " AND e.tel1 IS NOT NULL AND e.opt_out=0" + fora_hoje +
+        " AND e.tel1 IS NOT NULL AND e.opt_out=0 AND e.score >= :corte" + fora_hoje +
         " ORDER BY e.score DESC, e.criado_em, e.entity_id LIMIT :vagas",
-        {"hoje": _dia(hoje), "vagas": vagas - len(vencidos)},
+        {"hoje": _dia(hoje), "vagas": vagas - len(vencidos), "corte": score.config()["corte"]},
     ).fetchall()
     return [(l, l["etapa"]) for l in [*vencidos, *novos]]
 

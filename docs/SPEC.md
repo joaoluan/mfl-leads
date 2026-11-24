@@ -95,6 +95,13 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - Resolução: regra da spec (0,35 CEP5 + 0,35 telefone + 0,30 nome) com ajustes: telefone igual vincula sozinho, exceto telefone repetido entre CNPJs (contador); CEP completo + nome ≥ 0,85 vincula; palavras genéricas (pizzaria, restaurante…) fora da comparação. 0,55–0,85 vai para a tela Revisão.
 - `mfl resolver`: contato do grupo + CNPJ com o mesmo telefone viram um lead (o do grupo sobrevive, com toques e respostas). Quem está no grupo continua recebendo o texto do grupo.
 
+### Score (fase 6)
+- `src/mfl/score.py`, pesos em `cfg/icp.toml` (editável em /config). Recalcula tudo em ~2 s: `make score`, e sozinho depois de `maps` e `resolver`. Sinais gravados em `entity.sinais` (etiquetas na fila).
+- Já calculados: grupo_de_donos (+40, novo), mesma_categoria_de_cliente (categorias em `[score]` + clientes marcados), raio (município em `municipios_perto`: NH, vizinhas e cidades de clientes), aberto_menos_12m e unidade_unica (CNPJ), sem_site (sem site ou só rede social), wa_me_na_bio (link wa.me/WhatsApp no Maps), usa_concorrente (-10, link de LeadsFood, Cardápio Web, Goomer etc.), site_com_pedido_proprio (pedido online no domínio do próprio site), reclamacao_demora (avaliações do Maps), aceita_encomenda (confeitaria/doces/encomenda), franquia.
+- Instagram (wa.me na bio, atividade) na fase 7; vende_ifood na fase 8.
+- Corte (40) vale só para leads novos; follow-ups seguem. Quem usa concorrente recebe `cfg/mensagens/concorrente.md`; quem está no grupo continua com o texto do grupo.
+- shortcut: raio por município, não por distância (CNPJ não tem coordenada); trocar por distância quando houver lat/lon de clientes.
+
 ### Fases (parar em cada uma, um PR por fase)
 1. Esqueleto, schema, seed por CSV, export.
 2. Evolution: envios e respostas, participantes do grupo, palavra-chave, opt-out.

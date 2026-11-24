@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from mfl import cadencia, db, mensagens, seed, ui, whatsapp
+from mfl import cadencia, db, mensagens, score, seed, ui, whatsapp
 from mfl.db import FUSO
 
 CFG = {"semana_1": 2, "depois": 3, "bloqueio_max": 0.05, "alerta_bloqueio": 0.03,
@@ -14,6 +14,7 @@ HOJE = date(2026, 11, 24)  # terça
 def con(tmp_path):
     c = db.conectar(tmp_path / "t.db")
     seed.importar_linhas(c, [{"nome": f"Lead {i}", "telefone": f"+55519999900{i:02d}"} for i in range(1, 6)], "teste")
+    score.recalcular(c, HOJE)  # do grupo: passa do corte
     return c
 
 
@@ -114,6 +115,7 @@ def test_telas_e_fluxo(tmp_path, monkeypatch):
     caminho = tmp_path / "ui.db"
     con = db.conectar(caminho)
     seed.importar_linhas(con, [{"nome": "Lead UI", "telefone": "+5551999990009"}], "teste")
+    score.recalcular(con, HOJE)
     (lead,) = ids(con)
     monkeypatch.setattr(cadencia, "config", lambda: {**CFG, "semana_1": 1})
     cliente = ui.criar_app(caminho).test_client()
