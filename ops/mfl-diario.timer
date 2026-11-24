@@ -2,7 +2,7 @@
 Description=mfl-leads: cadência, score e backup (agenda)
 
 [Timer]
-OnCalendar=*-*-* 07:00
+OnCalendar=*-*-* 05:00
 Persistent=true
 RandomizedDelaySec=10min
 
