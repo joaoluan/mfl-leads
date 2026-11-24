@@ -21,13 +21,20 @@ def configurar(job: str) -> None:
         arquivo.flush()
         return evento
 
+    job_id = uuid.uuid4().hex[:12]
+
+    def identificar(_logger: object, _metodo: str, evento: dict) -> dict:
+        # Processador e não contextvars: as threads do Flask não herdam o contexto.
+        evento.setdefault("job", job)
+        evento.setdefault("job_id", job_id)
+        return evento
+
     structlog.configure(
         processors=[
-            structlog.contextvars.merge_contextvars,
+            identificar,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=False),
             gravar,
             structlog.dev.ConsoleRenderer(),
         ]
     )
-    structlog.contextvars.bind_contextvars(job=job, job_id=uuid.uuid4().hex[:12])

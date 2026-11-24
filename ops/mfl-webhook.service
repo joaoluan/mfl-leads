@@ -1,0 +1,16 @@
+# systemd --user: ln -s ~/Projetos/mfl-leads/ops/mfl-webhook.service ~/.config/systemd/user/
+#                 systemctl --user daemon-reload && systemctl --user enable --now mfl-webhook
+[Unit]
+Description=mfl-leads: receptor do webhook da Evolution
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/Projetos/mfl-leads
+ExecStart=%h/.local/bin/uv run --frozen mfl webhook
+# O IP do gateway só existe depois que o Docker sobe a rede da Evolution: tenta de novo até lá.
+Restart=always
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=default.target
