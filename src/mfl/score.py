@@ -66,13 +66,14 @@ def sinais(lead: sqlite3.Row | dict, fontes: dict[str, list[dict]], perto: set[s
         elif site and not SOCIAL.search(site) and any(
                 _dominio(o.get("link")) == _dominio(site) for m in maps for o in m.get("order_online") or []):
             s.append("site_com_pedido_proprio")
-        avaliacoes = " ".join(normalizar(r.get("Description") or "") for m in maps for r in m.get("user_reviews") or [])
-        if DEMORA.search(avaliacoes):
+        # Avaliação que cita o iFood mede a entrega do app, não a cozinha da casa:
+        # confirma que a casa vende lá, mas não conta como reclamação de demora dela.
+        avaliacoes = [normalizar(r.get("Description") or "") for m in maps for r in m.get("user_reviews") or []]
+        if any(DEMORA.search(a) for a in avaliacoes if not IFOOD.search(a)):
             s.append("reclamacao_demora")
-        # quem avalia "pedi pelo iFood" confirma que a casa vende lá
-        if any("ifood.com.br" in l.lower() for l in links) or IFOOD.search(avaliacoes):
+        if any("ifood.com.br" in l.lower() for l in links) or any(IFOOD.search(a) for a in avaliacoes):
             s.append("vende_ifood")
-        if ENCOMENDA.search(normalizar(f"{lead['categoria'] or ''} {lead['nome'] or ''}")) or "encomenda" in avaliacoes:
+        if ENCOMENDA.search(normalizar(f"{lead['categoria'] or ''} {lead['nome'] or ''}")) or any("encomenda" in a for a in avaliacoes):
             s.append("aceita_encomenda")
     for perfil in fontes.get("instagram", []):
         if perfil.get("indisponivel"):
