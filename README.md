@@ -36,7 +36,9 @@ Telas: fila do dia, ficha (/lead/<id>), respostas, painel e config (tetos, pesos
 Maps e iFood rodam juntos no timer das **01h30** (`mfl maps-noturno`): até 12 bairros,
 sem iniciar etapa nova depois das 04h.
 Por bairro, o Maps faz a coleta geral; o iFood usa um endereço comercial já coletado no bairro para descobrir outras lojas;
-o Maps busca pelo nome/cidade até 30 descobertas sem telefone. Instagram roda às 04h e score/backup às 05h.
+o Maps busca pelo nome/cidade as descobertas sem telefone, em lotes de 10 e até 30 nomes por noite.
+Lote que esgota os 5 minutos salva o parcial e deixa as pendências para amanhã, sem falhar a rotina.
+Instagram roda às 04h e score/backup às 05h.
 Cada fonte tem sua data de visita: o iFood também roda nos bairros onde o Maps já está em dia e revisita após 60 dias.
 Sem endereço comercial válido, o bairro fica pendente no iFood, com aviso no log.
 
@@ -45,9 +47,15 @@ Também pelo terminal, com o camofox-browser em `127.0.0.1:9377`:
 
     uv run mfl ifood "Rua, número, cidade - RS" --limite 30
 
-Visita até 30 lojas novas ou incompletas por padrão (limite ajustável de 1 a 1000) e marca `vende_ifood`.
+Visita até 30 lojas por padrão (limite ajustável de 1 a 1000), priorizando novas, e marca `vende_ifood`.
 Abre “Ver mais” para ler endereço, bairro, CEP e CNPJ no painel Sobre. Repetir a coleta completa as lojas antigas sem duplicar;
-leituras parciais preservam os dados já conhecidos. Lojas completas são puladas e incompletas têm no máximo uma tentativa por dia.
+leituras parciais preservam os dados já conhecidos. Sem bloqueio, as vagas restantes completam lojas antigas, com 7 dias entre tentativas.
+Depois de 403, painel vazio ou tempo esgotado nos detalhes, grava a suspensão no banco: os próximos bairros/processos continuam
+descobrindo lojas novas e não abrem nenhuma loja para detalhes. A tela Coleta mostra a suspensão. Resolva o acesso antes de retomar explicitamente:
+
+    uv run mfl ifood "Rua, número, cidade - RS" --retomar-detalhes
+
+Não há retomada automática dos detalhes. A data de leitura fica em `detalhes_em`; regravar só esse metadado não conta como dado atualizado.
 Veja o resultado em **Leads → Veio de → iFood**. Sem telefone, a casa aguarda Maps/Instagram.
 Nome parecido sem endereço suficiente vai para **Revisão**. Um link do Maps com o UUID exato da loja no iFood confirma o vínculo,
 mesmo se o iFood esconder o endereço. Buscas sem resultado suficiente voltam após 7 dias; falhas de execução, no dia seguinte.

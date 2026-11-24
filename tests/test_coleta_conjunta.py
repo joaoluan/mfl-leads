@@ -119,7 +119,7 @@ def test_noite_fontes_completam_sequencialmente_e_falha_ifood_nao_para_maps(con,
         raise RuntimeError("verificação")
     monkeypatch.setattr(cli, "_maps_bairro", raspar)
     monkeypatch.setattr(cli, "_ifood_bairro", comida)
-    monkeypatch.setattr(maps, "completar_ifood", lambda con, chave, info: chamadas.append(("buscar", chave)))
+    monkeypatch.setattr(maps, "completar_ifood", lambda con, chave, info, limite: chamadas.append(("buscar", chave)) or 0)
     with pytest.raises(RuntimeError, match="iFood:a"):
         cli._maps_fila(con, 2, None)
     assert chamadas == [("maps", "a"), ("ifood", "a"), ("buscar", "a"), ("maps", "b"), ("buscar", "b")]
@@ -133,7 +133,7 @@ def test_bairro_maps_em_dia_ainda_coleta_ifood(con, monkeypatch):
     monkeypatch.setattr(cli.score, "recalcular", lambda *args: None)
     chamadas = []
     monkeypatch.setattr(cli, "_ifood_bairro", lambda con, chave, info: chamadas.append("ifood"))
-    monkeypatch.setattr(maps, "completar_ifood", lambda *args: chamadas.append("buscar"))
+    monkeypatch.setattr(maps, "completar_ifood", lambda *args: chamadas.append("buscar") or 0)
     cli._maps_fila(con, 1, None)
     assert chamadas == ["ifood", "buscar"]
 
@@ -197,7 +197,7 @@ def test_complemento_pendente_entra_na_noite_com_as_duas_fontes_em_dia(con, monk
     monkeypatch.setattr(cli, "_ifood_bairro", lambda *a: pytest.fail("iFood está em dia"))
     monkeypatch.setattr(cli.score, "recalcular", lambda *a: None)
     buscados = []
-    monkeypatch.setattr(maps, "completar_ifood", lambda con, chave, info: buscados.append(chave))
+    monkeypatch.setattr(maps, "completar_ifood", lambda con, chave, info, limite: buscados.append(chave) or 0)
     cli._maps_fila(con, 1, None)
     assert buscados == ["centro"]
 
@@ -232,3 +232,42 @@ def test_varios_uuids_nao_absorvem_duas_lojas_distintas(con, tmp_path):
     maps.ingerir(con, arquivo, BAIRRO, ["Porto Alegre"], [])
     assert con.execute("SELECT count(*) FROM entity").fetchone()[0] == 3
     assert con.execute("SELECT count(DISTINCT entity_id) FROM source_record WHERE source='ifood'").fetchone()[0] == 2
+
+
+def test_maps_parcial_salva_resultados_e_reagenda_sem_falhar_job(con, monkeypatch):
+    l = loja()
+    ifood.ingerir(con, [l, loja(2,nome="Cozinha Teste Verde")], [])
+    def parcial(bairro, saida, log, consultas=None):
+        saida.write_text(json.dumps(lugar(l)))
+        raise maps.Incompleto(saida)
+    monkeypatch.setattr(maps, "rodar", parcial)
+    with ops.job(con, "maps"):
+        assert maps.completar_ifood(con, "centro", BAIRRO) == 2
+    assert con.execute("SELECT valor FROM estado WHERE chave='job:maps'").fetchone()[0] == "ok"
+    assert con.execute("SELECT count(*) FROM source_record WHERE source='maps'").fetchone()[0] == 1
+    filas = con.execute("SELECT done,next_at FROM queue WHERE kind='maps_ifood'").fetchall()
+    assert sorted(r[0] for r in filas) == [0,1]
+    assert all(r[1] == (date.today()+timedelta(days=1)).isoformat() for r in filas)
+    assert maps.completar_ifood(con, "outro", BAIRRO) == 0
+
+
+@pytest.mark.parametrize("falha", [False, True])
+def test_noite_limita_buscas_dirigidas_a_30_em_lotes_de_10(con, monkeypatch, falha):
+    todos = {str(n): {**BAIRRO,"nome":str(n)} for n in range(5)}
+    monkeypatch.setattr(cli.bairros, "carregar", lambda: todos)
+    monkeypatch.setattr(cli.score, "recalcular", lambda *a: None)
+    gerais, lotes = [], []
+    monkeypatch.setattr(cli, "_maps_bairro", lambda chave, info: gerais.append(chave) or {"lugares":10})
+    monkeypatch.setattr(cli, "_ifood_bairro", lambda *a: True)
+    def buscar(con, chave, info, limite):
+        lotes.append(limite)
+        if falha:
+            raise OSError("falha simulada")
+        return limite
+    monkeypatch.setattr(maps, "completar_ifood", buscar)
+    if falha:
+        with pytest.raises(RuntimeError, match="Maps/iFood"):
+            cli._maps_fila(con, 5, None)
+    else:
+        cli._maps_fila(con, 5, None)
+    assert lotes == [10,10,10] and len(gerais)==5
