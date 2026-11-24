@@ -24,6 +24,5 @@ def test_vende_ifood_por_link_avaliacao_ou_bio():
 
 
 def test_texto_do_ifood():
-    assert mensagens.arquivo_d0("Pizzaria", {"maps"}, ["vende_ifood"]) == "ifood"
-    assert mensagens.arquivo_d0("Pizzaria", {"maps"}, ["usa_concorrente", "vende_ifood"]) == "concorrente"
-    assert mensagens.arquivo_d0("Pizzaria", {"grupo"}, ["vende_ifood"]) == "grupo"
+    assert mensagens.arquivo_d0("Pizzaria", ["vende_ifood"]) == "ifood"
+    assert mensagens.arquivo_d0("Pizzaria", ["usa_concorrente", "vende_ifood"]) == "concorrente"

@@ -21,11 +21,10 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
   - Mensagem `fromMe` para um lead vira `touch` automático. O botão "Enviado" fica como reserva (Evolution caída, DM do Instagram).
   - Mensagem recebida de um lead vira `reply`.
   - **Só grava mensagens de números que já são lead.** O resto é descartado sem persistir. Sem sincronizar histórico antigo.
-  - Lê uma vez os participantes do grupo de donos (fonte `grupo`).
   - UI avisa "Evolution desconectada".
 - Classificação de resposta por palavra-chave, com revisão de um clique. "SAIR" vira opt_out automático.
 - Bloqueio estimado = mensagem parada em 1 tique por mais de 24h + opt-outs. Alerta se > 3% por 3 dias.
-- Validador público de WhatsApp **removido**. Validação = telefone vindo de Maps, Instagram ou grupo, celular, E.164, e botão "sem WhatsApp" na UI.
+- Validador público de WhatsApp **removido**. Validação = telefone vindo de Maps ou Instagram (inclusive fixo com link de WhatsApp), celular, E.164, e botão "sem WhatsApp" na UI.
 
 ### Volume e cadência
 - **30 mensagens por dia no total**, follow-ups primeiro e o resto para leads novos. Rampa: semana 1 = 20, semana 2+ = 30, sempre com bloqueio < 5%. Ao atingir o teto a UI avisa.
@@ -34,12 +33,12 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - Trial e cliente são marcados à mão na ficha.
 
 ### Fontes
-- **Telefone** vem de Maps, Instagram (bio, `wa.me`) e grupo. Telefone só do CNPJ (costuma ser o do contador) leva a `enriquecimento`.
+- **Telefone** vem de Maps e Instagram (bio, `wa.me`). Telefone só do CNPJ (costuma ser o do contador) leva a `enriquecimento`.
 - **CNPJ**: filtro (ativa, CNAE, unidade única, porte) e sinal (abertura). Atualização mensal.
 - **Maps**: binário `gosom/google-maps-scraper` com versão fixa e SHA conferido. Só as avaliações que vêm por padrão. Cada bairro é raspado de novo a cada 60 dias.
 - **Instagram**: via o **camofox-browser já instalado** (`127.0.0.1:9377`, conta secundária), não a biblioteca `camoufox`. Até ~30 perfis por dia. O @ vem só do Maps ou do site; sem busca dentro do Instagram. Não fica restrito a score >= 55.
 - **iFood** (revoga "não raspe iFood" da seção 4): sinal "vende no iFood" (texto próprio: pedido direto sem comissão) e também fonte de leads novos. Casamento por endereço.
-- **Grupo de donos**: participantes casados pelo telefone com Maps ou CNPJ. Sem casamento vai para `revisao`. Texto próprio ("somos do grupo").
+- **Grupo de donos: removido em 24/11** por decisão do operador (não importa participantes, sem texto nem peso no score). Os 12 leads já contatados ficaram, sem a marca; os cruzados com CNPJ/Maps voltaram a essas fontes; os demais foram apagados. Opt-outs continuam bloqueados.
 
 ### Recorte
 - Municípios: Porto Alegre, Canoas, Gravataí, Viamão, São Leopoldo, Novo Hamburgo, Alvorada, Cachoeirinha, Sapucaia do Sul, Esteio, Guaíba, Montenegro, Campo Bom, Estância Velha, Ivoti, Dois Irmãos, Sapiranga, Portão.
@@ -57,7 +56,7 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 
 ### Textos
 - 8 grupos com 3 variantes cada: pizzaria, hamburgueria, churrascaria, japonês, restaurante/marmita, lanchonete/café, padaria/doceria, bar. A categoria vem do Maps.
-- Mais os textos de grupo, troca de concorrente e iFood.
+- Mais os textos de troca de concorrente e iFood.
 - O inbox mostra a resposta sugerida para "quanto custa" e "já tenho".
 
 ### UI e LGPD
@@ -93,13 +92,12 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - Consultas em `cfg/maps_consultas.txt`. A v1.20.0 às vezes não sai do processo após terminar: o wrapper encerra 15 s depois de "scrapemate exited"; teto de 1800 s.
 - Ingestão idempotente por place_id. Descarta fechado, fora dos municípios do recorte e franquia. Telefone celular válido → `novo` (apto para a fila); fixo ou sem telefone → `enriquecimento`. E-mail só se o domínio tem MX.
 - Resolução: regra da spec (0,35 CEP5 + 0,35 telefone + 0,30 nome) com ajustes: telefone igual vincula sozinho, exceto telefone repetido entre CNPJs (contador); CEP completo + nome ≥ 0,85 vincula; palavras genéricas (pizzaria, restaurante…) fora da comparação. 0,55–0,85 vai para a tela Revisão.
-- `mfl resolver`: contato do grupo + CNPJ com o mesmo telefone viram um lead (o do grupo sobrevive, com toques e respostas). Quem está no grupo continua recebendo o texto do grupo.
 
 ### Score (fase 6)
 - `src/mfl/score.py`, pesos em `cfg/icp.toml` (editável em /config). Recalcula tudo em ~2 s: `make score`, e sozinho depois de `maps` e `resolver`. Sinais gravados em `entity.sinais` (etiquetas na fila).
-- Já calculados: grupo_de_donos (+40, novo), mesma_categoria_de_cliente (categorias em `[score]` + clientes marcados), raio (município em `municipios_perto`: NH, vizinhas e cidades de clientes), aberto_menos_12m e unidade_unica (CNPJ), sem_site (sem site ou só rede social), wa_me_na_bio (link wa.me/WhatsApp no Maps), usa_concorrente (-10, link de LeadsFood, Cardápio Web, Goomer etc.), site_com_pedido_proprio (pedido online no domínio do próprio site), reclamacao_demora (avaliações do Maps), aceita_encomenda (confeitaria/doces/encomenda), franquia.
+- Já calculados: mesma_categoria_de_cliente (categorias em `[score]` + clientes marcados), raio (município em `municipios_perto`: NH, vizinhas e cidades de clientes), aberto_menos_12m e unidade_unica (CNPJ), sem_site (sem site ou só rede social), wa_me_na_bio (link wa.me/WhatsApp no Maps), usa_concorrente (-10, link de LeadsFood, Cardápio Web, Goomer etc.), site_com_pedido_proprio (pedido online no domínio do próprio site), reclamacao_demora (avaliações do Maps), aceita_encomenda (confeitaria/doces/encomenda), franquia.
 - Instagram (wa.me na bio, atividade) na fase 7; vende_ifood na fase 8.
-- Corte (40) vale só para leads novos; follow-ups seguem. Quem usa concorrente recebe `cfg/mensagens/concorrente.md`; quem está no grupo continua com o texto do grupo.
+- Corte (40) vale só para leads novos; follow-ups seguem. Quem usa concorrente recebe `cfg/mensagens/concorrente.md`.
 - shortcut: raio por município, não por distância (CNPJ não tem coordenada); trocar por distância quando houver lat/lon de clientes.
 
 ### Instagram (fase 7)
@@ -114,13 +112,13 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 ### iFood (fase 8)
 - O iFood usa proteção anti-robô (PerimeterX): bloqueia acesso direto (403) e a lista de lojas só aparece depois de escolher endereço na tela. Contornar isso com navegador camuflado é burlar detecção de robô: **não raspamos o iFood** e ele não é fonte de leads novos.
 - O sinal `vende_ifood` (+10) sai do que já coletamos: link `ifood.com.br` no Maps (site, pedido online) ou no Instagram, ou "iFood" nas avaliações do Maps ou na bio.
-- Quem vende no iFood recebe `cfg/mensagens/ifood.md` (pedido direto sem comissão). Ordem do texto D0: grupo > concorrente > iFood > categoria.
+- Quem vende no iFood recebe `cfg/mensagens/ifood.md` (pedido direto sem comissão). Ordem do texto D0: concorrente > iFood > categoria.
 
 ### Operação (fase 9)
 - Timers systemd --user (`ops/mfl-*.timer`, `Persistent=true`: o que perdeu com o PC desligado roda ao ligar). Serviços `oneshot` com `Nice=10` e `IOSchedulingClass=idle`:
   - `mfl-maps` 01:30: `mfl maps-noturno` (6 bairros, ~50 min; 374 bairros = ~60 dias). Bairro com falha não para a noite e fica pendente.
   - `mfl-cnpj` 03:30: `mfl cnpj-mensal`, baixa e processa o mês quando a Receita publicar; uma vez por mês (`estado.cnpj_mes`).
-  - `mfl-diario` 08:00: cadência, grupo x CNPJ, score, backup.
+  - `mfl-diario` 08:00: cadência, score, backup.
   - `mfl-ig` 10:30 + até 2 h aleatórias: `mfl ig-diario` (@ novos e até 30 perfis).
 - Cada job tem trava (`flock -n` em `data/travas/`) e grava ok/erro em `estado.job:<nome>`: o Painel mostra as rotinas e uma faixa vermelha avisa quando alguma falhou.
 - Backup diário: banco (API de backup do SQLite, seguro com o webhook gravando) + `cfg/` em `data/backup/diario` (7 dias), espelhado com o Parquet no SSD `backup-ssd` montado em `/mnt/backup-ssd` (30 dias). Domingo: cópia para o Orange Pi (`orangepi:backup/mfl-leads`, 60 dias). SSD desmontado ou Pi fora do ar não derrubam o backup local. `.env` fica fora (segredos).

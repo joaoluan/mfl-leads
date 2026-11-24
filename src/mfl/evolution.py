@@ -81,22 +81,3 @@ def conectar() -> str | None:
     }})
     chamar("POST", f"/settings/set/{nome}", AJUSTES)
     return qr
-
-
-def grupos() -> list[dict]:
-    return chamar("GET", f"/group/fetchAllGroups/{instancia()}?getParticipants=true") or []
-
-
-def participantes(grupo: dict, dono: str | None) -> tuple[list[dict], int]:
-    """Linhas no formato do seed e quantos participantes vieram só com LID (sem telefone)."""
-    linhas, sem_numero = [], 0
-    for p in grupo.get("participants") or []:
-        jid = next((j for j in (p.get("phoneNumber"), p.get("jid"), p.get("id"))
-                    if isinstance(j, str) and j.endswith("@s.whatsapp.net")), "")
-        e164 = de_jid(jid)
-        if not e164:
-            sem_numero += 1
-        elif e164 != dono:
-            linhas.append({"nome": f"Grupo {grupo.get('subject', '')}".strip(), "telefone": e164,
-                           "categoria": "", "bairro": ""})
-    return linhas, sem_numero

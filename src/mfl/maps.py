@@ -18,7 +18,7 @@ import structlog
 
 from mfl import resolve
 from mfl.classifica import normalizar
-from mfl.db import LOTE, RAIZ, agora
+from mfl.db import LOTE, RAIZ, agora, bloqueado
 from mfl.fone import celular as e_celular, para_e164, whatsapp_em
 
 log = structlog.get_logger()
@@ -117,7 +117,7 @@ def _descarte(lugar: dict, dados: dict, municipios: set[str], franquias: re.Patt
 
 def ingerir(con: sqlite3.Connection, arquivo: Path, bairro: dict, municipios: list[str],
             franquias: list[str]) -> dict[str, int]:
-    """Idempotente por place_id. Cada lugar novo é resolvido contra o que já existe (CNPJ, grupo)."""
+    """Idempotente por place_id. Cada lugar novo é resolvido contra o que já existe (CNPJ, Instagram)."""
     contagem = {"novos": 0, "vinculados": 0, "revisao": 0, "repetidos": 0, "descartados": 0, "aptos": 0}
     alvo = {normalizar(m).upper() for m in municipios}
     padrao = re.compile(r"\b(" + "|".join(re.escape(t) for t in franquias) + r")\b") if franquias else None
@@ -130,6 +130,9 @@ def ingerir(con: sqlite3.Connection, arquivo: Path, bairro: dict, municipios: li
             contagem["repetidos"] += 1
             continue
         dados = _dados(lugar, bairro)
+        if dados["tel1"] and bloqueado(con, dados["tel1"]):  # pediu SAIR: não volta nem fica gravado
+            contagem["descartados"] += 1
+            continue
         motivo = _descarte(lugar, dados, alvo, padrao)
         candidato, nota = (None, 0.0) if motivo else resolve.melhor_candidato(con, dados, compartilhados)
         if candidato is not None and nota >= resolve.VINCULA:

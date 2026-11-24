@@ -3,7 +3,8 @@ from datetime import date
 
 import pytest
 
-from mfl import db, ig, score, seed
+from conftest import criar_lead
+from mfl import db, ig, score
 
 HOJE = date(2026, 11, 24)
 RECENTE, ANTIGO = "DgImMOugWvN", "C0aaaaaaaaa"  # 24/11/2026 e 2023
@@ -31,7 +32,8 @@ def test_handle_data_e_analise():
 def con(tmp_path, monkeypatch):
     monkeypatch.setattr(ig, "PAUSA", (0, 0))
     c = db.conectar(tmp_path / "t.db")
-    seed.importar_linhas(c, [{"nome": f"Grupo {i}", "telefone": f"+55513333000{i}"} for i in range(1, 7)], "teste")
+    for i in range(1, 7):
+        criar_lead(c, f"Casa {i}", f"+55513333000{i}")
     for i, (eid,) in enumerate(c.execute("SELECT entity_id FROM entity ORDER BY tel1").fetchall(), start=1):
         c.execute("UPDATE entity SET ig_username=?, status='enriquecimento' WHERE entity_id=?", (f"casa{i}", eid))
     c.commit()
