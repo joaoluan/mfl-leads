@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titulo %}Fila{% endblock %}
+{% block corpo %}
+<h1>Fila de hoje</h1>
+<div class="suave">{{ feitos }} de {{ teto }} abordagens{% if motivo_teto %} · teto reduzido: {{ motivo_teto }}{% endif %}</div>
+<div class="barra"><div style="width: {{ [100, (feitos / teto * 100) if teto else 0] | min }}%"></div></div>
+{% if not na_janela %}<div class="faixa">Fora da janela de envio: dono provavelmente ocupado agora.</div>{% endif %}
+{% if feitos >= teto %}<div class="faixa">Teto do dia atingido. Volte amanhã.</div>{% endif %}
+{% if not cartoes and feitos < teto %}<p class="suave">Nada na fila agora.</p>{% endif %}
+<p class="suave">Atalhos no primeiro cartão: Enter abre o WhatsApp, S pula, F abre a ficha.</p>
+
+{% for c in cartoes %}
+<div class="cartao{{ ' atual' if loop.first }}" data-id="{{ c.lead.entity_id }}">
+  <div><b>{{ c.lead.fantasia or c.lead.nome }}</b>
+    <span class="suave">· {{ c.lead.categoria or "sem categoria" }} · {{ c.lead.bairro or "sem bairro" }} · {{ c.etapa | upper }} · score {{ c.lead.score | int }}</span></div>
+  <div class="suave">{{ c.lead.tel1 }}</div>
+  {% if c.sinais %}<div>{% for s in c.sinais %}<span class="chip">{{ s }}</span>{% endfor %}</div>{% endif %}
+  <pre class="texto">{{ c.texto }}</pre>
+  <div class="acoes">
+    <a class="botao primario abrir" href="{{ c.link }}" target="whatsapp" data-template="{{ c.template_id }}">Abrir WhatsApp</a>
+    {% if c.lead.ig_username %}<a class="botao" href="https://ig.me/m/{{ c.lead.ig_username }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+    <a class="botao ficha" href="/lead/{{ c.lead.entity_id }}">Ficha</a>
+    <form method="post" action="/enviado/{{ c.lead.entity_id }}">
+      <input type="hidden" name="texto" value="{{ c.texto }}"><input type="hidden" name="template_id" value="{{ c.template_id }}">
+      <button title="Só se a Evolution não registrou sozinha">Enviado</button></form>
+    <form method="post" action="/pular/{{ c.lead.entity_id }}"><button class="pular">Pular</button></form>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+document.querySelectorAll("a.abrir").forEach(a => a.addEventListener("click", () => {
+  const id = a.closest(".cartao").dataset.id;
+  fetch("/api/abrir/" + id, {method: "POST", headers: {"Content-Type": "application/json"},
+                             body: JSON.stringify({template_id: a.dataset.template})});
+}));
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input, textarea") || e.ctrlKey || e.metaKey || e.altKey) return;
+  const atual = document.querySelector(".cartao.atual"); if (!atual) return;
+  if (e.key === "Enter") atual.querySelector("a.abrir").click();
+  else if (e.key.toLowerCase() === "s") atual.querySelector("button.pular").click();
+  else if (e.key.toLowerCase() === "f") atual.querySelector("a.ficha").click();
+});
+// O webhook registra o envio feito no WhatsApp Web: recarrega quando o número de abordagens muda.
+let feitos = {{ feitos }};
+setInterval(() => fetch("/api/hoje").then(r => r.json()).then(d => { if (d.feitos !== feitos) location.reload(); }), 10000);
+</script>
+{% endblock %}

@@ -67,6 +67,17 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 ### Modelo de dados (adições)
 - `entity.categoria` (a Parte B usa categoria na UI e nos textos, mas faltava a coluna).
 
+### UI (fase 3)
+- Config em TOML (`cfg/tetos.toml`, `cfg/icp.toml`), lido com `tomllib` da biblioteca padrão; a Parte B fala em YAML, que exigiria dependência nova.
+- Teto conta leads diferentes abordados no dia (follow-up + novo). A fila some quando bate o teto e o botão "Enviado" recusa (409).
+- Fila: follow-ups vencidos (D3 = 3 dias após D0, D7 = 4 dias após D3) primeiro, depois novos por score. "Pular" esconde até amanhã (tabela `queue`, kind `pular`).
+- Transições por tempo rodam a cada carga da fila: d7 + 3 dias → frio; objecao + 7 dias → frio; frio + 60 dias → na_fila.
+- Classificação no inbox: interesse/preco → respondeu, ja_tenho → objecao, nao → frio, opt_out → opt-out permanente.
+- Atalhos: Enter abre o WhatsApp, S pula, F abre a ficha. A variante aberta é guardada e o webhook liga o envio a ela (funil por variante).
+- Clientes atuais: `mfl marcar <telefone> cliente` ou botão na ficha; cliente nunca entra na fila.
+- "Quem já conversou no pessoal" não é detectável sem sincronizar histórico; ao abrir o WhatsApp Web a conversa anterior aparece e o operador decide.
+- A UI escuta só em 127.0.0.1:8000 (sem login). Serviço `ops/mfl-ui.service`.
+
 ### Fases (parar em cada uma, um PR por fase)
 1. Esqueleto, schema, seed por CSV, export.
 2. Evolution: envios e respostas, participantes do grupo, palavra-chave, opt-out.

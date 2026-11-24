@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}Leads{% endblock %} · MFL</title>
+<style>
+:root { --fundo:#fafaf9; --texto:#1c1917; --suave:#78716c; --linha:#e7e5e4; --cartao:#fff;
+        --acao:#166534; --acao-texto:#fff; --aviso:#fef3c7; --aviso-texto:#78350f; --erro:#fee2e2; --erro-texto:#7f1d1d; }
+@media (prefers-color-scheme: dark) {
+  :root { --fundo:#1c1917; --texto:#f5f5f4; --suave:#a8a29e; --linha:#44403c; --cartao:#292524;
+          --acao:#22c55e; --acao-texto:#052e16; --aviso:#422006; --aviso-texto:#fde68a; --erro:#450a0a; --erro-texto:#fecaca; }
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--fundo); color:var(--texto); font:400 14px/1.45 system-ui, sans-serif; }
+nav { display:flex; gap:20px; padding:12px 20px; border-bottom:1px solid var(--linha); align-items:center; flex-wrap:wrap; }
+nav a { color:var(--suave); text-decoration:none; } nav a.ativo { color:var(--texto); font-weight:600; }
+main { max-width:960px; margin:0 auto; padding:20px 16px 60px; }
+h1 { font-size:20px; font-weight:600; margin:0 0 16px; } h2 { font-size:15px; font-weight:600; margin:24px 0 8px; }
+.faixa { padding:8px 12px; margin-bottom:12px; border-radius:4px; background:var(--aviso); color:var(--aviso-texto); }
+.faixa.erro { background:var(--erro); color:var(--erro-texto); }
+.cartao { background:var(--cartao); border:1px solid var(--linha); border-radius:6px; padding:14px 16px; margin-bottom:10px; }
+.cartao.atual { border-color:var(--texto); }
+.suave { color:var(--suave); font-size:12px; }
+.chip { display:inline-block; font-size:11px; padding:1px 8px; border:1px solid var(--linha); border-radius:10px; margin-right:4px; }
+.acoes { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; } form { display:inline; }
+button, .botao { font:inherit; font-size:13px; padding:6px 12px; border:1px solid var(--linha); border-radius:4px;
+                 background:transparent; color:var(--texto); cursor:pointer; text-decoration:none; }
+.primario { background:var(--acao); border-color:var(--acao); color:var(--acao-texto); font-weight:600; }
+button:disabled, .botao.desligado { opacity:.4; pointer-events:none; }
+pre.texto { white-space:pre-wrap; font:inherit; background:var(--fundo); border:1px solid var(--linha); padding:10px; border-radius:4px; margin:8px 0 0; }
+table { width:100%; border-collapse:collapse; font-size:13px; } th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--linha); }
+th { font-weight:600; color:var(--suave); font-size:12px; } td.n { text-align:right; font-variant-numeric:tabular-nums; }
+.barra { height:6px; background:var(--linha); border-radius:3px; overflow:hidden; margin:4px 0 16px; }
+.barra div { height:100%; background:var(--acao); }
+textarea { width:100%; min-height:420px; font:13px/1.5 ui-monospace, monospace; padding:10px; background:var(--cartao); color:var(--texto); border:1px solid var(--linha); border-radius:4px; }
+input, select { font:inherit; padding:5px 8px; background:var(--cartao); color:var(--texto); border:1px solid var(--linha); border-radius:4px; }
+.grade { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
+.grade .cartao b { display:block; font-size:22px; font-weight:600; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="{{ 'ativo' if request.path == '/' }}">Fila</a>
+  <a href="/respostas" class="{{ 'ativo' if request.path.startswith('/respostas') }}">Respostas{% if pendentes %} ({{ pendentes }}){% endif %}</a>
+  <a href="/painel" class="{{ 'ativo' if request.path.startswith('/painel') }}">Painel</a>
+  <a href="/config" class="{{ 'ativo' if request.path.startswith('/config') }}">Config</a>
+</nav>
+<main>
+{% if not evolution_ok %}<div class="faixa erro">Evolution desconectada: seus envios e respostas não estão sendo registrados. Rode <code>uv run mfl evo-conectar</code>.</div>{% endif %}
+{% block corpo %}{% endblock %}
+</main>
+</body>
+</html>

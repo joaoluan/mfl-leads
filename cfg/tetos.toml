@@ -1,0 +1,13 @@
+# Abordagens por dia (leads diferentes que receberam mensagem no dia), follow-ups primeiro.
+# A semana 1 conta a partir do primeiro envio registrado.
+semana_1 = 20
+depois = 30
+
+# Bloqueio estimado (1 tique parado > 24h + opt-outs) / envios dos últimos 7 dias.
+bloqueio_max = 0.05     # acima disso o teto volta para semana_1
+alerta_bloqueio = 0.03  # painel avisa se passar disso 3 dias seguidos
+
+# Janela de envio: fora dela a fila avisa, mas não bloqueia.
+[janela]
+segunda = ["09:00-18:00"]
+terca_a_sexta = ["09:00-11:00", "14:30-17:30"]

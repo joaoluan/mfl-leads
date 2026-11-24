@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Config{% endblock %}
+{% block corpo %}
+<h1>Config</h1>
+<form method="get" class="acoes">
+  <select name="arquivo" onchange="this.form.submit()" aria-label="Arquivo">
+    {% for o in opcoes %}<option {{ 'selected' if o == arquivo }}>{{ o }}</option>{% endfor %}
+  </select>
+</form>
+{% if salvo %}<div class="faixa">Salvo.</div>{% endif %}
+{% for e in erros %}<div class="faixa erro">{{ e }}</div>{% endfor %}
+<p class="suave">Mensagens: variantes separadas por uma linha só com <code>---</code>. Campos: {nome}, {bairro}, {sinal}, {horario}. Toda variante de abordagem precisa ter SAIR.</p>
+<form method="post">
+  <input type="hidden" name="arquivo" value="{{ arquivo }}">
+  <textarea name="conteudo" aria-label="Conteúdo de {{ arquivo }}">{{ conteudo }}</textarea>
+  <div class="acoes"><button class="primario">Salvar</button></div>
+</form>
+{% endblock %}

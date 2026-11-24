@@ -12,8 +12,8 @@ import structlog
 import typer
 from dotenv import load_dotenv
 
-from mfl import db, evolution, export, log, seed, webhook
-from mfl.fone import de_jid
+from mfl import db, evolution, export, log, seed, ui, webhook, whatsapp
+from mfl.fone import de_jid, para_e164
 
 app = typer.Typer(no_args_is_help=True)
 logger = structlog.get_logger()
@@ -101,3 +101,31 @@ def cmd_webhook() -> None:
         host=os.environ.get("MFL_WEBHOOK_HOST", "172.31.250.1"),
         port=int(os.environ.get("MFL_WEBHOOK_PORTA", "8001")),
     )
+
+
+@app.command("ui")
+def cmd_ui() -> None:
+    """Sobe a UI em http://127.0.0.1:8000 (só localhost: não tem login)."""
+    log.configurar("ui")
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    ui.criar_app().run(host="127.0.0.1", port=8000)
+
+
+@app.command("marcar")
+def cmd_marcar(telefone: str, status: str = typer.Argument(..., help="cliente | opt_out | descartado")) -> None:
+    """Marca um número (cria o lead se faltar). Uso: clientes atuais nunca entram na fila."""
+    log.configurar("seed")
+    if status not in ("cliente", "opt_out", "descartado"):
+        raise typer.BadParameter("status deve ser cliente, opt_out ou descartado")
+    e164 = para_e164(telefone)
+    if not e164:
+        raise typer.BadParameter(f"telefone inválido: {telefone}")
+    con = db.conectar()
+    if not con.execute("SELECT 1 FROM entity WHERE tel1=?", (e164,)).fetchone():
+        seed.importar_linhas(con, [{"nome": f"Marcado como {status}", "telefone": e164}], "manual:marcar")
+    entity_id = con.execute("SELECT entity_id FROM entity WHERE tel1=?", (e164,)).fetchone()[0]
+    if status == "opt_out":
+        whatsapp.marcar_opt_out(con, entity_id, "manual")
+    else:
+        whatsapp.mudar_status(con, entity_id, status, "manual" if status == "descartado" else None)
+        con.commit()
