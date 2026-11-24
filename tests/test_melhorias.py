@@ -52,3 +52,16 @@ def test_conversa_nao_gasta_o_teto(tmp_path):
     whatsapp.registrar_envio(con, a, "respondendo a dúvida", "2026-11-24T10:00:00-03:00")
     whatsapp.registrar_envio(con, b, "oi", "2026-11-24T10:05:00-03:00", template_id="pizzaria:0")
     assert cadencia.feitos(con, HOJE) == 1
+
+
+def test_nome_provisorio_nao_vai_no_texto_e_ficha_de_conversa_sem_sugestao(tmp_path):
+    from mfl import mensagens
+    caminho = tmp_path / "t.db"
+    con = db.conectar(caminho)
+    eid = criar_lead(con, "CNPJ 12345678000199", "+5551999990005", ig_username="casa.doce", categoria="Pizzaria")
+    lead = con.execute("SELECT * FROM entity WHERE entity_id=?", (eid,)).fetchone()
+    _, texto = mensagens.sugerir(con, lead, "d0", HOJE)
+    assert "CNPJ" not in texto and "@casa.doce" in texto
+    conversa = criar_lead(con, "Contato (51) 99999-0006", "+5551999990006", status="respondeu")
+    pagina = ui.criar_app(caminho).test_client().get(f"/lead/{conversa}").get_data(as_text=True)
+    assert "Texto sugerido" not in pagina and "Abrir conversa no WhatsApp" in pagina

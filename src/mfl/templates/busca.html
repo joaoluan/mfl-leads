@@ -4,7 +4,7 @@
 <h1>Busca</h1>
 {% if not q %}<p class="sub">Digite um nome, telefone, @ do Instagram ou CNPJ no campo do topo.</p>
 {% else %}
-<p class="sub">{{ leads | length }}{% if leads | length == 50 %}+{% endif %} resultado(s) para "{{ q }}"</p>
+<p class="sub">{{ leads | length }}{% if leads | length == 50 %}+{% endif %} resultado(s) para “{{ q }}”</p>
 {% if leads %}<table>
   <tr><th>Lead</th><th>Status</th><th>Telefone</th><th>Bairro</th><th class="n">Score</th></tr>
   {% for l in leads %}<tr>

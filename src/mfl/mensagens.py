@@ -14,6 +14,7 @@ from urllib.parse import quote
 
 from mfl.classifica import normalizar
 from mfl.db import RAIZ
+from mfl.resolve import PROVISORIO
 
 PASTA = RAIZ / "cfg" / "mensagens"
 CAMPOS = {"nome", "bairro", "sinal", "horario"}
@@ -80,7 +81,10 @@ def sugerir(con: sqlite3.Connection, lead: sqlite3.Row, etapa: str, hoje: date) 
     sinais = json.loads(lead["sinais"] or "[]")
     arquivo = etapa if etapa in ("d3", "d7") else arquivo_d0(lead["categoria"], sinais)
     indice = proxima_variante(con, arquivo)
-    valores = {"nome": lead["fantasia"] or lead["nome"], "bairro": lead["bairro"], "sinal": "", "horario": horario(hoje)}
+    nome = lead["fantasia"] or lead["nome"]
+    if not nome or PROVISORIO.match(nome):  # "CNPJ 123…" não vai no texto; quem ganhou WhatsApp pelo Instagram tem o @
+        nome = f"@{lead['ig_username']}" if lead["ig_username"] else ""
+    valores = {"nome": nome, "bairro": lead["bairro"], "sinal": "", "horario": horario(hoje)}
     return f"{arquivo}:{indice}", preencher(variantes(arquivo)[indice], valores)
 
 

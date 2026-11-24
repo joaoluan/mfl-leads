@@ -3,49 +3,54 @@
 {% block corpo %}
 <div class="topo">
   <h1>Fila de hoje</h1>
-  <span class="suave"><kbd>Enter</kbd> abre o WhatsApp · <kbd>S</kbd> pula · <kbd>F</kbd> abre a ficha</span>
+  <span class="suave atalhos"><kbd>Enter</kbd> abre o WhatsApp, <kbd>S</kbd> pula, <kbd>F</kbd> abre a ficha</span>
 </div>
-<div class="suave"><b>{{ feitos }}</b> de {{ teto }} abordagens hoje{% if motivo_teto %} · teto reduzido: {{ motivo_teto }}{% endif %}</div>
-<div class="barra" role="progressbar" aria-valuenow="{{ feitos }}" aria-valuemax="{{ teto }}" aria-label="Abordagens hoje"><div style="width: {{ [100, (feitos / teto * 100) if teto else 0] | min }}%"></div></div>
-{% if not na_janela %}<div class="faixa">Fora da janela de envio: o dono provavelmente está ocupado agora. Dá para preparar, mas o ideal é mandar no horário.</div>{% endif %}
+<div class="suave"><b>{{ feitos }} de {{ teto }}</b> abordagens feitas hoje{% if motivo_teto %}. Teto reduzido: {{ motivo_teto }}{% endif %}</div>
+<div class="barra" role="progressbar" aria-valuenow="{{ feitos }}" aria-valuemin="0" aria-valuemax="{{ teto }}" aria-label="Abordagens hoje"><div style="width: {{ [100, (feitos / teto * 100) if teto else 0] | min }}%"></div></div>
+{% if not na_janela %}<div class="faixa">Fora da janela de envio: o dono provavelmente está ocupado agora. Você pode preparar, mas mande no horário.</div>{% endif %}
 {% if feitos >= teto %}<div class="faixa ok">Teto do dia atingido. Volte amanhã.</div>{% endif %}
 {% if not cartoes and feitos < teto %}<div class="cartao vazio">Nada na fila agora. Novos leads entram toda noite com o Maps.</div>{% endif %}
 
 {% for c in cartoes %}
-<div class="cartao{{ ' atual' if loop.first }}" data-id="{{ c.lead.entity_id }}">
-  <div class="topo">
+<article class="comanda{{ ' atual' if loop.first }}{{ ' lembrete' if c.etapa != 'd0' }}" data-id="{{ c.lead.entity_id }}" aria-label="{{ c.lead.fantasia or c.lead.nome }}">
+  <div class="canhoto">
+    <span class="etapa">{{ c.etapa | rotulo }}</span>
+    <span><span class="pontos">{{ c.lead.score | int }}</span><span class="pontos-legenda"> pontos</span></span>
+  </div>
+  <div class="corpo">
     <a class="nome" href="/lead/{{ c.lead.entity_id }}">{{ c.lead.fantasia or c.lead.nome }}</a>
-    <span><span class="selo">{{ c.etapa | rotulo }}</span> <span class="suave">score {{ c.lead.score | int }}</span></span>
+    <div class="suave">{{ c.lead.categoria or "Sem categoria" }}{% if c.lead.bairro %} em {{ c.lead.bairro | title }}{% endif %}{% if c.lead.municipio %}, {{ c.lead.municipio | title }}{% endif %}
+      <span class="fone">{{ c.lead.tel1 | fone }}</span></div>
+    {% if c.sinais %}<div class="chips">{% for s in c.sinais %}{% set p = pesos.get(s, 0) %}<span class="chip {{ 'bom' if p > 0 else 'ruim' if p < 0 }}">{{ s | rotulo }}{% if p %} {{ "%+d" | format(p) }}{% endif %}</span>{% endfor %}</div>{% endif %}
+    <div class="texto">{{ c.texto }}</div>
+    <div class="acoes">
+      <a class="botao primario abrir" href="{{ c.link }}" target="whatsapp" data-template="{{ c.template_id }}">Abrir WhatsApp</a>
+      {% if c.lead.ig_username %}<a class="botao" href="https://ig.me/m/{{ c.lead.ig_username }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+      <a class="botao ficha" href="/lead/{{ c.lead.entity_id }}">Ficha</a>
+      <form method="post" action="/pular/{{ c.lead.entity_id }}"><button class="pular" title="Volta para a fila amanhã">Pular</button></form>
+      <form method="post" action="/enviado/{{ c.lead.entity_id }}" class="direita">
+        <input type="hidden" name="texto" value="{{ c.texto }}"><input type="hidden" name="template_id" value="{{ c.template_id }}">
+        <button title="Use só se a Evolution não registrou o envio sozinha">Marcar como enviado</button></form>
+    </div>
   </div>
-  <div class="suave">{{ c.lead.categoria or "sem categoria" }} · {{ c.lead.bairro or "sem bairro" }}{% if c.lead.municipio %}, {{ c.lead.municipio | title }}{% endif %} · {{ c.lead.tel1 | fone }}</div>
-  {% if c.sinais %}<div class="chips">{% for s in c.sinais %}{% set p = pesos.get(s, 0) %}<span class="chip {{ 'bom' if p > 0 else 'ruim' if p < 0 }}">{{ s | rotulo }}{% if p %} {{ "%+d" | format(p) }}{% endif %}</span>{% endfor %}</div>{% endif %}
-  <div class="texto">{{ c.texto }}</div>
-  <div class="acoes">
-    <a class="botao primario abrir" href="{{ c.link }}" target="whatsapp" data-template="{{ c.template_id }}">Abrir WhatsApp</a>
-    {% if c.lead.ig_username %}<a class="botao" href="https://ig.me/m/{{ c.lead.ig_username }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
-    <a class="botao ficha" href="/lead/{{ c.lead.entity_id }}">Ficha</a>
-    <form method="post" action="/pular/{{ c.lead.entity_id }}"><button class="pular" title="Volta amanhã">Pular</button></form>
-    <form method="post" action="/enviado/{{ c.lead.entity_id }}" style="margin-left:auto">
-      <input type="hidden" name="texto" value="{{ c.texto }}"><input type="hidden" name="template_id" value="{{ c.template_id }}">
-      <button title="Só se a Evolution não registrou o envio sozinha">Marcar enviado</button></form>
-  </div>
-</div>
+</article>
 {% endfor %}
 
 <script>
-// Ao abrir o WhatsApp, o cartão fica apagado e o próximo vira o atual (Enter já vai para ele).
+// Ao abrir o WhatsApp, a comanda fica apagada e a próxima vira a atual (Enter já vai para ela).
+const suave = matchMedia("(prefers-reduced-motion: no-preference)").matches ? "smooth" : "auto";
 document.querySelectorAll("a.abrir").forEach(a => a.addEventListener("click", () => {
-  const cartao = a.closest(".cartao");
-  fetch("/api/abrir/" + cartao.dataset.id, {method: "POST", headers: {"Content-Type": "application/json"},
-                                            body: JSON.stringify({template_id: a.dataset.template})});
-  cartao.classList.remove("atual");
-  cartao.classList.add("aberto");
-  const proximo = document.querySelector(".cartao[data-id]:not(.aberto)");
-  if (proximo) { proximo.classList.add("atual"); proximo.scrollIntoView({block: "nearest", behavior: "smooth"}); }
+  const comanda = a.closest(".comanda");
+  fetch("/api/abrir/" + comanda.dataset.id, {method: "POST", headers: {"Content-Type": "application/json"},
+                                             body: JSON.stringify({template_id: a.dataset.template})});
+  comanda.classList.remove("atual");
+  comanda.classList.add("aberta");
+  const proxima = document.querySelector(".comanda:not(.aberta)");
+  if (proxima) { proxima.classList.add("atual"); proxima.scrollIntoView({block: "nearest", behavior: suave}); }
 }));
 document.addEventListener("keydown", e => {
-  if (e.target.closest("input, textarea, select") || e.ctrlKey || e.metaKey || e.altKey) return;
-  const atual = document.querySelector(".cartao.atual"); if (!atual) return;
+  if (e.target.closest("input, textarea, select, button, a") || e.ctrlKey || e.metaKey || e.altKey) return;
+  const atual = document.querySelector(".comanda.atual"); if (!atual) return;
   if (e.key === "Enter") atual.querySelector("a.abrir").click();
   else if (e.key.toLowerCase() === "s") atual.querySelector("button.pular").click();
   else if (e.key.toLowerCase() === "f") atual.querySelector("a.ficha").click();

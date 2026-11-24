@@ -18,6 +18,7 @@ MOTIVOS_DESCARTE = ["sem_whatsapp", "nao_e_restaurante", "franquia", "outro"]
 CLASSES = {"interesse": "respondeu", "preco": "respondeu", "ja_tenho": "objecao", "nao": "frio", "opt_out": None, "outro": None}
 # Classificar resposta só mexe no status de quem está em prospecção: cliente que diz "não" continua cliente.
 EM_CONVERSA = whatsapp.VIRA_RESPONDEU | {"respondeu", "objecao"}
+AVANCO_FICHA = set(whatsapp.AVANCO)  # status em que a cadência ainda manda D0, D3 ou D7
 ROTULOS = {
     "novo": "Novo", "na_fila": "Na fila", "qualificado": "Novo", "enriquecimento": "Sem WhatsApp ainda",
     "enviado_d0": "1ª mensagem enviada", "d3": "Lembrete D3 enviado", "d7": "Lembrete D7 enviado",
@@ -134,6 +135,8 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         lead = lead_ou_404(entity_id)
         etapa = {"enviado_d0": "d3", "d3": "d7"}.get(lead["status"], "d0")
         template_id, texto = mensagens.sugerir(con(), lead, etapa, hoje())
+        if lead["status"] not in AVANCO_FICHA:  # já conversa, é cliente ou saiu: sem texto pronto de prospecção
+            texto = ""
         origem = con().execute("SELECT source, url, captured_at, match_score FROM source_record WHERE entity_id=?"
                                " ORDER BY captured_at", (entity_id,)).fetchall()
         linha = con().execute(
