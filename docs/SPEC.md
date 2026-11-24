@@ -45,7 +45,7 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - CNAE entra: 5611201, 5611203, 5611204, 5611205, 5612100, 5620104, 1091102, 4721102, 4721104.
 - CNAE fora: 5620101, 5620102, 5620103, 1091101, 4721103.
 - Correção: padaria/confeitaria com produção própria é **1091102**, não 5611201.
-- Quem usa concorrente (Goomer, Saipos, Anota AI, LeadsFood etc.) **não é excluído**: vira alvo de troca, com texto próprio e score menor. Franquia/rede continua excluída.
+- Quem usa concorrente (Goomer, Saipos, Anota AI, LeadsFood etc.) **não é excluído**: vira alvo de troca, com texto próprio e score menor. Rede (4+ filiais no mesmo CNPJ) continua excluída. Franquia por nome **entra** desde 24/11/2026 (decisão do operador) e só perde pontos (sinal `franquia`).
 - Exclusões da fila: clientes atuais (Espaço Grill, Fornello Esteio, as 2 pizzarias, a doceria), tenants de teste (Fat Bull, Donilla, Brasa Burger), opt-outs (hash do telefone, bloqueio permanente), fechados permanente ou temporariamente no Maps. Quem já conversou com o operador no pessoal vai para `revisao`.
 
 ### Score (adições)
@@ -81,7 +81,7 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - Baixa só Estabelecimentos, Empresas, Cnaes e Municipios pelo WebDAV público do compartilhamento. Sócios e Simples ficam de fora (LGPD; nada usa).
 - Razão social não entra no Parquet: em MEI ela traz nome e CPF.
 - Os CSVs são convertidos para UTF-8 na extração: o leitor latin-1 do DuckDB recusa bytes de controle presentes nos arquivos da Receita.
-- Recorte (municípios, CNAEs, limite de rede) fica em `cfg/icp.toml` [recorte]; franquias em `cfg/franquias.txt` (palavra inteira no nome fantasia).
+- Recorte (municípios, CNAEs, limite de rede) fica em `cfg/icp.toml` [recorte]; franquias em `cfg/franquias.txt` (palavra inteira no nome fantasia; só alimenta o sinal `franquia` do score).
 - "Rede" = mesmo CNPJ básico com 4+ estabelecimentos ativos **no RS** (só temos RS).
 - Lead do CNPJ entra como `enriquecimento`, telefone da Receita em `tel2` (para cruzar fontes), categoria = descrição do CNAE.
 - Primeira carga (2026-11): 1.777.043 estabelecimentos ativos no RS, 39.338 no recorte.
@@ -90,7 +90,7 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - Binário gosom/google-maps-scraper v1.20.0 em `bin/` (fora do git); SHA256 em `bin/SHA256SUMS`, conferido a cada execução. Telemetria desligada.
 - Um bairro por execução (`make maps BAIRRO=<chave>`); bairros e bbox em `cfg/bairros.toml`, gerado uma vez do OpenStreetMap (`mfl bairros-gerar`). Célula de 0,5 km, maior em área grande (máx. ~60 células). `mfl maps-fila` raspa os bairros nunca raspados ou com mais de 60 dias, POA e NH primeiro.
 - Consultas em `cfg/maps_consultas.txt`. A v1.20.0 às vezes não sai do processo após terminar: o wrapper encerra 15 s depois de "scrapemate exited"; teto de 1800 s.
-- Ingestão idempotente por place_id. Descarta fechado, fora dos municípios do recorte e franquia. Telefone celular válido → `novo` (apto para a fila); fixo ou sem telefone → `enriquecimento`. E-mail só se o domínio tem MX.
+- Ingestão idempotente por place_id. Descarta fechado e fora dos municípios do recorte (franquia entra e só perde pontos). Telefone celular válido → `novo` (apto para a fila); fixo ou sem telefone → `enriquecimento`. E-mail só se o domínio tem MX.
 - Resolução: regra da spec (0,35 CEP5 + 0,35 telefone + 0,30 nome) com ajustes: telefone igual vincula sozinho, exceto telefone repetido entre CNPJs (contador); CEP completo + nome ≥ 0,85 vincula; palavras genéricas (pizzaria, restaurante…) fora da comparação. 0,55–0,85 vai para a tela Revisão.
 
 ### Score (fase 6)
