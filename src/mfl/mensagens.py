@@ -37,11 +37,13 @@ def variantes(arquivo: str) -> list[str]:
 
 
 def arquivo_d0(categoria: str | None, fontes: set[str], sinais: list[str] = ()) -> str:
-    """Quem está no grupo recebe o texto do grupo, mesmo depois de ganhar CNPJ ou Maps. Quem usa concorrente, o de troca."""
+    """Quem está no grupo recebe o texto do grupo, mesmo depois de ganhar CNPJ ou Maps. Quem usa concorrente, o de troca; quem vende no iFood, o do pedido direto."""
     if "grupo" in fontes:
         return "grupo"
     if "usa_concorrente" in sinais:
         return "concorrente"
+    if "vende_ifood" in sinais:
+        return "ifood"
     limpo = normalizar(categoria or "")
     return next((nome for nome, padrao in CATEGORIAS if re.search(padrao, limpo)), "restaurante")
 

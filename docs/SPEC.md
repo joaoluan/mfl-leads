@@ -111,6 +111,11 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - Sinais: wa_me_na_bio, ig_ativo_30d (post nos últimos 30 dias), ig_inativo_6m (último post há mais de 180 dias ou nenhum), usa_concorrente (link de plataforma).
 - shortcut: telefone que só aparece no botão "Contato" (exige clique) e links encurtados (wa.link, contate.me) não são lidos.
 
+### iFood (fase 8)
+- O iFood usa proteção anti-robô (PerimeterX): bloqueia acesso direto (403) e a lista de lojas só aparece depois de escolher endereço na tela. Contornar isso com navegador camuflado é burlar detecção de robô: **não raspamos o iFood** e ele não é fonte de leads novos.
+- O sinal `vende_ifood` (+10) sai do que já coletamos: link `ifood.com.br` no Maps (site, pedido online) ou no Instagram, ou "iFood" nas avaliações do Maps ou na bio.
+- Quem vende no iFood recebe `cfg/mensagens/ifood.md` (pedido direto sem comissão). Ordem do texto D0: grupo > concorrente > iFood > categoria.
+
 ### Fases (parar em cada uma, um PR por fase)
 1. Esqueleto, schema, seed por CSV, export.
 2. Evolution: envios e respostas, participantes do grupo, palavra-chave, opt-out.
