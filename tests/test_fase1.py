@@ -14,7 +14,7 @@ def con(tmp_path):
 
 
 def test_seed_normaliza_e_deduplica(con):
-    assert seed.importar(con, CSV) == {"novos": 2, "repetidos": 1, "invalidos": 1, "sem_telefone": 1}
+    assert seed.importar(con, CSV) == {"novos": 2, "repetidos": 1, "invalidos": 1, "sem_telefone": 1, "bloqueados": 0}
     tels = {r["tel1"] for r in con.execute("SELECT tel1 FROM entity WHERE tel1 IS NOT NULL")}
     assert tels == {"+5551999990001", "+5551999990002"}
     sem = con.execute("SELECT status FROM entity WHERE nome='Sem Telefone Valido'").fetchone()
@@ -23,7 +23,7 @@ def test_seed_normaliza_e_deduplica(con):
 
 def test_seed_rodar_de_novo_nao_duplica(con):
     seed.importar(con, CSV)
-    assert seed.importar(con, CSV) == {"novos": 0, "repetidos": 4, "invalidos": 1, "sem_telefone": 0}
+    assert seed.importar(con, CSV) == {"novos": 0, "repetidos": 4, "invalidos": 1, "sem_telefone": 0, "bloqueados": 0}
     assert con.execute("SELECT count(*) FROM entity").fetchone()[0] == 3
     assert con.execute("SELECT count(*) FROM source_record").fetchone()[0] == 3
 
