@@ -271,8 +271,12 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
             f" FROM entity e WHERE {onde} ORDER BY {ordem}, entity_id LIMIT {POR_PAGINA} OFFSET {(pagina - 1) * POR_PAGINA}",
             p).fetchall()
         filtros_url = {k: v for k, v in a.items() if k != "pagina" and v}
+        esteira = _esteira(con())
         return render_template("leads.html", leads=linhas, total=total, pagina=pagina, paginas=paginas, filtros=filtros_url,
-                               cidades=cidades, status_todos=STATUS_TODOS)
+                               cidades=cidades, status_todos=STATUS_TODOS, bairros_feitos=esteira["bairros_feitos"],
+                               bairros_total=esteira["bairros_total"],
+                               sem_telefone=0 if a.get("whatsapp") else con().execute(
+                                   "SELECT count(*) FROM entity WHERE tel1 IS NULL").fetchone()[0])
 
     @app.get("/coleta")
     def coleta() -> str:

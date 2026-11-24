@@ -15,11 +15,21 @@ from pathlib import Path
 from mfl import bairros
 from mfl.db import RAIZ
 
-ROTINAS = {  # job -> (nome na tela, timer do systemd)
-    "maps": ("Google Maps", "mfl-maps.timer"),
-    "ig": ("Instagram", "mfl-ig.timer"),
-    "diario": ("Rotina diária (cadência, score, backup)", "mfl-diario.timer"),
-    "cnpj": ("CNPJ da Receita (mensal)", "mfl-cnpj.timer"),
+ROTINAS = {  # job -> (nome na tela, timer do systemd, o que faz)
+    "maps": ("Google Maps", "mfl-maps.timer",
+             "Procura comida no mapa, bairro por bairro (restaurante, pizzaria, padaria…). De cada lugar pega nome, "
+             "telefone, site, Instagram, nota e avaliações. Junta com o lead que já existe ou cria um novo. "
+             "É a principal fonte de telefone."),
+    "ig": ("Instagram", "mfl-ig.timer",
+           "Não procura casas novas: completa as que já existem. Acha o @ nos links do Maps e nos sites e visita até "
+           "30 perfis por dia, primeiro os leads sem WhatsApp. Se a bio tem WhatsApp, o lead entra na fila. Também vê "
+           "se a casa posta e se vende no iFood (sinais do score)."),
+    "diario": ("Rotina diária", "mfl-diario.timer",
+               "Atualiza a cadência (quem passou de 3 ou 7 dias sem resposta vira lembrete; depois do D7, frio), "
+               "recalcula o score de todos e faz o backup."),
+    "cnpj": ("CNPJ da Receita", "mfl-cnpj.timer",
+             "Uma vez por mês baixa a base da Receita e atualiza as empresas de comida das cidades do recorte "
+             "(nome, endereço, data de abertura, filiais). Não traz telefone útil: o da Receita costuma ser do contador."),
 }
 EVENTOS = {"maps_ingerido": "Bairro raspado", "maps_bairro_falhou": "Bairro falhou", "maps_fila": "Lote do Maps terminou",
            "ig_rodado": "Perfis do Instagram visitados", "ig_checkpoint": "Instagram pediu verificação",
@@ -43,7 +53,7 @@ def rodando(valor: str | None) -> bool:
 
 
 def _proximas() -> dict[str, str]:
-    timers = [t for _, t in ROTINAS.values()]
+    timers = [t for _, t, _ in ROTINAS.values()]
     try:
         saida = subprocess.run(["systemctl", "--user", "show", *timers, "-p", "Id", "-p", "NextElapseUSecRealtime"],
                                capture_output=True, text=True, timeout=5).stdout
@@ -62,13 +72,30 @@ def rotinas(con: sqlite3.Connection) -> list[dict]:
     estado = {r[0][4:]: (r[1], r[2]) for r in con.execute("SELECT chave, valor, atualizado_em FROM estado WHERE chave LIKE 'job:%'")}
     proximas = _proximas()
     linhas = []
-    for job, (nome, timer) in ROTINAS.items():
+    for job, (nome, timer, explica) in ROTINAS.items():
         valor, quando = estado.get(job, (None, None))
         situacao = "rodando" if rodando(valor) else "erro" if (valor or "").startswith("erro") else \
             "ok" if valor == "ok" else "interrompido" if valor else "nunca rodou"
-        linhas.append({"job": job, "nome": nome, "situacao": situacao, "detalhe": valor if situacao == "erro" else "",
-                       "quando": quando, "proxima": proximas.get(timer, "")})
+        linhas.append({"job": job, "nome": nome, "explica": explica, "situacao": situacao,
+                       "detalhe": valor if situacao == "erro" else "", "quando": quando, "proxima": proximas.get(timer, ""),
+                       "andamento": _andamento(con, job) if situacao == "rodando" else ""})
     return linhas
+
+
+def _andamento(con: sqlite3.Connection, job: str) -> str:
+    """O que dá para mostrar enquanto roda: o Maps só grava no fim do bairro, então lê o log do raspador."""
+    if job == "maps":
+        logs = sorted((RAIZ / "logs" / "maps").glob("*.log"), key=lambda p: p.stat().st_mtime)
+        if not logs:
+            return ""
+        nome = bairros.carregar().get(logs[-1].stem, {}).get("nome", logs[-1].stem)
+        paginas = logs[-1].read_text(encoding="utf-8", errors="replace").count('"message":"job finished"')
+        return f"Raspando {nome}: {paginas} páginas lidas até agora"
+    if job == "ig":
+        feitos = con.execute("SELECT count(*) FROM source_record WHERE source='instagram'"
+                             " AND substr(captured_at,1,10)=date('now','localtime')").fetchone()[0]
+        return f"{feitos} perfis visitados hoje"
+    return ""
 
 
 def eventos(job: str, quantos: int = 40) -> list[dict]:

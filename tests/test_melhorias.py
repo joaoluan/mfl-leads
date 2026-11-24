@@ -144,6 +144,6 @@ def test_coleta_dispara_so_acoes_conhecidas(tmp_path, monkeypatch):
     assert cliente.post("/coleta/rodar", data={"acao": "rm"}).status_code == 400
     with ops.job(con, "ig"):  # rodando: não dispara de novo e a tela mostra
         assert "aviso=rodando" in cliente.post("/coleta/rodar", data={"acao": "ig"}).headers["Location"]
-        assert "Rodando agora" in cliente.get("/coleta").get_data(as_text=True)
+        assert "Rodando desde" in cliente.get("/coleta").get_data(as_text=True)
     assert len(disparos) == 2
     assert con.execute("SELECT valor FROM estado WHERE chave='job:ig'").fetchone()[0] == "ok"
