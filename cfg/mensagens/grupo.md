@@ -1,14 +1,20 @@
-Oi! Aqui é o João, a gente tá junto no grupo GESTORES Gastronômicos.
-Toquei restaurante 15 anos em Porto Alegre e montei o MyFoodLink: atendimento e pedidos pelo WhatsApp, cardápio digital e delivery sem comissão.
-Posso liberar 30 dias grátis pra tu testar na tua casa?
-Se não quiser receber mensagens, é só responder SAIR.
+Opa, tudo bem? João aqui, também tô no grupo GESTORES Gastronômicos.
+
+Toquei restaurante por 15 anos em Porto Alegre e agora tô com um projeto próprio, o MyFoodLink: atendimento e pedidos pelo WhatsApp, cardápio digital e delivery sem comissão.
+
+Posso te mandar o site pra tu dar uma olhada?
+Se não fizer sentido pra ti, é só responder SAIR que eu não mando mais.
 ---
-Oi, tudo bem? João aqui, do grupo GESTORES Gastronômicos.
-Pergunta rápida: hoje os pedidos e reservas da tua casa chegam pelo WhatsApp e alguém responde na mão?
-Fiz um sistema que resolve isso e libero 30 dias grátis pra testar.
-Se preferir não receber, responde SAIR.
+Opa, tudo certo? Aqui é o João, do grupo GESTORES Gastronômicos.
+
+Depois de 15 anos tocando restaurante em POA, montei o MyFoodLink pra resolver o que mais me incomodava: pedido perdido no WhatsApp e comissão de app.
+
+Posso te mandar o site pra tu ver como funciona?
+Se não quiser receber mensagens, responde SAIR.
 ---
-Oi! Sou o João, do GESTORES Gastronômicos, 15 anos de restaurante em POA.
-Criei o MyFoodLink pra dono de restaurante parar de perder pedido no WhatsApp e de pagar comissão alta de app.
-Quer testar 30 dias grátis, sem contrato?
-Se não quiser mais mensagens, responde SAIR.
+Opa! João aqui, a gente tá junto no GESTORES Gastronômicos.
+
+Fui dono de restaurante 15 anos em Porto Alegre e hoje toco o MyFoodLink: atendimento e pedidos pelo WhatsApp, cardápio digital e delivery sem comissão.
+
+Te mando o site pra dar uma olhada?
+Se preferir não receber, é só responder SAIR.

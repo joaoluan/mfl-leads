@@ -16,7 +16,7 @@ from mfl.db import RAIZ
 
 PASTA = RAIZ / "cfg" / "mensagens"
 CAMPOS = {"nome", "bairro", "sinal", "horario"}
-SEM_SAIR = {"preco", "ja_tenho"}  # respostas a quem já está conversando
+SEM_SAIR = {"preco", "ja_tenho", "interesse"}  # respostas a quem já está conversando
 DIAS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
 # Ordem importa: "lanchonete de açaí" não pode cair em bar, "padaria e confeitaria" em lanchonete.
 CATEGORIAS = [
@@ -62,10 +62,14 @@ def horario(hoje: date) -> str:
 
 
 def preencher(texto: str, valores: dict[str, str]) -> str:
-    """Placeholder vazio some; linha que ficou vazia também."""
-    cheio = texto.format_map({c: valores.get(c) or "" for c in CAMPOS})
-    linhas = [re.sub(r" {2,}", " ", l).strip() for l in cheio.splitlines()]
-    return "\n".join(l for l in linhas if l)
+    """Placeholder vazio some, e a linha que só tinha ele também; linha em branco do autor fica (parágrafo)."""
+    mapa = {c: valores.get(c) or "" for c in CAMPOS}
+    saida: list[str] = []
+    for original in texto.splitlines():
+        linha = re.sub(r" {2,}", " ", original.format_map(mapa)).strip()
+        if linha or ("{" not in original and saida and saida[-1]):
+            saida.append(linha)
+    return "\n".join(saida).strip()
 
 
 def sugerir(con: sqlite3.Connection, lead: sqlite3.Row, etapa: str, fontes: set[str], hoje: date) -> tuple[str, str]:

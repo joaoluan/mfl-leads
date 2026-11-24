@@ -58,6 +58,9 @@ def test_rodizio_nao_repete_variante(con):
 
 def test_preencher_some_com_vazio_e_horario():
     assert mensagens.preencher("Oi {nome}!\n{sinal}\nTchau", {"nome": "Casa"}) == "Oi Casa!\nTchau"
+    # parágrafo do autor fica; placeholder vazio entre parágrafos não deixa linha dupla
+    assert mensagens.preencher("A\n\nB\n{sinal}\n\nC", {}) == "A\n\nB\n\nC"
+    assert mensagens.preencher("A\n\n{sinal}\n\nC", {}) == "A\n\nC"
     assert mensagens.horario(date(2026, 11, 24)) == "amanhã às 15h"
     assert mensagens.horario(date(2026, 11, 28)) == "segunda às 15h"  # sábado pula domingo
     assert "text=Oi%20tudo%0Abem" in mensagens.link_whatsapp("+5551999990001", "Oi tudo\nbem")

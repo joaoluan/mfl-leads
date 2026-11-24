@@ -135,7 +135,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         itens = con().execute(
             "SELECT r.*, e.nome, e.fantasia, e.tel1, e.status FROM reply r JOIN entity e USING(entity_id)"
             " WHERE r.revisado=0 ORDER BY r.recebido_em DESC").fetchall()
-        sugestoes = {a: mensagens.resposta_sugerida(a, hoje()) for a in ("preco", "ja_tenho")}
+        sugestoes = {a: mensagens.resposta_sugerida(a, hoje()) for a in ("interesse", "preco", "ja_tenho")}
         return render_template("respostas.html", itens=itens, classes=list(CLASSES), sugestoes=sugestoes)
 
     @app.post("/respostas/<int:reply_id>")
