@@ -138,25 +138,34 @@ def _api(metodo: str, caminho: str, corpo: dict | None = None):
         return json.load(resposta)
 
 
-def visitar(username: str) -> dict:
-    """Abre o perfil numa aba nova, lê a página e fecha a aba (a sessão fica, para não deslogar)."""
+def _abrir_aba(url: str) -> str:
     for tentativa in range(10):
         try:
-            aba = _api("POST", "/tabs", {"userId": USUARIO, "sessionKey": uuid.uuid4().hex,
-                                         "url": f"https://www.instagram.com/{username}/"})["tabId"]
-            break
+            return _api("POST", "/tabs", {"userId": USUARIO, "sessionKey": uuid.uuid4().hex, "url": url})["tabId"]
         except urllib.error.HTTPError as erro:
             if erro.code != 503 or tentativa == 9:
                 raise
             time.sleep(3)  # 503: o camofox está reabrindo o navegador ocioso
-    try:
-        time.sleep(ESPERA_PAGINA)
-        return _api("POST", f"/tabs/{aba}/evaluate", {"userId": USUARIO, "expression": JS_PERFIL})["result"]
-    finally:
+
+
+def visitar(username: str) -> dict:
+    """Abre o perfil numa aba nova, lê a página e fecha a aba (a sessão fica, para não deslogar)."""
+    for tentativa in range(3):
+        aba = _abrir_aba(f"https://www.instagram.com/{username}/")
         try:
-            _api("DELETE", f"/tabs/{aba}?userId={USUARIO}")
-        except (urllib.error.URLError, OSError):
-            pass
+            time.sleep(ESPERA_PAGINA)
+            return _api("POST", f"/tabs/{aba}/evaluate", {"userId": USUARIO, "expression": JS_PERFIL})["result"]
+        except urllib.error.HTTPError as erro:
+            # 410: o camofox reiniciou o navegador (pressão de memória) com a aba aberta; abre de novo
+            if erro.code != 410 or tentativa == 2:
+                raise
+            log.warning("ig_aba_perdida", perfil=username, tentativa=tentativa + 1)
+            time.sleep(5)
+        finally:
+            try:
+                _api("DELETE", f"/tabs/{aba}?userId={USUARIO}")
+            except (urllib.error.URLError, OSError):
+                pass
 
 
 def extrair_handles(con: sqlite3.Connection, buscar_site=None) -> int:
