@@ -40,7 +40,7 @@ def test_telefone_e_jid():
 
 
 @pytest.mark.parametrize("texto,rotulo", [
-    ("SAIR", "opt_out"), ("Sair.", "opt_out"), ("por favor não me mande mais", "opt_out"),
+    ("SAIR", "opt_out"), ("Sair.", "opt_out"), ("Bom dia!\nSAIR", "opt_out"), ("Claro", "interesse"), ("por favor não me mande mais", "opt_out"),
     ("Quanto custa?", "preco"), ("já uso o Goomer", "ja_tenho"), ("não tenho interesse", "nao"),
     ("como funciona?", "interesse"), ("bom dia", None), ("vou sair às 15h", None),
 ])

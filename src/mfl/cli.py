@@ -12,7 +12,7 @@ import structlog
 import typer
 from dotenv import load_dotenv
 
-from mfl import db, evolution, export, log, seed, ui, webhook, whatsapp
+from mfl import cnpj_baixar, cnpj_etl, cnpj_icp, db, evolution, export, log, seed, ui, webhook, whatsapp
 from mfl.fone import de_jid, para_e164
 
 app = typer.Typer(no_args_is_help=True)
@@ -129,3 +129,31 @@ def cmd_marcar(telefone: str, status: str = typer.Argument(..., help="cliente | 
     else:
         whatsapp.mudar_status(con, entity_id, status, "manual" if status == "descartado" else None)
         con.commit()
+
+
+@app.command("cnpj-baixar")
+def cmd_cnpj_baixar(mes: str = typer.Argument(..., help="AAAA-MM, ex.: 2026-11")) -> None:
+    """Baixa os zips do CNPJ necessários para data/cnpj/raw/<mes> (retoma se cair)."""
+    log.configurar("cnpj")
+    cnpj_baixar.baixar(mes, db.RAIZ / "data" / "cnpj" / "raw" / mes)
+
+
+@app.command("cnpj-etl")
+def cmd_cnpj_etl(mes: str = typer.Argument(..., help="AAAA-MM já baixado"),
+                 manter_zips: bool = typer.Option(False, help="Não apagar os zips depois")) -> None:
+    """Converte os zips do mês em data/parquet (só RS ativo)."""
+    log.configurar("cnpj")
+    raw = db.RAIZ / "data" / "cnpj" / "raw" / mes
+    zips = sorted(raw.glob("*.zip"))
+    cnpj_etl.converter(zips, db.RAIZ / "data" / "parquet", db.RAIZ / "data" / "cnpj" / "tmp")
+    if not manter_zips:
+        for z in zips:
+            z.unlink()
+
+
+@app.command("cnpj-icp")
+def cmd_cnpj_icp() -> None:
+    """Aplica o recorte (cfg/icp.toml + cfg/franquias.txt) e grava os leads no banco."""
+    log.configurar("cnpj")
+    linhas = cnpj_icp.consultar(db.RAIZ / "data" / "parquet", cnpj_icp.recorte(), cnpj_icp.termos_franquia())
+    cnpj_icp.ingerir(db.conectar(), linhas, "https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9")

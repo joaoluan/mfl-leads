@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Esteira local de leads do MyFoodLink"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "duckdb>=2.0.1",
     "flask>=3.1.3",
     "phonenumbers>=9.0.44",
     "pydantic>=2.14.4",

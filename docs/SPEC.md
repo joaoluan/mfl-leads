@@ -78,6 +78,15 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - "Quem já conversou no pessoal" não é detectável sem sincronizar histórico; ao abrir o WhatsApp Web a conversa anterior aparece e o operador decide.
 - A UI escuta só em 127.0.0.1:8000 (sem login). Serviço `ops/mfl-ui.service`.
 
+### CNPJ (fase 4)
+- Baixa só Estabelecimentos, Empresas, Cnaes e Municipios pelo WebDAV público do compartilhamento. Sócios e Simples ficam de fora (LGPD; nada usa).
+- Razão social não entra no Parquet: em MEI ela traz nome e CPF.
+- Os CSVs são convertidos para UTF-8 na extração: o leitor latin-1 do DuckDB recusa bytes de controle presentes nos arquivos da Receita.
+- Recorte (municípios, CNAEs, limite de rede) fica em `cfg/icp.toml` [recorte]; franquias em `cfg/franquias.txt` (palavra inteira no nome fantasia).
+- "Rede" = mesmo CNPJ básico com 4+ estabelecimentos ativos **no RS** (só temos RS).
+- Lead do CNPJ entra como `enriquecimento`, telefone da Receita em `tel2` (para cruzar fontes), categoria = descrição do CNAE.
+- Primeira carga (2026-11): 1.777.043 estabelecimentos ativos no RS, 39.338 no recorte.
+
 ### Fases (parar em cada uma, um PR por fase)
 1. Esqueleto, schema, seed por CSV, export.
 2. Evolution: envios e respostas, participantes do grupo, palavra-chave, opt-out.

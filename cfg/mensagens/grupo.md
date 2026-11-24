@@ -14,7 +14,7 @@ Se não quiser receber mensagens, responde SAIR.
 ---
 Opa! João aqui, a gente tá junto no GESTORES Gastronômicos.
 
-Fui dono de restaurante 15 anos em Porto Alegre e hoje toco o MyFoodLink: atendimento e pedidos pelo WhatsApp, cardápio digital e delivery sem comissão.
+Fui dono e gerente de restaurante 15 anos em Porto Alegre e hoje toco o MyFoodLink: atendimento e pedidos pelo WhatsApp, cardápio digital e delivery sem comissão.
 
 Te mando o site pra dar uma olhada?
 Se preferir não receber, é só responder SAIR.
