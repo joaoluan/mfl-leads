@@ -41,7 +41,7 @@ def _dominio(url: str | None) -> str:
 
 def sinais(lead: sqlite3.Row | dict, fontes: dict[str, list[dict]], perto: set[str], hoje: date,
            categorias_clientes: set[str], franquias: re.Pattern | None) -> list[str]:
-    s = []
+    s = ["vende_ifood"] if fontes.get("ifood") else []
     maps = fontes.get("maps", [])
     cnpj = fontes.get("cnpj", [])
     if arquivo_d0(lead["categoria"]) in categorias_clientes:
@@ -71,7 +71,7 @@ def sinais(lead: sqlite3.Row | dict, fontes: dict[str, list[dict]], perto: set[s
         avaliacoes = [normalizar(r.get("Description") or "") for m in maps for r in m.get("user_reviews") or []]
         if any(DEMORA.search(a) for a in avaliacoes if not IFOOD.search(a)):
             s.append("reclamacao_demora")
-        if any("ifood.com.br" in l.lower() for l in links) or any(IFOOD.search(a) for a in avaliacoes):
+        if "vende_ifood" not in s and (any("ifood.com.br" in l.lower() for l in links) or any(IFOOD.search(a) for a in avaliacoes)):
             s.append("vende_ifood")
         if ENCOMENDA.search(normalizar(f"{lead['categoria'] or ''} {lead['nome'] or ''}")) or any("encomenda" in a for a in avaliacoes):
             s.append("aceita_encomenda")

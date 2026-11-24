@@ -1,4 +1,4 @@
-.PHONY: export test etl icp maps score ig
+.PHONY: export test etl icp maps score ig ifood
 
 export:
 	uv run mfl export
@@ -23,3 +23,7 @@ score:
 ig:
 	uv run mfl ig-handles
 	uv run mfl ig --limite $(or $(N),30)
+
+ifood:
+	@test -n "$(ENDERECO)" || (echo "uso: make ifood ENDERECO='Rua, número, cidade - RS'" >&2; exit 2)
+	uv run mfl ifood "$(ENDERECO)" --limite $(or $(N),30)

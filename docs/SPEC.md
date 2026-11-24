@@ -110,8 +110,12 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - shortcut: telefone que só aparece no botão "Contato" (exige clique) e links encurtados (wa.link, contate.me) não são lidos.
 
 ### iFood (fase 8)
-- O iFood usa proteção anti-robô (PerimeterX): bloqueia acesso direto (403) e a lista de lojas só aparece depois de escolher endereço na tela. Contornar isso com navegador camuflado é burlar detecção de robô: **não raspamos o iFood** e ele não é fonte de leads novos.
-- O sinal `vende_ifood` (+10) sai do que já coletamos: link `ifood.com.br` no Maps (site, pedido online) ou no Instagram, ou "iFood" nas avaliações do Maps ou na bio.
+- Decisão atualizada pelo operador: o iFood também é fonte de leads novos. `mfl ifood "Rua, número, cidade - RS" --limite 30` (1–100) ou formulário em Coleta. Execução manual por ponto de entrega, sem timer novo.
+- Usa o camofox-browser já instalado, sessão própria `mfl-ifood`, sem conta. Seleciona endereço pelas telas públicas, lê os cartões e tenta obter endereço/CEP da loja no JSON-LD. Sem chamadas diretas a APIs do iFood, resolver CAPTCHA ou insistir em bloqueio.
+- Guarda só UUID da loja, nome, categoria, município, endereço/CEP quando disponíveis, URL, data e hash. Não guarda endereço de entrega, HTML, cardápio, avaliações ou dados de consumidores. UUID evita duplicatas entre pontos de entrega; lojas já importadas são puladas.
+- Só cidades do recorte e sem franquias. Telefone continua vindo do Maps/Instagram: loja nova fica em `enriquecimento`. Endereço/CEP e nome usam a resolução existente; sem endereço suficiente, nome parecido na mesma cidade vai apenas para Revisão, inclusive quando o Maps chega depois. Não altera telefone nem promove o status de um lead existente.
+- O site pode bloquear detalhes (403) mesmo mostrando cartões: nesse caso importa a lista, avisa no log e deixa os vínculos para Revisão. Verificação ou etapa que não carrega interrompe o job com erro visível em Coleta.
+- O sinal `vende_ifood` (+10) sai também da fonte `ifood`. Continuam valendo link `ifood.com.br` no Maps/Instagram ou "iFood" nas avaliações do Maps/bio, sem somar o sinal duas vezes.
 - Quem vende no iFood recebe `cfg/mensagens/ifood.md` (pedido direto sem comissão). Ordem do texto D0: concorrente > iFood > categoria.
 
 ### Operação (fase 9)

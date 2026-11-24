@@ -24,6 +24,9 @@ ROTINAS = {  # job -> (nome na tela, timer do systemd, o que faz)
            "Não procura casas novas: completa as que já existem. Acha o @ nos links do Maps e nos sites e visita até "
            "30 perfis por dia, primeiro os leads sem WhatsApp. Se a bio tem WhatsApp, o lead entra na fila. Também vê "
            "se a casa posta e se vende no iFood (sinais do score)."),
+    "ifood": ("iFood", "",
+              "Descobre lojas que entregam perto do endereço escolhido abaixo. Guarda nome, categoria e fonte. "
+              "Vincula por endereço quando disponível; nome parecido vai para Revisão. Sem telefone, aguarda Maps ou Instagram."),
     "diario": ("Rotina diária", "mfl-diario.timer",
                "Atualiza a cadência (quem passou de 3 ou 7 dias sem resposta vira lembrete; depois do D7, frio), "
                "recalcula o score de todos e faz o backup."),
@@ -32,11 +35,12 @@ ROTINAS = {  # job -> (nome na tela, timer do systemd, o que faz)
              "(nome, endereço, data de abertura, filiais). Não traz telefone útil: o da Receita costuma ser do contador."),
 }
 EVENTOS = {"maps_ingerido": "Bairro raspado", "maps_bairro_falhou": "Bairro falhou", "maps_fila": "Lote do Maps terminou",
+           "ifood_ingerido": "Lojas do iFood importadas", "ifood_sem_endereco": "iFood não mostrou endereço das lojas",
            "ig_rodado": "Perfis do Instagram visitados", "ig_checkpoint": "Instagram pediu verificação",
            "ig_em_checkpoint": "Instagram parado (verificação)", "ig_handles": "@ do Instagram achados",
            "score_recalculado": "Score recalculado", "job_ja_rodando": "Já estava rodando", "backup": "Backup",
            "bairros_gerados": "Lista de bairros gerada", "cidade": "Bairros da cidade lidos"}
-LOGS = {"maps": "Google Maps", "ig": "Instagram", "ops": "Rotinas", "score": "Score", "cnpj": "CNPJ", "evolution": "WhatsApp"}
+LOGS = {"maps": "Google Maps", "ig": "Instagram", "ifood": "iFood", "ops": "Rotinas", "score": "Score", "cnpj": "CNPJ", "evolution": "WhatsApp"}
 
 
 def disparar(job: str, *args: str) -> None:
@@ -53,7 +57,7 @@ def rodando(valor: str | None) -> bool:
 
 
 def _proximas() -> dict[str, str]:
-    timers = [t for _, t, _ in ROTINAS.values()]
+    timers = [t for _, t, _ in ROTINAS.values() if t]
     try:
         saida = subprocess.run(["systemctl", "--user", "show", *timers, "-p", "Id", "-p", "NextElapseUSecRealtime"],
                                capture_output=True, text=True, timeout=5).stdout

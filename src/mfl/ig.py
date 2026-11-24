@@ -23,12 +23,12 @@ import structlog
 from rapidfuzz import fuzz
 
 from mfl import resolve
+from mfl.camofox import api as _api
 from mfl.score import CONCORRENTE
 from mfl.db import FUSO, LOTE, agora
 from mfl.fone import WHATSAPP, celular, para_e164, whatsapp_em
 
 log = structlog.get_logger()
-API = os.environ.get("MFL_CAMOFOX_URL", "http://127.0.0.1:9377")
 # Mesma sessão do script baixar-insta (onde a conta secundária está logada).
 USUARIO = os.environ.get("MFL_CAMOFOX_USER", "baixar-insta")
 POR_DIA = 30
@@ -129,13 +129,6 @@ def telefone_nos_links(links: list[str], baixar) -> str | None:
         if tel:
             return tel
     return None
-
-
-def _api(metodo: str, caminho: str, corpo: dict | None = None):
-    pedido = urllib.request.Request(API + caminho, method=metodo, headers={"Content-Type": "application/json"},
-                                    data=json.dumps(corpo).encode() if corpo is not None else None)
-    with urllib.request.urlopen(pedido, timeout=90) as resposta:
-        return json.load(resposta)
 
 
 def visitar(username: str) -> dict:

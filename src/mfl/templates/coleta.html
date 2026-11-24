@@ -21,7 +21,8 @@ tr[aria-current] td { background:var(--realce); }
 {% if ig_checkpoint %}<div class="faixa erro">O Instagram pediu login ou verificação: a coleta de perfis está parada. Rode <code>baixar-insta --login</code> e depois <code>mfl ig --retomar</code>.</div>{% endif %}
 
 <h2>Rotinas</h2>
-<p class="suave">Todas rodam sozinhas de madrugada. “Rodar agora” faz a mesma coisa na hora, em segundo plano: pode fechar a página.</p>
+<p class="suave">Maps, Instagram, CNPJ e rotina diária rodam de madrugada. O iFood roda pelo endereço escolhido abaixo.
+  As coletas manuais rodam em segundo plano: pode fechar a página.</p>
 <table>
   <tr><th>Rotina</th><th>Situação</th><th>Última vez</th><th>Próxima automática</th><th></th></tr>
   {% for r in rotinas %}<tr>
@@ -35,7 +36,7 @@ tr[aria-current] td { background:var(--realce); }
     <td>{{ r.proxima | quando }}</td>
     <td>{% if r.job in ("ig", "diario") %}<form method="post" action="/coleta/rodar"><input type="hidden" name="acao" value="{{ r.job }}">
         <button {{ 'disabled' if r.situacao == 'rodando' }}>Rodar agora</button></form>
-        {% elif r.job == "maps" %}<a href="#maps" class="suave">escolha abaixo</a>{% endif %}</td>
+        {% elif r.job in ("maps", "ifood") %}<a href="#{{ r.job }}" class="suave">escolha abaixo</a>{% endif %}</td>
   </tr>{% endfor %}
 </table>
 <form method="post" action="/coleta/rodar" class="linha-acao"><input type="hidden" name="acao" value="score"><input type="hidden" name="cidade" value="{{ cidade }}">
@@ -77,6 +78,17 @@ tr[aria-current] td { background:var(--realce); }
     </table></div>{% else %}<p class="suave">Nenhum bairro cadastrado para esta cidade.</p>{% endif %}
   </section>
 </div>
+
+<h2 id="ifood">iFood</h2>
+<p class="suave">Informe um ponto de entrega comercial com rua, número e cidade. A lista varia conforme esse endereço.
+  A coleta pula lojas já importadas e franquias. Casas sem telefone ficam em enriquecimento até o Maps ou Instagram completar.
+  Se faltar endereço da loja, confira os possíveis duplicados em Revisão. Verificação ou bloqueio interrompe a coleta.</p>
+<form method="post" action="/coleta/rodar" class="linha-acao">
+  <input type="hidden" name="acao" value="ifood">
+  <label class="campo">Endereço de entrega<input name="endereco" required maxlength="300" placeholder="Rua, número, cidade - RS" style="width:min(480px,80vw)"></label>
+  <label class="campo">Lojas novas<input type="number" name="limite" value="30" min="1" max="100" required></label>
+  <button>Coletar iFood</button>
+</form>
 
 <h2>O que aconteceu</h2>
 <p class="suave">Registro das últimas execuções. “Bairro raspado” mostra quantos lugares eram novos, quantos já existiam (vinculados),

@@ -13,7 +13,7 @@ import structlog
 import typer
 from dotenv import load_dotenv
 
-from mfl import bairros, cadencia, cnpj_baixar, cnpj_etl, cnpj_icp, db, ig, maps, ops, resolve, score, evolution, export, log, ui, webhook, whatsapp
+from mfl import bairros, cadencia, cnpj_baixar, cnpj_etl, cnpj_icp, db, ifood, ig, maps, ops, resolve, score, evolution, export, log, ui, webhook, whatsapp
 from mfl.fone import de_jid, para_e164
 
 app = typer.Typer(no_args_is_help=True)
@@ -259,6 +259,17 @@ def cmd_backup() -> None:
     con = db.conectar()
     with ops.job(con, "backup"):
         ops.backup(con, date.today())
+
+
+@app.command("ifood")
+def cmd_ifood(endereco: str = typer.Argument(..., help="Rua, número e cidade de um ponto de entrega"),
+              limite: int = typer.Option(30, min=1, max=100, help="Lojas novas por execução")) -> None:
+    """Coleta lojas do iFood pelo camofox e recalcula o score. Não envia mensagens."""
+    log.configurar("ifood")
+    con = db.conectar()
+    with ops.job(con, "ifood"):
+        ifood.rodar(con, endereco, limite)
+        score.recalcular(con, date.today())
 
 
 @app.command("diario")
