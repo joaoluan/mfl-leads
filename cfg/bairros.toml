@@ -405,14 +405,8 @@ celula_km = 0.5
 [dois-irmaos-uniao]
 nome = "União"
 municipio = "Dois Irmãos"
-bbox = "-29.62175,-51.13954,-29.6141,-51.13138"
-celula_km = 0.5
-
-[dois-irmaos-uniao]
-nome = "União"
-municipio = "Dois Irmãos"
-bbox = "-29.5782,-51.08688,-29.56976,-51.07727"
-celula_km = 0.5
+bbox = "-29.62175,-51.13954,-29.56976,-51.07727"
+celula_km = 0.8
 
 [vale-verde]
 nome = "Vale Verde"
@@ -435,14 +429,8 @@ celula_km = 0.5
 [esteio-industrial]
 nome = "Industrial"
 municipio = "Esteio"
-bbox = "-29.88539,-51.24298,-29.86192,-51.1802"
-celula_km = 0.5
-
-[esteio-industrial]
-nome = "Industrial"
-municipio = "Esteio"
-bbox = "-29.86659,-51.20679,-29.85101,-51.17982"
-celula_km = 0.5
+bbox = "-29.88539,-51.24298,-29.85101,-51.17982"
+celula_km = 0.6
 
 [jardim-planalto]
 nome = "Jardim Planalto"
@@ -2139,14 +2127,8 @@ celula_km = 0.5
 [viamao-cocao]
 nome = "Cocão"
 municipio = "Viamão"
-bbox = "-30.07935,-51.06157,-30.00619,-51.01439"
-celula_km = 0.8
-
-[viamao-cocao]
-nome = "Cocão"
-municipio = "Viamão"
-bbox = "-30.03171,-51.07476,-30.00021,-51.04971"
-celula_km = 0.5
+bbox = "-30.07935,-51.07476,-30.00021,-51.01439"
+celula_km = 0.9
 
 [elsa]
 nome = "Elsa"

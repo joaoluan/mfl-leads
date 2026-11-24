@@ -70,6 +70,11 @@ def gerar() -> int:
         arquivo.write_text(json.dumps(itens[antes:], ensure_ascii=False))
         log.info("cidade", cidade=cidade, bairros=len(bairros) or 1)
 
+    unidos: dict[tuple[str, str], tuple] = {}  # o OSM às vezes tem o mesmo bairro em duas relações: une as caixas
+    for cidade, nome, c in itens:
+        a = unidos.get((cidade, nome), c)
+        unidos[(cidade, nome)] = (min(a[0], c[0]), min(a[1], c[1]), max(a[2], c[2]), max(a[3], c[3]))
+    itens = [(cidade, nome, c) for (cidade, nome), c in unidos.items()]
     contagem: dict[str, int] = {}
     for _, nome, _ in itens:
         contagem[slug(nome)] = contagem.get(slug(nome), 0) + 1
