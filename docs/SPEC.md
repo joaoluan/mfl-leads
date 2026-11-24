@@ -116,10 +116,10 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 
 ### Operação (fase 9)
 - Timers systemd --user (`ops/mfl-*.timer`, `Persistent=true`: o que perdeu com o PC desligado roda ao ligar). Serviços `oneshot` com `Nice=10` e `IOSchedulingClass=idle`:
-  - `mfl-maps` 01:30 (+ até 10 min, depois do CNPJ): `mfl maps-noturno` (12 bairros, ~1h40; 374 bairros = ~31 dias). Bairro com falha não para a noite e fica pendente.
+  - `mfl-maps` 01:30 (+ até 10 min, depois do CNPJ): `mfl maps-noturno`. Até 12 bairros, sem começar bairro novo depois das 04:00. `-depth 3` com as 11 consultas (medido no Moinhos em 24/11/2026: 87 → 119 lugares; cortar para 4 consultas caiu para 59). Revisita: 45 dias se rendeu ≥ 10 lugares, 120 se não. Dois bairros seguidos vazios param a noite com erro (provável bloqueio). Tempo esgotado (60 min) ingere o parcial e deixa o bairro pendente. Bairro com falha não para a noite e fica pendente.
   - `mfl-cnpj` 00:30 (no dia da carga mensal leva ~50 min): `mfl cnpj-mensal`, baixa e processa o mês quando a Receita publicar; uma vez por mês (`estado.cnpj_mes`).
   - `mfl-diario` 05:00 (+ até 10 min): cadência, score, backup.
-  - `mfl-ig` 04:00 (+ até 20 min, ~10 min): `mfl ig-diario` (@ novos e até 30 perfis).
+  - `mfl-ig` 04:00 (+ até 20 min, ~30 min com pausas de 15–45 s e 3–5 min a cada 8 perfis): `mfl ig-diario` (@ novos e até 30 perfis).
 - Cada job tem trava (`flock -n` em `data/travas/`) e grava ok/erro em `estado.job:<nome>`: o Painel mostra as rotinas e uma faixa vermelha avisa quando alguma falhou.
 - Backup diário: banco (API de backup do SQLite, seguro com o webhook gravando) + `cfg/` em `data/backup/diario` (7 dias), espelhado com o Parquet no SSD `backup-ssd` montado em `/mnt/backup-ssd` (30 dias). Domingo: cópia para o Orange Pi (`orangepi:backup/mfl-leads`, 60 dias). SSD desmontado ou Pi fora do ar não derrubam o backup local. `.env` fica fora (segredos).
 - Log JSONL rotaciona aos 20 MB (`logs/<job>.jsonl.1`).

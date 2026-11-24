@@ -58,3 +58,33 @@ def test_faixa_de_rotina_com_erro(con, tmp_path):
     cliente = ui.criar_app(tmp_path / "t.db").test_client()
     assert "Rotina com erro: maps" in cliente.get("/").get_data(as_text=True)
     assert "bairros com falha: centro" in cliente.get("/coleta").get_data(as_text=True)
+
+
+def test_noite_do_maps_revisita_por_rendimento_horario_e_bloqueio(con, monkeypatch):
+    from datetime import timedelta
+    from mfl import cli
+    hoje = date.today()
+    todos = {"a": {"municipio": "Porto Alegre", "nome": "A"}, "b": {"municipio": "Porto Alegre", "nome": "B"},
+             "c": {"municipio": "Canoas", "nome": "C"}, "d": {"municipio": "Canoas", "nome": "D"}}
+    monkeypatch.setattr(cli.bairros, "carregar", lambda: todos)
+    for chave, dias, lugares in (("a", 50, 30), ("b", 50, 3), ("c", 130, 3)):
+        con.execute("INSERT INTO estado VALUES (?,?,?)", (f"maps:{chave}", (hoje - timedelta(days=dias)).isoformat(), "x"))
+        con.execute("INSERT INTO estado VALUES (?,?,?)", (f"maps_rende:{chave}", str(lugares), "x"))
+    con.commit()
+    # d nunca raspado vem primeiro; a rendeu e venceu (45 d); b veio vazio e ainda não venceu (120 d); c venceu
+    assert [k for k, _ in cli.pendentes_maps(con, hoje)] == ["d", "a", "c"]
+
+    rodados = []
+    def falso(chave, info):
+        rodados.append(chave)
+        return {"lugares": 0}
+    monkeypatch.setattr(cli, "_maps_bairro", falso)
+    monkeypatch.setattr(cli.score, "recalcular", lambda *a: None)
+    with pytest.raises(RuntimeError, match="bloqueando"):
+        cli._maps_fila(con, 12, None)
+    assert rodados == ["d", "a"]  # dois vazios seguidos: para antes do c
+
+    rodados.clear()
+    horas = iter(["03:50", "04:00"])
+    cli._maps_fila(con, 12, None, ate="04:00", agora=lambda: next(horas))
+    assert rodados == ["d"]  # às 04:00 não começa outro

@@ -32,7 +32,8 @@ API = os.environ.get("MFL_CAMOFOX_URL", "http://127.0.0.1:9377")
 # Mesma sessão do script baixar-insta (onde a conta secundária está logada).
 USUARIO = os.environ.get("MFL_CAMOFOX_USER", "baixar-insta")
 POR_DIA = 30
-PAUSA = (4, 9)  # segundos entre perfis
+PAUSA = (15, 45)  # segundos entre perfis: devagar para não pesar na conta secundária
+PAUSA_LONGA, A_CADA = (180, 300), 8  # descanso de 3 a 5 min a cada 8 perfis (30 perfis ~ 30 min)
 ESPERA_PAGINA = 6
 RESERVADOS = {"p", "reel", "reels", "explore", "stories", "accounts", "tv", "direct", "about", "legal", "share"}
 HANDLE = re.compile(r"instagram\.com/(?!(?:" + "|".join(RESERVADOS) + r")\b)([A-Za-z0-9_.]{2,30})", re.I)
@@ -210,7 +211,7 @@ def rodar(con: sqlite3.Connection, hoje: date, limite: int = POR_DIA, visitar_pe
     leads = pendentes(con, hoje, max(0, min(limite, POR_DIA - feitos_hoje)))
     for i, lead in enumerate(leads):
         if i:
-            time.sleep(random.uniform(*PAUSA))
+            time.sleep(random.uniform(*(PAUSA_LONGA if i % A_CADA == 0 else PAUSA)))
         pagina = visitar_perfil(lead["ig_username"])
         if not pagina.get("logado") or re.search(r"/accounts/login|/challenge|/suspended", pagina.get("url") or ""):
             con.execute("INSERT OR REPLACE INTO estado VALUES ('ig_checkpoint', ?, ?)", (pagina.get("url"), agora()))

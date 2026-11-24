@@ -31,6 +31,7 @@ def test_handle_data_e_analise():
 @pytest.fixture
 def con(tmp_path, monkeypatch):
     monkeypatch.setattr(ig, "PAUSA", (0, 0))
+    monkeypatch.setattr(ig, "PAUSA_LONGA", (0, 0))
     c = db.conectar(tmp_path / "t.db")
     for i in range(1, 7):
         criar_lead(c, f"Casa {i}", f"+55513333000{i}")
