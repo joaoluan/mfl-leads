@@ -37,9 +37,6 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         lead = con().execute("SELECT * FROM entity WHERE entity_id=?", (entity_id,)).fetchone()
         return lead or abort(404)
 
-    def fontes(entity_id: str) -> set[str]:
-        return {r[0] for r in con().execute("SELECT source FROM source_record WHERE entity_id=?", (entity_id,))}
-
     @app.context_processor
     def comum() -> dict:
         estado = con().execute("SELECT valor FROM estado WHERE chave='evolution_conexao'").fetchone()
@@ -59,7 +56,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         feitos = cadencia.feitos(con(), d)
         cartoes = []
         for lead, etapa in cadencia.fila(con(), d, limite - feitos):
-            template_id, texto = mensagens.sugerir(con(), lead, etapa, fontes(lead["entity_id"]), d)
+            template_id, texto = mensagens.sugerir(con(), lead, etapa, d)
             cartoes.append({"lead": lead, "etapa": etapa, "template_id": template_id, "texto": texto,
                             "sinais": json.loads(lead["sinais"] or "[]"),
                             "link": mensagens.link_whatsapp(lead["tel1"], texto)})
@@ -100,7 +97,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
     def ficha(entity_id: str) -> str:
         lead = lead_ou_404(entity_id)
         etapa = {"enviado_d0": "d3", "d3": "d7"}.get(lead["status"], "d0")
-        template_id, texto = mensagens.sugerir(con(), lead, etapa, fontes(entity_id), hoje())
+        template_id, texto = mensagens.sugerir(con(), lead, etapa, hoje())
         origem = con().execute("SELECT source, url, captured_at, match_score FROM source_record WHERE entity_id=?"
                                " ORDER BY captured_at", (entity_id,)).fetchall()
         linha = con().execute(
@@ -127,7 +124,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
 
     @app.post("/lead/<entity_id>/dados")
     def mudar_dados(entity_id: str):
-        """Contato do grupo chega só com telefone: o operador completa na conversa."""
+        """O operador completa nome, categoria e bairro que vieram faltando."""
         lead_ou_404(entity_id)
         campos = {c: request.form.get(c, "").strip() or None for c in ("nome", "categoria", "bairro")}
         con().execute("UPDATE entity SET nome=coalesce(:nome, nome), categoria=:categoria, bairro=:bairro,"

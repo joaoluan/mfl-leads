@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import time
+import uuid
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -12,7 +13,7 @@ import structlog
 import typer
 from dotenv import load_dotenv
 
-from mfl import bairros, cadencia, cnpj_baixar, cnpj_etl, cnpj_icp, db, ig, maps, ops, resolve, score, evolution, export, log, seed, ui, webhook, whatsapp
+from mfl import bairros, cadencia, cnpj_baixar, cnpj_etl, cnpj_icp, db, ig, maps, ops, resolve, score, evolution, export, log, ui, webhook, whatsapp
 from mfl.fone import de_jid, para_e164
 
 app = typer.Typer(no_args_is_help=True)
@@ -22,13 +23,6 @@ logger = structlog.get_logger()
 @app.callback()
 def _inicio() -> None:
     load_dotenv(db.RAIZ / ".env")
-
-
-@app.command("seed")
-def cmd_seed(csv: Path = typer.Argument(..., exists=True, dir_okay=False)) -> None:
-    """Importa CSV de contatos (nome, telefone, categoria, bairro)."""
-    log.configurar("seed")
-    seed.importar(db.conectar(), csv)
 
 
 @app.command("export")
@@ -70,28 +64,6 @@ def cmd_evo_status() -> None:
     logger.info("evolution", instancia=evolution.instancia(), conexao=s.get("connectionStatus"))
 
 
-@app.command("grupos")
-def cmd_grupos() -> None:
-    """Lista os grupos (nome e tamanho, sem números) para escolher o de donos."""
-    log.configurar("evolution")
-    for g in sorted(evolution.grupos(), key=lambda g: -int(g.get("size") or 0)):
-        logger.info("grupo", nome=g.get("subject"), participantes=g.get("size"))
-
-
-@app.command("grupo-importar")
-def cmd_grupo_importar(nome: str = typer.Argument(..., help="Nome exato do grupo")) -> None:
-    """Importa os participantes do grupo como leads (fonte grupo)."""
-    log.configurar("seed")
-    achados = [g for g in evolution.grupos() if g.get("subject") == nome]
-    if len(achados) != 1:
-        raise typer.BadParameter(f"{len(achados)} grupos com o nome {nome!r}; use `mfl grupos`")
-    dono = de_jid((evolution.situacao() or {}).get("ownerJid") or "")
-    linhas, sem_numero = evolution.participantes(achados[0], dono)
-    if sem_numero:
-        logger.warning("participantes_sem_numero", quantidade=sem_numero, motivo="WhatsApp escondeu (LID)")
-    seed.importar_linhas(db.conectar(), linhas, f"whatsapp:grupo:{nome}")
-
-
 @app.command("webhook")
 def cmd_webhook() -> None:
     """Sobe o receptor do webhook da Evolution (deixar rodando)."""
@@ -114,7 +86,7 @@ def cmd_ui() -> None:
 @app.command("marcar")
 def cmd_marcar(telefone: str, status: str = typer.Argument(..., help="cliente | opt_out | descartado")) -> None:
     """Marca um número (cria o lead se faltar). Uso: clientes atuais nunca entram na fila."""
-    log.configurar("seed")
+    log.configurar("ops")
     if status not in ("cliente", "opt_out", "descartado"):
         raise typer.BadParameter("status deve ser cliente, opt_out ou descartado")
     e164 = para_e164(telefone)
@@ -122,7 +94,9 @@ def cmd_marcar(telefone: str, status: str = typer.Argument(..., help="cliente | 
         raise typer.BadParameter(f"telefone inválido: {telefone}")
     con = db.conectar()
     if not con.execute("SELECT 1 FROM entity WHERE tel1=?", (e164,)).fetchone():
-        seed.importar_linhas(con, [{"nome": f"Marcado como {status}", "telefone": e164}], "manual:marcar")
+        momento = db.agora()
+        con.execute("INSERT INTO entity (entity_id, nome, tel1, status, criado_em, atualizado_em) VALUES (?,?,?,?,?,?)",
+                    (str(uuid.uuid4()), f"Marcado como {status}", e164, "novo", momento, momento))
     entity_id = con.execute("SELECT entity_id FROM entity WHERE tel1=?", (e164,)).fetchone()[0]
     if status == "opt_out":
         whatsapp.marcar_opt_out(con, entity_id, "manual")
@@ -211,15 +185,6 @@ def cmd_maps_fila(limite: int = typer.Option(5, help="Quantos bairros nesta exec
         raise RuntimeError(f"bairros com falha: {', '.join(falhas)}")
 
 
-@app.command("resolver")
-def cmd_resolver() -> None:
-    """Junta contato do grupo com o CNPJ de mesmo telefone (quando o telefone não é de contador)."""
-    log.configurar("resolve")
-    con = db.conectar()
-    logger.info("grupo_cnpj_fundidos", total=resolve.resolver_grupo_cnpj(con))
-    score.recalcular(con, date.today())
-
-
 @app.command("score")
 def cmd_score() -> None:
     """Recalcula score e sinais de todos os leads (pesos em cfg/icp.toml)."""
@@ -258,13 +223,12 @@ def cmd_backup() -> None:
 
 @app.command("diario")
 def cmd_diario() -> None:
-    """Rotina diária (timer): cadência, grupo x CNPJ, score e backup."""
+    """Rotina diária (timer): cadência, score e backup."""
     log.configurar("ops")
     con = db.conectar()
     hoje = date.today()
     with ops.job(con, "diario"):
         cadencia.atualizar(con, hoje)
-        resolve.resolver_grupo_cnpj(con)
         score.recalcular(con, hoje)
         ops.backup(con, hoje)
 
@@ -306,7 +270,6 @@ def cmd_cnpj_mensal() -> None:
         cmd_cnpj_baixar(mes)
         cmd_cnpj_etl(mes, manter_zips=False)
         cmd_cnpj_icp()
-        resolve.resolver_grupo_cnpj(con)
         score.recalcular(con, date.today())
         con.execute("INSERT OR REPLACE INTO estado VALUES ('cnpj_mes', ?, ?)", (mes, db.agora()))
         con.commit()

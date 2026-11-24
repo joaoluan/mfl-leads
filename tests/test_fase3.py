@@ -2,7 +2,8 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from mfl import cadencia, db, mensagens, score, seed, ui, whatsapp
+from conftest import criar_lead
+from mfl import cadencia, db, mensagens, ui, whatsapp
 from mfl.db import FUSO
 
 CFG = {"semana_1": 2, "depois": 3, "bloqueio_max": 0.05, "alerta_bloqueio": 0.03,
@@ -13,8 +14,8 @@ HOJE = date(2026, 11, 24)  # terça
 @pytest.fixture
 def con(tmp_path):
     c = db.conectar(tmp_path / "t.db")
-    seed.importar_linhas(c, [{"nome": f"Lead {i}", "telefone": f"+55519999900{i:02d}"} for i in range(1, 6)], "teste")
-    score.recalcular(c, HOJE)  # do grupo: passa do corte
+    for i in range(1, 6):
+        criar_lead(c, f"Lead {i}", f"+55519999900{i:02d}", score=50)
     return c
 
 
@@ -39,22 +40,20 @@ def test_validar_recusa_sem_sair_e_campo_errado():
     assert any("SAIR" in e for e in erros) and any("cidade" in e for e in erros)
 
 
-@pytest.mark.parametrize("categoria,fontes,arquivo", [
-    ("Pizzaria", {"maps"}, "pizzaria"), ("Hamburgueria artesanal", {"maps"}, "hamburgueria"),
-    ("Confeitaria e doces", {"maps"}, "padaria"), ("Bar e petiscaria", {"maps"}, "bar"),
-    ("Cafeteria", {"maps"}, "lanchonete"), ("Restaurante italiano", {"maps"}, "restaurante"),
-    ("Pizzaria", {"grupo"}, "grupo"), ("Pizzaria", {"grupo", "cnpj"}, "grupo"), (None, {"maps"}, "restaurante"),
+@pytest.mark.parametrize("categoria,arquivo", [
+    ("Pizzaria", "pizzaria"), ("Hamburgueria artesanal", "hamburgueria"), ("Confeitaria e doces", "padaria"),
+    ("Bar e petiscaria", "bar"), ("Cafeteria", "lanchonete"), ("Restaurante italiano", "restaurante"), (None, "restaurante"),
 ])
-def test_arquivo_por_categoria(categoria, fontes, arquivo):
-    assert mensagens.arquivo_d0(categoria, fontes) == arquivo
+def test_arquivo_por_categoria(categoria, arquivo):
+    assert mensagens.arquivo_d0(categoria) == arquivo
 
 
 def test_rodizio_nao_repete_variante(con):
-    assert mensagens.proxima_variante(con, "grupo") == 0
-    tocar(con, ids(con)[0], "2026-11-20", template_id="grupo:0")
-    assert mensagens.proxima_variante(con, "grupo") == 1
-    tocar(con, ids(con)[1], "2026-11-21", template_id="grupo:2")
-    assert mensagens.proxima_variante(con, "grupo") == 0
+    assert mensagens.proxima_variante(con, "pizzaria") == 0
+    tocar(con, ids(con)[0], "2026-11-20", template_id="pizzaria:0")
+    assert mensagens.proxima_variante(con, "pizzaria") == 1
+    tocar(con, ids(con)[1], "2026-11-21", template_id="pizzaria:2")
+    assert mensagens.proxima_variante(con, "pizzaria") == 0
 
 
 def test_preencher_some_com_vazio_e_horario():
@@ -114,17 +113,16 @@ def test_janela():
 def test_telas_e_fluxo(tmp_path, monkeypatch):
     caminho = tmp_path / "ui.db"
     con = db.conectar(caminho)
-    seed.importar_linhas(con, [{"nome": "Lead UI", "telefone": "+5551999990009"}], "teste")
-    score.recalcular(con, HOJE)
+    criar_lead(con, "Lead UI", "+5551999990009", score=50)
     (lead,) = ids(con)
     monkeypatch.setattr(cadencia, "config", lambda: {**CFG, "semana_1": 1})
     cliente = ui.criar_app(caminho).test_client()
 
     pagina = cliente.get("/").get_data(as_text=True)
     assert "Lead UI" in pagina and "web.whatsapp.com/send?phone=5551999990009" in pagina
-    assert cliente.post(f"/api/abrir/{lead}", json={"template_id": "grupo:1"}).status_code == 204
+    assert cliente.post(f"/api/abrir/{lead}", json={"template_id": "pizzaria:1"}).status_code == 204
     whatsapp.registrar_envio(con, lead, "Oi", db.agora(), msg_id="X1")
-    assert con.execute("SELECT template_id FROM touch").fetchone()[0] == "grupo:1"
+    assert con.execute("SELECT template_id FROM touch").fetchone()[0] == "pizzaria:1"
     assert "Teto do dia atingido" in cliente.get("/").get_data(as_text=True)
     assert cliente.post(f"/enviado/{lead}", data={"texto": "x"}).status_code == 409
 
@@ -141,7 +139,7 @@ def test_telas_e_fluxo(tmp_path, monkeypatch):
     cliente.post(f"/lead/{lead}/dados", data={"nome": "Pizzaria Real", "categoria": "pizzaria", "bairro": "Centro"})
     assert "Pizzaria Real" in cliente.get(f"/lead/{lead}").get_data(as_text=True)
     assert cliente.get("/painel").status_code == 200
-    assert cliente.get("/config?arquivo=grupo").status_code == 200
-    recusa = cliente.post("/config", data={"arquivo": "grupo", "conteudo": "sem opt-out"}).get_data(as_text=True)
+    assert cliente.get("/config?arquivo=pizzaria").status_code == 200
+    recusa = cliente.post("/config", data={"arquivo": "pizzaria", "conteudo": "sem opt-out"}).get_data(as_text=True)
     assert "falta o" in recusa
     assert cliente.get("/config?arquivo=../../etc/passwd").status_code == 404

@@ -1,8 +1,10 @@
+import json
 import sqlite3
 
 import pytest
 
-from mfl import db, evolution, seed, webhook, whatsapp
+from conftest import criar_lead
+from mfl import db, maps, webhook, whatsapp
 from mfl.classifica import classificar
 from mfl.fone import de_jid, para_e164
 
@@ -13,7 +15,7 @@ JID_LEAD = "555199990001@s.whatsapp.net"  # formato antigo, sem o nono dígito
 @pytest.fixture
 def con(tmp_path):
     c = db.conectar(tmp_path / "t.db")
-    seed.importar_linhas(c, [{"nome": "Pizzaria Teste", "telefone": LEAD}], "teste")
+    criar_lead(c, "Pizzaria Teste", LEAD)
     return c
 
 
@@ -66,12 +68,18 @@ def test_resposta_classifica_e_opt_out_bloqueia(con):
     whatsapp.processar(con, upsert(JID_LEAD, "SAIR", False, "B2"))
     assert status(con) == "opt_out"
     assert db.bloqueado(con, LEAD)
-    # reimportar não ressuscita o opt-out
-    con.execute("DELETE FROM source_record")
-    con.execute("DELETE FROM reply")
-    con.execute("DELETE FROM touch")
-    con.execute("DELETE FROM entity")
-    assert seed.importar_linhas(con, [{"nome": "X", "telefone": LEAD}], "teste")["bloqueados"] == 1
+
+
+
+def test_opt_out_nao_volta_pelo_maps(con, tmp_path):
+    whatsapp.processar(con, upsert(JID_LEAD, "SAIR", False, "B2"))
+    for tabela in ("source_record", "reply", "touch", "entity"):
+        con.execute(f"DELETE FROM {tabela}")
+    arquivo = tmp_path / "o.json"
+    arquivo.write_text(json.dumps({"place_id": "PX", "title": "X", "phone": "51 99999-0001", "status": "",
+                                   "complete_address": {"city": "Porto Alegre"}}))
+    contagem = maps.ingerir(con, arquivo, {"nome": "Centro", "municipio": "Porto Alegre"}, ["PORTO ALEGRE"], [])
+    assert contagem["descartados"] == 1 and conta(con, "entity") == 0
 
 
 def test_nao_lead_grupo_e_lid_nao_gravam_nada(con):
@@ -108,15 +116,6 @@ def test_migracao_em_banco_v1(tmp_path):
     assert novo.execute("PRAGMA user_version").fetchone()[0] == ultima
     assert "wa_msg_id" in {r[1] for r in novo.execute("PRAGMA table_info(touch)")}
     db.conectar(caminho)  # reabrir não reaplica
-
-
-def test_participantes_do_grupo():
-    grupo = {"subject": "Donos POA", "participants": [
-        {"id": "5551999990001@s.whatsapp.net"}, {"id": "1@lid", "phoneNumber": "5551977776666@s.whatsapp.net"},
-        {"id": "2@lid"}, {"id": "5551985711759@s.whatsapp.net"}]}
-    linhas, sem = evolution.participantes(grupo, dono="+5551985711759")
-    assert [l["telefone"] for l in linhas] == ["+5551999990001", "+5551977776666"]
-    assert sem == 1
 
 
 def test_webhook_exige_token(tmp_path, monkeypatch):

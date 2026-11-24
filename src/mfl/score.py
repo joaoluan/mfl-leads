@@ -43,9 +43,7 @@ def sinais(lead: sqlite3.Row | dict, fontes: dict[str, list[dict]], perto: set[s
     s = []
     maps = fontes.get("maps", [])
     cnpj = fontes.get("cnpj", [])
-    if "grupo" in fontes:
-        s.append("grupo_de_donos")
-    if arquivo_d0(lead["categoria"], set()) in categorias_clientes:
+    if arquivo_d0(lead["categoria"]) in categorias_clientes:
         s.append("mesma_categoria_de_cliente")
     if normalizar(lead["municipio"] or "").upper() in perto:
         s.append("raio")
@@ -100,7 +98,7 @@ def recalcular(con: sqlite3.Connection, hoje: date) -> dict[str, int]:
     cfg = config()
     pesos, perto = cfg["pesos"], {normalizar(m).upper() for m in cfg["score"]["municipios_perto"]}
     clientes = set(cfg["score"]["categorias_clientes"]) | {
-        arquivo_d0(r[0], set()) for r in con.execute("SELECT categoria FROM entity WHERE status='cliente'") if r[0]}
+        arquivo_d0(r[0]) for r in con.execute("SELECT categoria FROM entity WHERE status='cliente'") if r[0]}
     termos = cnpj_icp.termos_franquia()
     franquias = re.compile(r"\b(" + "|".join(re.escape(t) for t in termos) + r")\b") if termos else None
     fontes: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))

@@ -14,8 +14,6 @@ unidade_unica = 8
 franquia = -25
 site_com_pedido_proprio = -30
 ig_inativo_6m = -10
-# Fase 6: está no grupo de donos (dono confirmado, WhatsApp certo) passa do corte sozinho.
-grupo_de_donos = 40
 # Usa sistema concorrente: continua na fila (alvo de troca, texto próprio), só cai um pouco.
 usa_concorrente = -10
 vende_ifood = 10

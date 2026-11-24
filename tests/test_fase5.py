@@ -4,7 +4,8 @@ from datetime import date
 
 import pytest
 
-from mfl import db, maps, resolve, score, seed, ui
+from conftest import criar_lead
+from mfl import db, maps, resolve, score, ui
 from mfl.cnpj_icp import ingerir as ingerir_cnpj
 
 BAIRRO = {"nome": "Moinhos de Vento", "municipio": "Porto Alegre", "bbox": "-30.03,-51.21,-30.02,-51.19", "celula_km": 0.5}
@@ -21,7 +22,7 @@ def lugar(pid, titulo, fone="", cep="90570-050", cidade="Porto Alegre", status="
 @pytest.fixture
 def con(tmp_path):
     c = db.conectar(tmp_path / "t.db")
-    seed.importar_linhas(c, [{"nome": "Grupo GESTORES", "telefone": "+5551988887777"}], "teste")
+    criar_lead(c, None, "+5551988887777")  # já conhecido pelo telefone (ex.: Instagram)
     ingerir_cnpj(c, [
         {"cnpj": "11111111000155", "fantasia": "CANTINA DO ZE", "cnae": "5611201", "cnae_descricao": "Restaurantes e similares",
          "municipio": "PORTO ALEGRE", "bairro": "MOINHOS", "cep": "90570050", "endereco": "RUA X 1",
@@ -51,7 +52,7 @@ def test_ingestao_resolve_e_descarta(con, tmp_path):
         lugar("P3", "Fechou", status="Fechado permanentemente"),
         lugar("P4", "Longe", cidade="Pelotas"),
         lugar("P5", "Subway Moinhos"),
-        lugar("P6", "Casa do Dono", fone="51 98888-7777"),                     # telefone do grupo → vincula
+        lugar("P6", "Casa do Dono", fone="51 98888-7777"),                     # mesmo telefone → vincula
         lugar("P7", "Cantina do Zé", fone="51 99333-4444", cep="90570-050"),    # CEP8 + nome → vincula ao CNPJ
         lugar("P8", "Bella Napoli Pizzas", cep="90570-123"),                    # CEP5 + nome parecido → revisão
     ]
@@ -72,32 +73,17 @@ def test_ingestao_resolve_e_descarta(con, tmp_path):
     total = con.execute("SELECT count(*) FROM entity").fetchone()[0]
     assert maps.ingerir(con, arquivo(tmp_path, lugares), BAIRRO, MUNICIPIOS, ["subway"])["repetidos"] == 8
     assert con.execute("SELECT count(*) FROM entity").fetchone()[0] == total
-    assert con.execute("SELECT count(*) FROM source_record WHERE source='maps'").fetchone()[0] == 8
+    assert con.execute("SELECT count(*) FROM source_record WHERE source='maps' AND source_key LIKE 'P%'").fetchone()[0] == 8
 
 
 def test_fila_so_com_celular_validado(con, tmp_path):
     maps.ingerir(con, arquivo(tmp_path, [lugar("P1", "A", fone="51 99111-2222"), lugar("P2", "B", fone="51 3222-1111")]),
                  BAIRRO, MUNICIPIOS, [])
-    score.recalcular(con, date(2026, 11, 24))  # grupo 40; P1 pizzaria (categoria de cliente) 30 + sem site 10
+    score.recalcular(con, date(2026, 11, 24))  # P1: pizzaria (categoria de cliente) 30 + sem site 10
     from mfl import cadencia
     na_fila = {l["tel1"] for l, _ in cadencia.fila(con, date(2026, 11, 24), 50)}
-    assert na_fila == {"+5551988887777", "+5551991112222"}
+    assert na_fila == {"+5551991112222"}  # P2 é fixo; o lead sem sinais fica abaixo do corte
     assert all(t.startswith("+55") for t in na_fila)
-
-
-def test_grupo_cnpj_por_telefone_unico(con):
-    ingerir_cnpj(con, [{"cnpj": f"3333333{i}000155", "fantasia": f"CONTADOR {i}", "cnae": "5611201", "cnae_descricao": "x",
-                        "municipio": "PORTO ALEGRE", "bairro": "B", "cep": "90000000", "endereco": "R", "fone1": "5130001000",
-                        "fone2": None} for i in range(2)], "teste")
-    seed.importar_linhas(con, [{"nome": "Grupo X", "telefone": "+555130001000"}], "teste")  # telefone de contador
-    con.execute("UPDATE entity SET tel2='+5551988887777' WHERE cnpj='22222222000155'")
-    dono = con.execute("SELECT entity_id FROM entity WHERE tel1='+5551988887777'").fetchone()[0]
-    con.execute("INSERT INTO touch (entity_id, canal, texto, enviado_em) VALUES (?, 'whatsapp', 'oi', '2026-11-24')", (dono,))
-    assert resolve.resolver_grupo_cnpj(con) == 1
-    fundido = con.execute("SELECT cnpj, nome, fantasia FROM entity WHERE entity_id=?", (dono,)).fetchone()
-    assert tuple(fundido) == ("22222222000155", "PIZZARIA BELLA NAPOLI", "PIZZARIA BELLA NAPOLI")
-    assert con.execute("SELECT count(*) FROM touch WHERE entity_id=?", (dono,)).fetchone()[0] == 1
-    assert con.execute("SELECT count(*) FROM entity WHERE cnpj LIKE '3333333%'").fetchone()[0] == 2
 
 
 def test_tela_de_revisao_funde(con, tmp_path):

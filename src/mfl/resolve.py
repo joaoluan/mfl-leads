@@ -2,7 +2,7 @@
 
 Regra da spec: 0,35 CEP5 igual + 0,35 telefone igual + 0,30 similaridade do nome.
 >= 0,85 vincula; 0,55–0,85 vai para revisão; abaixo, entidades separadas.
-Ajustes (Parte A): telefone igual sozinho já vincula (é o WhatsApp do dono no grupo), desde que o
+Ajustes (Parte A): telefone igual sozinho já vincula (é o mesmo WhatsApp), desde que o
 telefone não se repita entre CNPJs (aí é do contador); CEP completo + nome >= 0,85 também vincula.
 """
 
@@ -20,7 +20,7 @@ SUFIXOS = re.compile(r"\b(ltda|me|eireli|sa|mei|epp)\b")
 # Palavras de tipo de casa não identificam ninguém: "Pizzaria Nova" e "Pizzaria Bella" não são parecidas.
 GENERICAS = re.compile(r"\b(pizzaria|pizza|pizzas|restaurante|lanchonete|lancheria|lanches|bar|cafe|cafeteria|padaria"
                        r"|confeitaria|doceria|hamburgueria|burger|churrascaria|sushi|casa|do|da|de|dos|das|e|o|a)\b")
-PROVISORIO = re.compile(r"^(Grupo |CNPJ |Marcado como )")
+PROVISORIO = re.compile(r"^(CNPJ |Marcado como )")
 # Campos que a fonte nova preenche quando o lead sobrevivente não tem.
 PREENCHE = ["cnpj", "place_id", "ig_username", "fantasia", "cnae", "categoria", "uf", "municipio", "bairro", "cep",
             "endereco", "tel2", "email", "site", "nota", "avaliacoes"]
@@ -80,7 +80,7 @@ def melhor_candidato(con: sqlite3.Connection, novo: dict, compartilhados: set[st
 
 
 def preencher(con: sqlite3.Connection, entity_id: str, dados: dict) -> None:
-    """Completa o lead sobrevivente sem apagar o que ele já tem; nome provisório (grupo/CNPJ) é trocado."""
+    """Completa o lead sobrevivente sem apagar o que ele já tem; nome provisório (CNPJ/marcado) é trocado."""
     atual = con.execute("SELECT * FROM entity WHERE entity_id=?", (entity_id,)).fetchone()
     mudancas = {c: dados[c] for c in PREENCHE if dados.get(c) is not None and atual[c] is None}
     if dados.get("nome") and not PROVISORIO.match(dados["nome"]) and (
@@ -96,7 +96,7 @@ def preencher(con: sqlite3.Connection, entity_id: str, dados: dict) -> None:
             if atual["tel2"] is None:
                 mudancas["tel2"] = atual["tel1"]
         elif atual["tel2"] is None:
-            mudancas["tel2"] = dados["tel1"]  # o WhatsApp do dono (grupo) continua sendo o principal
+            mudancas["tel2"] = dados["tel1"]  # o celular que já estava continua sendo o principal
     if atual["status"] == "enriquecimento" and dados.get("_celular") and (mudancas.get("tel1") or atual["tel1"]):
         mudancas["status"] = "novo"
     if mudancas:
@@ -114,20 +114,3 @@ def fundir(con: sqlite3.Connection, sobrevivente: str, absorvido: str) -> None:
     con.execute("UPDATE revisao SET decidido=1 WHERE (a=? OR b=?) AND decidido=0", (absorvido, absorvido))
     preencher(con, sobrevivente, {**dados, **unicos, "_celular": dados["status"] != "enriquecimento",
                                   "_fonte": "maps" if unicos["place_id"] else None})
-
-
-def resolver_grupo_cnpj(con: sqlite3.Connection) -> int:
-    """Contato do grupo com o mesmo telefone de um único CNPJ: é o dono daquele CNPJ."""
-    compartilhados = telefones_compartilhados(con)
-    pares = con.execute(
-        "SELECT g.entity_id, c.entity_id FROM entity g JOIN entity c ON c.tel2 = g.tel1"
-        " WHERE g.cnpj IS NULL AND c.cnpj IS NOT NULL AND c.place_id IS NULL"
-        " AND g.entity_id IN (SELECT entity_id FROM source_record WHERE source='grupo')").fetchall()
-    feitos = 0
-    for grupo, cnpj in pares:
-        tel = con.execute("SELECT tel2 FROM entity WHERE entity_id=?", (cnpj,)).fetchone()
-        if tel and tel[0] not in compartilhados:
-            fundir(con, grupo, cnpj)
-            feitos += 1
-    con.commit()
-    return feitos
