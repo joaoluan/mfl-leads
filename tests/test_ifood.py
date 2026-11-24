@@ -123,7 +123,36 @@ def test_cli_coleta_e_ui_filtra_e_dispara(tmp_path, monkeypatch):
     assert cliente.post("/coleta/rodar", data={"acao": "ifood", "endereco": "Rua Fictícia, 10, Porto Alegre", "limite": "3"}).status_code == 302
     assert disparos == [("ifood", "ifood", "Rua Fictícia, 10, Porto Alegre", "--limite", "3")]
     assert cliente.post("/coleta/rodar", data={"acao": "ifood", "endereco": ""}).status_code == 400
-    assert cliente.post("/coleta/rodar", data={"acao": "ifood", "endereco": "x", "limite": "101"}).status_code == 400
+    assert cliente.post("/coleta/rodar", data={"acao": "ifood", "endereco": "x", "limite": "1001"}).status_code == 400
+
+
+@pytest.mark.parametrize("limite", [101, 1000])
+def test_limite_ifood_da_tela_ate_coletor(tmp_path, monkeypatch, limite):
+    caminho = tmp_path / "t.db"
+    monkeypatch.setenv("MFL_DB", str(caminho))
+    monkeypatch.setattr(ops, "RAIZ", tmp_path)
+    monkeypatch.setattr(log, "configurar", lambda *_: None)
+    monkeypatch.setattr(controle, "_proximas", lambda: {})
+    recebidos = []
+    def coletar(endereco, quantidade, conhecidos, municipios):
+        recebidos.append(quantidade)
+        return []
+    monkeypatch.setattr(ifood, "coletar", coletar)
+    def disparar(job, *args):
+        assert job == "ifood"
+        resultado = CliRunner().invoke(cli.app, list(args))
+        assert resultado.exit_code == 0, resultado.output
+    monkeypatch.setattr(controle, "disparar", disparar)
+    cliente = ui.criar_app(caminho).test_client()
+    assert f'max="{ifood.LIMITE_MAX}"' in cliente.get("/coleta").get_data(as_text=True)
+    endereco = "Rua Fictícia, 10, Porto Alegre"
+    assert cliente.post("/coleta/rodar", data={"acao": "ifood", "endereco": endereco, "limite": str(limite)}).status_code == 302
+    assert recebidos == [limite]
+    assert cliente.post("/coleta/rodar", data={"acao": "ifood", "endereco": endereco, "limite": "1001"}).status_code == 400
+    assert CliRunner().invoke(cli.app, ["ifood", endereco, "--limite", "1001"]).exit_code == 2
+    with pytest.raises(ValueError, match="1000"):
+        ifood.rodar(db.conectar(caminho), endereco, 1001)
+    assert recebidos == [limite]
 
 
 def test_bloqueio_encerra_e_fecha_aba_sem_gravar(tmp_path, monkeypatch):

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
 
-from mfl import ajustes, bairros, cadencia, cnpj_icp, controle, db, mensagens, resolve, score, whatsapp
+from mfl import ajustes, bairros, cadencia, cnpj_icp, controle, db, ifood, mensagens, resolve, score, whatsapp
 from mfl.db import FUSO, agora
 from mfl.fone import legivel, para_e164
 
@@ -285,6 +285,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         cidades, lista = controle.progresso_maps(con(), cidade)
         rotinas = controle.rotinas(con())
         return render_template("coleta.html", rotinas=rotinas, cidades=cidades, cidade=cidade, bairros_cidade=lista,
+                               limite_ifood=ifood.LIMITE_MAX,
                                log=log, logs=controle.LOGS, eventos=controle.eventos(log),
                                aviso=AVISOS_COLETA.get(request.args.get("aviso", "")),
                                algum_rodando=any(r["situacao"] == "rodando" for r in rotinas))
@@ -307,7 +308,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         elif acao == "ifood":
             endereco = request.form.get("endereco", "").strip()
             limite = request.form.get("limite", 30, type=int)
-            if not endereco or len(endereco) > 300 or not 1 <= limite <= 100:
+            if not endereco or len(endereco) > 300 or not 1 <= limite <= ifood.LIMITE_MAX:
                 abort(400)
             job, args = "ifood", ["ifood", endereco, "--limite", str(limite)]
         else:
