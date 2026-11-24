@@ -116,22 +116,21 @@ def _dados(lugar: dict, bairro: dict) -> dict:
     }
 
 
-def _descarte(lugar: dict, dados: dict, municipios: set[str]) -> str | None:
+def _descarte(lugar: dict, dados: dict, municipios: set[str], franquias: re.Pattern | None) -> str | None:
     if FECHADO.search(f"{lugar.get('status', '')} {lugar.get('description', '')}"):
         return "fechado"
     if normalizar(dados["municipio"] or "").upper() not in municipios:
         return "fora_da_regiao"
+    # franquia não é descartada: entra e só perde pontos no score (sinal "franquia")
     return None
 
 
 def ingerir(con: sqlite3.Connection, arquivo: Path, bairro: dict, municipios: list[str],
             franquias: list[str]) -> dict[str, int]:
-    """Idempotente por place_id. Cada lugar novo é resolvido contra o que já existe (CNPJ, Instagram).
-
-    shortcut: `franquias` é ignorado (franquia virou só sinal do score); tirar o parâmetro depois que o #22 entrar.
-    """
+    """Idempotente por place_id. Cada lugar novo é resolvido contra o que já existe (CNPJ, Instagram)."""
     contagem = {"novos": 0, "vinculados": 0, "revisao": 0, "repetidos": 0, "descartados": 0, "aptos": 0}
     alvo = {normalizar(m).upper() for m in municipios}
+    padrao = re.compile(r"\b(" + "|".join(re.escape(t) for t in franquias) + r")\b") if franquias else None
     compartilhados = resolve.telefones_compartilhados(con)
     momento = agora()
     linhas = [json.loads(l) for l in arquivo.read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -144,7 +143,7 @@ def ingerir(con: sqlite3.Connection, arquivo: Path, bairro: dict, municipios: li
         if dados["tel1"] and bloqueado(con, dados["tel1"]):  # pediu SAIR: não volta nem fica gravado
             contagem["descartados"] += 1
             continue
-        motivo = _descarte(lugar, dados, alvo)
+        motivo = _descarte(lugar, dados, alvo, padrao)
         candidato, nota = (None, 0.0) if motivo else resolve.melhor_candidato(con, dados, compartilhados)
         if candidato is not None and nota >= resolve.VINCULA:
             entity_id = candidato["entity_id"]
