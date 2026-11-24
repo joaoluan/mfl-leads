@@ -337,8 +337,8 @@ def ingerir(con: sqlite3.Connection, lojas: list[Loja], franquias: list[str]) ->
 
 
 def rodar(con: sqlite3.Connection, endereco: str, limite: int = 30) -> dict[str, int]:
-    if not endereco.strip() or len(endereco) > 300 or not 1 <= limite <= 100:
-        raise ValueError("Informe um endereço com até 300 caracteres e limite entre 1 e 100 lojas.")
+    if not endereco.strip() or len(endereco) > 300 or not 1 <= limite <= 1000:
+        raise ValueError("Informe um endereço com até 300 caracteres e limite entre 1 e 1000 lojas.")
     from mfl.score import config
     municipios = config()["recorte"]["municipios"]
     conhecidos = set()
