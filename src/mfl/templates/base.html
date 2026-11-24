@@ -122,6 +122,7 @@ input, select { font:inherit; min-height:38px; padding:6px 10px; background:var(
   .atalhos { display:none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; scroll-behavior:auto !important; } }
+.aviso-confirmar { display:block; flex-basis:100%; margin-top:6px; font-size:13px; font-weight:600; color:var(--ruim-texto); }
 </style>
 </head>
 <body>
@@ -152,9 +153,25 @@ document.addEventListener("click", e => {
     botao.textContent = "Copiado"; document.getElementById("aviso").textContent = "Texto copiado";
   });
 });
-// Ações sem volta pedem confirmação.
+// Ações sem volta: o 1º clique mostra o aviso e troca o botão por "Confirmar"; o 2º (em até 8 s) envia.
+// Sem confirm() do navegador: quem marca "não mostrar mais" deixava o botão sem funcionar.
 document.addEventListener("submit", e => {
-  const msg = e.target.dataset.confirmar; if (msg && !confirm(msg)) e.preventDefault();
+  const form = e.target, msg = form.dataset.confirmar;
+  if (!msg || form.dataset.confirmado) return;
+  e.preventDefault();
+  const botao = form.querySelector("button"), texto = botao.textContent, eraPerigo = botao.classList.contains("perigo");
+  const aviso = Object.assign(document.createElement("span"), {className: "aviso-confirmar", textContent: msg});
+  aviso.setAttribute("role", "status");
+  form.dataset.confirmado = "1";
+  botao.textContent = "Confirmar: " + texto;
+  botao.classList.add("perigo");
+  form.append(aviso);
+  setTimeout(() => {
+    delete form.dataset.confirmado;
+    botao.textContent = texto;
+    if (!eraPerigo) botao.classList.remove("perigo");
+    aviso.remove();
+  }, 8000);
 });
 </script>
 </body>
