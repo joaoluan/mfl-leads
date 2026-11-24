@@ -87,6 +87,14 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - Lead do CNPJ entra como `enriquecimento`, telefone da Receita em `tel2` (para cruzar fontes), categoria = descrição do CNAE.
 - Primeira carga (2026-11): 1.777.043 estabelecimentos ativos no RS, 39.338 no recorte.
 
+### Maps e resolução (fase 5)
+- Binário gosom/google-maps-scraper v1.20.0 em `bin/` (fora do git); SHA256 em `bin/SHA256SUMS`, conferido a cada execução. Telemetria desligada.
+- Um bairro por execução (`make maps BAIRRO=<chave>`); bairros e bbox em `cfg/bairros.toml`, gerado uma vez do OpenStreetMap (`mfl bairros-gerar`). Célula de 0,5 km, maior em área grande (máx. ~60 células). `mfl maps-fila` raspa os bairros nunca raspados ou com mais de 60 dias, POA e NH primeiro.
+- Consultas em `cfg/maps_consultas.txt`. A v1.20.0 às vezes não sai do processo após terminar: o wrapper encerra 15 s depois de "scrapemate exited"; teto de 1800 s.
+- Ingestão idempotente por place_id. Descarta fechado, fora dos municípios do recorte e franquia. Telefone celular válido → `novo` (apto para a fila); fixo ou sem telefone → `enriquecimento`. E-mail só se o domínio tem MX.
+- Resolução: regra da spec (0,35 CEP5 + 0,35 telefone + 0,30 nome) com ajustes: telefone igual vincula sozinho, exceto telefone repetido entre CNPJs (contador); CEP completo + nome ≥ 0,85 vincula; palavras genéricas (pizzaria, restaurante…) fora da comparação. 0,55–0,85 vai para a tela Revisão.
+- `mfl resolver`: contato do grupo + CNPJ com o mesmo telefone viram um lead (o do grupo sobrevive, com toques e respostas). Quem está no grupo continua recebendo o texto do grupo.
+
 ### Fases (parar em cada uma, um PR por fase)
 1. Esqueleto, schema, seed por CSV, export.
 2. Evolution: envios e respostas, participantes do grupo, palavra-chave, opt-out.
