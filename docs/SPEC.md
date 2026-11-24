@@ -1,0 +1,364 @@
+# Spec — Esteira de leads MyFoodLink
+
+Parte A = decisões tomadas com o operador em 24/11/2026 (prevalecem).
+Parte B = especificação original, mantida como base. Onde a Parte A contradiz a B, vale a A.
+
+---
+
+## Parte A — Decisões v2
+
+### Infra
+- Tudo roda no **PC desktop** (x86, IP residencial, Tailscale). Sem VPS: IP de datacenter (EUA) queima Maps e Instagram.
+- Orange Pi One (armv7, 1 GB) não roda Playwright, Camoufox, DuckDB nem Polars. Papel dele: cópia semanal do backup. Ideia futura: exit node do Tailscale para uma VPS sair pelo IP de casa.
+- Backup diário de `db/leads.db` e `data/parquet/` no SSD `backup-ssd` (sdd1, ext4) e cópia semanal no Orange Pi.
+- Fuso de tudo: America/Sao_Paulo.
+- Custo previsto: zero (sem proxy, IP residencial).
+
+### WhatsApp
+- Chip: o **WhatsApp pessoal** (antigo, número comercial 5551985711759, o do site e do Instagram do MFL). O operador aceitou o risco.
+- Envio **manual pelo WhatsApp Web** no PC. Deep link: `https://web.whatsapp.com/send?phone=<e164 sem +>&text=<texto codificado>`.
+- **Evolution API** em Docker no PC, pareada no pessoal, **só leitura** (revoga "não integre Baileys" da seção 4 só para leitura; nunca envia).
+  - Mensagem `fromMe` para um lead vira `touch` automático. O botão "Enviado" fica como reserva (Evolution caída, DM do Instagram).
+  - Mensagem recebida de um lead vira `reply`.
+  - **Só grava mensagens de números que já são lead.** O resto é descartado sem persistir. Sem sincronizar histórico antigo.
+  - Lê uma vez os participantes do grupo de donos (fonte `grupo`).
+  - UI avisa "Evolution desconectada".
+- Classificação de resposta por palavra-chave, com revisão de um clique. "SAIR" vira opt_out automático.
+- Bloqueio estimado = mensagem parada em 1 tique por mais de 24h + opt-outs. Alerta se > 3% por 3 dias.
+- Validador público de WhatsApp **removido**. Validação = telefone vindo de Maps, Instagram ou grupo, celular, E.164, e botão "sem WhatsApp" na UI.
+
+### Volume e cadência
+- **30 mensagens por dia no total**, follow-ups primeiro e o resto para leads novos. Rampa: semana 1 = 20, semana 2+ = 30, sempre com bloqueio < 5%. Ao atingir o teto a UI avisa.
+- Sem teto de trials (o operador aguenta mais de 15 por mês). Foco em Start e Pro.
+- Janela de envio: **segunda-feira o dia todo** (9h–18h; restaurante fechado, dono com tempo) e de terça a sexta das 9h às 11h e das 14h30 às 17h30. Fora da janela a UI avisa e não bloqueia. D3 e D7 podem cair na segunda.
+- Trial e cliente são marcados à mão na ficha.
+
+### Fontes
+- **Telefone** vem de Maps, Instagram (bio, `wa.me`) e grupo. Telefone só do CNPJ (costuma ser o do contador) leva a `enriquecimento`.
+- **CNPJ**: filtro (ativa, CNAE, unidade única, porte) e sinal (abertura). Atualização mensal.
+- **Maps**: binário `gosom/google-maps-scraper` com versão fixa e SHA conferido. Só as avaliações que vêm por padrão. Cada bairro é raspado de novo a cada 60 dias.
+- **Instagram**: via o **camofox-browser já instalado** (`127.0.0.1:9377`, conta secundária), não a biblioteca `camoufox`. Até ~30 perfis por dia. O @ vem só do Maps ou do site; sem busca dentro do Instagram. Não fica restrito a score >= 55.
+- **iFood** (revoga "não raspe iFood" da seção 4): sinal "vende no iFood" (texto próprio: pedido direto sem comissão) e também fonte de leads novos. Casamento por endereço.
+- **Grupo de donos**: participantes casados pelo telefone com Maps ou CNPJ. Sem casamento vai para `revisao`. Texto próprio ("somos do grupo").
+
+### Recorte
+- Municípios: Porto Alegre, Canoas, Gravataí, Viamão, São Leopoldo, Novo Hamburgo, Alvorada, Cachoeirinha, Sapucaia do Sul, Esteio, Guaíba, Montenegro, Campo Bom, Estância Velha, Ivoti, Dois Irmãos, Sapiranga, Portão.
+- CNAE entra: 5611201, 5611203, 5611204, 5611205, 5612100, 5620104, 1091102, 4721102, 4721104.
+- CNAE fora: 5620101, 5620102, 5620103, 1091101, 4721103.
+- Correção: padaria/confeitaria com produção própria é **1091102**, não 5611201.
+- Quem usa concorrente (Goomer, Saipos, Anota AI, LeadsFood etc.) **não é excluído**: vira alvo de troca, com texto próprio e score menor. Franquia/rede continua excluída.
+- Exclusões da fila: clientes atuais (Espaço Grill, Fornello Esteio, as 2 pizzarias, a doceria), tenants de teste (Fat Bull, Donilla, Brasa Burger), opt-outs (hash do telefone, bloqueio permanente), fechados permanente ou temporariamente no Maps. Quem já conversou com o operador no pessoal vai para `revisao`.
+
+### Score (adições)
+- `raio` = distância até Novo Hamburgo (base) ou até um cliente atual.
+- `aberto_menos_12m`: +15 (data de abertura no CNPJ).
+- `vende_ifood`: sinal positivo.
+- `usa_concorrente`: negativo (alvo de troca).
+
+### Textos
+- 8 grupos com 3 variantes cada: pizzaria, hamburgueria, churrascaria, japonês, restaurante/marmita, lanchonete/café, padaria/doceria, bar. A categoria vem do Maps.
+- Mais os textos de grupo, troca de concorrente e iFood.
+- O inbox mostra a resposta sugerida para "quanto custa" e "já tenho".
+
+### UI e LGPD
+- Ficha mostra a fonte e a data da coleta ("de onde tirou meu número?").
+- Painel: funil por fonte e por variante de texto.
+
+### Modelo de dados (adições)
+- `entity.categoria` (a Parte B usa categoria na UI e nos textos, mas faltava a coluna).
+
+### Fases (parar em cada uma, um PR por fase)
+1. Esqueleto, schema, seed por CSV, export.
+2. Evolution: envios e respostas, participantes do grupo, palavra-chave, opt-out.
+3. UI com as 5 telas (a partir daqui dá para prospectar com os contatos do grupo).
+4. ETL do CNPJ e recorte de ICP.
+5. Maps, resolução de entidade, telefone.
+6. Score.
+7. Instagram.
+8. iFood.
+9. Operação: timers, backup, logs.
+
+Dependências entram na fase que precisa delas. `pymysql` saiu (nada usa MySQL).
+
+---
+
+## Parte B — Especificação original
+
+### 0. Papel
+
+Você é engenheiro de dados e backend sênior. Construa um sistema local de geração de leads
+para prospecção B2B, em fases, com código simples e verificável. Pare ao fim de cada fase e
+espere revisão antes de continuar. Não invente escopo.
+
+### 1. Contexto de negócio
+
+Produto: MyFoodLink (www.myfoodlink.com.br) — sistema para restaurantes com atendimento e
+reservas no WhatsApp, cardápio digital, fidelidade, delivery com pagamento online (plano Pro)
+e PDV com salão, comanda, cozinha, estoque e financeiro (plano Gestor, com servidor local
+Windows, em implantação assistida).
+
+Planos: Start R$149, Pro R$299, Gestor R$499. Sem contrato mínimo, sem taxa de implantação.
+Fundador tem 15 anos de gestão de restaurantes em Porto Alegre. WhatsApp comercial:
++55 51 98571-1759.
+
+Oferta de entrada: 30 dias grátis. O CTA é trial, não demonstração.
+Empurrar Start e Pro. Gestor é upsell e exige hardware no cliente.
+
+Objetivo do sistema: produzir, toda semana, uma fila de 40 a 60 donos de estabelecimentos de
+alimentação em Porto Alegre e região metropolitana, com telefone validado, que ainda não usam
+sistema concorrente, para abordagem manual de 30 por dia.
+
+### 2. Operador (restrições reais)
+
+- Uma pessoa, sozinha. Sem time.
+- Capacidade: 30 abordagens/dia, 20 a 40 por semana com follow-up.
+- Teto de 3 trials por mês (cada trial consome configuração manual).
+- Orçamento total do projeto: R$ 300/mês.
+- Já tem 4 clientes ativos (2 pizzarias, 1 churrascaria, 1 doceria), vindos de um grupo de
+  WhatsApp de donos de restaurantes. O operador está nesse grupo e tem chip dedicado.
+
+Consequência de projeto: PRECISÃO acima de volume. O sistema nunca deve priorizar quantidade
+sobre qualidade do lead.
+
+### 3. Stack obrigatória
+
+- Python 3.12, ambiente com `uv`. Uma linguagem só.
+- Linux nativo ou WSL2. Roda na máquina do operador, IP residencial.
+- SQLite em WAL como banco OPERACIONAL (fila, estado, dedupe, toques, respostas).
+- DuckDB em modo read-only + Parquet como camada ANALÍTICA (gold). Nunca escritor concorrente.
+- `bin/google-maps-scraper` — binário Go open source (github.com/gosom/google-maps-scraper),
+  pinado por versão, chamado via subprocess com timeout. Nunca reimplementar.
+- Camoufox (`camoufox[geoip]`) para Instagram, isolado em módulo próprio.
+- UI local em Flask, `localhost:8000`, sem build step, sem framework JS.
+- Dependências: duckdb, polars, pymysql, camoufox[geoip], playwright, typer, pydantic,
+  tenacity, structlog, phonenumbers, rapidfuzz, unidecode, python-dotenv, flask.
+- Sem Docker, sem Celery/Redis, sem Postgres, sem autenticação, sem deploy.
+
+### 4. NÃO faça
+
+- Não envie mensagem automaticamente. O envio é manual, via deep link.
+- Não integre Cloud API oficial, Baileys ou whatsapp-web.js.
+- Não use Apify, Scrap.io, Outscraper nem qualquer SaaS pago.
+- Não raspe iFood, SERP do Google ou marketplaces.
+- Não baixe o dump de CNPJ do Brasil inteiro: só UF=RS e só municípios da região metropolitana.
+- Não rode Instagram em massa: só score >= 55 e só anel 1 ou 2.
+- Não crie dashboard, Kanban, multiusuário, autenticação ou API pública.
+- Não invente CNAE, campo ou endpoint fora desta especificação.
+
+### 5. Fonte de dados 1 — CNPJ (dados abertos)
+
+Origem: https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9
+Layout: https://www.gov.br/receitafederal/dados/cnpj-metadados.pdf
+Formato: CSV, separador `;`, aspas duplas, encoding latin-1, sem cabeçalho.
+Tabelas usadas: EMPRESAS, ESTABELECIMENTOS, CNAE, MUNICIPIOS, SOCIOS.
+
+`ESTABELECIMENTOS` traz: cnpj_basico, cnpj_ordem, cnpj_dv, matriz_filial, nome_fantasia,
+situacao_cadastral, data_situacao, motivo, cidade_exterior, pais, data_inicio_atividade,
+cnae_fiscal_principal, cnae_secundaria, tipo_logradouro, logradouro, numero, complemento,
+bairro, cep, uf, municipio, ddd1, telefone1, ddd2, telefone2, ddd_fax, fax,
+correio_eletronico, situacao_especial, data_situacao_especial.
+
+#### 5.1 ETL
+
+`src/mfl/cnpj_etl.py` converte para Parquet já filtrado, uma partição por UF:
+
+1. Lê com `delim=';'`, `quote='"'`, `encoding='latin-1'`, `all_varchar=true`, colunas nomeadas.
+2. Filtra `situacao_cadastral = '02'` (ativa) e `uf = 'RS'`.
+3. Escreve `data/parquet/estab/uf=RS/*.parquet`.
+4. Idem para EMPRESAS (só porte, capital_social, natureza_juridica), CNAE, MUNICIPIOS, SOCIOS.
+5. Valida a contagem de colunas de cada arquivo antes do COPY; aborta com erro claro se o
+   layout mudar.
+
+#### 5.2 Recorte de ICP
+
+Municípios alvo: Porto Alegre, Canoas, Gravataí, Viamão, São Leopoldo, Novo Hamburgo,
+Alvorada, Cachoeirinha, Sapucaia do Sul, Esteio, Guaíba, Montenegro.
+
+CNAE núcleo: 5611201, 5611203, 5620104
+CNAE incluir (peso menor): 4721102, 4721104, 5611204
+CNAE fora: 5620102, 5620103, 4721103, 1091101, 5611205
+
+Nota de domínio: padaria e doceria com produção própria são classificadas em 5611-2/01, não
+em 47.21-1. Não filtre só por 47.21-1.
+
+#### 5.3 Filtros de exclusão (obrigatórios, em SQL)
+
+- situacao != ativa (já no ETL)
+- logradouro vazio ou nulo
+- franquia/rede: mesmo cnpj_basico com 4+ filiais, ou nome_fantasia contendo termo da lista
+  `cfg/franquias.txt`
+- já tem sistema: nome_fantasia, site ou Instagram contendo goomer, saipos, consumer, linx,
+  cardapio digital
+
+### 6. Fonte 2 — Google Maps
+
+`src/mfl/maps.py` chama o binário:
+
+    bin/google-maps-scraper -input <q> -results <out> -grid-bbox <bbox> -grid-cell 0.5 \
+      -zoom 16 -depth 1 -c 4 -email -lang pt -exit-on-inactivity 3m
+
+- Uma execução por bairro de `cfg/bairros.yml`, com timeout de 1800s.
+- Ingestão com `INSERT OR IGNORE` em `source_record`, `source_key = place_id`.
+- Nunca combine `-fast-mode` com `-grid-bbox`.
+- `-grid-strict` ativo.
+- Concorrência máxima 4.
+
+### 7. Resolução de entidade
+
+`src/mfl/resolve.py`
+
+1. Normaliza nome: unidecode, lowercase, remove ltda|me|eireli|sa|mei, colapsa espaço.
+2. Bloqueia pares por `substr(cep,1,5)` OU últimos 8 dígitos do telefone.
+3. Score: 0.35 CEP5 igual + 0.35 telefone8 igual + 0.30 similaridade rapidfuzz do nome.
+4. >= 0.85 vincula automático. Entre 0.55 e 0.85 vai para `revisao`. Abaixo, descarta.
+5. Grava `match_score` em `source_record`.
+
+### 8. Normalização e validação
+
+- Telefone: `phonenumbers`, região BR, saída E.164 (`+5551...`). Marca `is_mobile`.
+- Sem telefone válido → `status = enriquecimento`, fora da fila.
+- E-mail: regex + checagem MX antes de gravar como válido.
+- `src/mfl/validate.py` consulta validador público de WhatsApp, com cache em `validacao`
+  (telefone, resultado, data) e intervalo de 1,5s entre chamadas.
+
+### 9. Instagram (fase final, opcional)
+
+`src/mfl/ig.py` com `AsyncCamoufox(headless=True, os=["windows"], humanize=True, geoip=True,
+proxy=<env>, persistent_context=True, user_data_dir="sess/ig")`.
+
+- Lê só `status IN ('respondeu','na_fila')` e score >= 55.
+- Extrai bio, e-mail por regex, telefone por regex, link externo e seguidores.
+- Segue o link externo no mesmo browser para procurar e-mail.
+- Detecta challenge/login por seletor; grava `Checkpoint` e para o lote.
+- Semáforo 2, delay 4 a 9s com jitter, teto 25 por execução.
+- Salva HTML bruto em `data/raw/ig/<data>/<hash>.html.gz`.
+
+### 10. Modelo de dados
+
+Ver `db/schema.sql` (fonte de verdade do schema).
+
+`entity_id` é UUID4. Toda linha de toda fonte aponta para uma entity.
+
+### 11. Score
+
+`src/mfl/score.py` lê pesos de `cfg/icp.yml`:
+
+    mesma_categoria_de_cliente: 30
+    raio_1500m: 20
+    wa_me_na_bio: 20
+    reclamacao_demora: 15
+    sem_site: 10
+    aceita_encomenda: 10
+    ig_ativo_30d: 8
+    unidade_unica: 8
+    franquia: -25
+    site_com_pedido_proprio: -30
+    ig_inativo_6m: -10
+    corte: 40
+
+Corte: score < 40 não entra na fila. Fila sempre ordenada por score desc.
+
+### 12. Máquina de estados
+
+    novo → qualificado → na_fila → enviado_d0
+    enviado_d0 → respondeu | d3
+    d3 → d7 (sem resposta) | respondeu
+    d7 → frio (sem resposta)
+    respondeu → trial | objecao | opt_out
+    objecao → frio
+    trial → cliente | frio
+    frio → na_fila após 60 dias
+    opt_out → terminal, nunca mais contatado
+
+Toda transição grava `atualizado_em`. `opt_out` é irreversível sem ação manual.
+
+### 13. Cadência
+
+D0: mensagem com o sinal, pergunta fechada, oferta de 30 dias grátis.
+D3: dado curto, sem apresentação.
+D7: oferta de conversa de 15 min com horário específico.
+D10 sem resposta: `frio`, volta em 60 dias.
+
+Templates em `cfg/mensagens/{pizzaria,doceria,lanchonete,marmita}.md`, 3 variantes cada,
+placeholders `{bairro}` e `{sinal}`. A primeira linha é sempre personalizada.
+
+Resposta "quanto custa" → faixa de preço + horário proposto na mesma mensagem.
+Resposta "já tenho" → perguntar qual sistema e o que falta.
+
+### 14. UI (Flask, localhost)
+
+Cinco telas, sem login, sem build:
+
+- `/` Fila: 30 cartões do dia ordenados por score. Nome, categoria, bairro, chips de sinal,
+  score, telefone. Botões: Abrir WhatsApp (deep link `wa.me`), Instagram (`ig.me/m/`), Ficha,
+  Enviado, Pular. Barra de progresso. Atalhos Enter/S/F.
+- `/lead/<id>` Ficha: todos os dados, link da fonte, texto sugerido por categoria com botão
+  copiar, linha do tempo, botões de status e opt-out.
+- `/respostas` Inbox: só quem respondeu, classificador de um clique.
+- `/painel` Métricas: enviados hoje/semana, taxa de resposta, taxa de bloqueio, demos, trials,
+  tabela por categoria, tabela por bairro, alerta se bloqueio > 3% por 3 dias.
+- `/config` Editor simples de `icp.yml`, templates e tetos.
+
+Estilo: flat, sem sombra, duas espessuras de fonte, sentence case, sem emoji, mínimo 11px.
+
+### 15. Operação
+
+- `Makefile`: etl, maps BAIRRO=, resolve, validate, score, export, ig, seed.
+- `seed` importa CSV de leads do grupo de WhatsApp (colunas: nome, telefone, categoria, bairro).
+- `systemd timers` + `flock -n` por job, `Nice=10`, `IOSchedulingClass=idle`.
+- Log JSONL em `logs/<job>.jsonl`, com job_id, source, url, captured_at.
+- `.env` com `chmod 600`, contendo proxy e caminhos. `.gitignore` cobre data/, db/*.db, .env.
+- Backup diário de `db/leads.db` e `data/parquet/` para segundo disco.
+
+### 16. Limites operacionais
+
+Teto de envio por dia, controlado na UI: semana 1 = 10, semana 2 = 20, semana 3 = 30,
+semana 4+ = 40 a 50, sempre condicionado a bloqueio < 5%. A UI bloqueia o botão Enviado ao
+atingir o teto e avisa.
+
+Nunca repetir o mesmo texto em dois envios consecutivos da mesma categoria.
+
+### 17. LGPD
+
+- Guardar sempre `url`, `captured_at` e hash da fonte.
+- Só dado necessário ao contato comercial. Nada de CPF de sócio.
+- Opt-out em toda mensagem ("responda SAIR").
+- Instagram: dado pessoal, manter mínimo e registrar data de coleta.
+
+### 18. Ordem de construção e critérios de aceite (original; a ordem vale a da Parte A)
+
+Fase 1 — esqueleto, schema, seed. Aceite: `make seed` importa CSV e cria entities; `make export` gera CSV.
+
+Fase 2 — ETL CNPJ. Aceite: rodando em 1 arquivo de amostra, gera Parquet com contagem conferida e aborta com mensagem clara se o layout mudar.
+
+Fase 3 — recorte ICP e score. Aceite: query de ICP devolve só ativa, só município alvo, só CNAE permitido, sem franquia; score preenche `sinais` e corta abaixo de 40.
+
+Fase 4 — Maps. Aceite: `make maps BAIRRO=moinhos-de-vento` produz CSV, ingere com place_id único, sem duplicata em duas execuções.
+
+Fase 5 — resolução, telefone, validação. Aceite: telefone sempre em E.164; nenhum lead entra na fila sem validação positiva.
+
+Fase 6 — UI. Aceite: as 5 telas funcionam, deep link abre com texto codificado, teto diário bloqueia.
+
+Fase 7 — Instagram. Aceite: processa 5 perfis, grava bio e link, para sozinho em checkpoint.
+
+### 19. Regras de qualidade de código
+
+- Tipagem em todas as funções públicas. Pydantic no contrato de dados.
+- Nenhuma credencial em código. Nenhum `print`, só structlog.
+- Toda escrita em SQLite com `PRAGMA busy_timeout=5000` e em lote de 100.
+- Toda função de rede com retry exponencial (tenacity) e timeout.
+- Docstring curta em português, explicando o porquê, não o quê.
+- Se algo da spec for ambíguo, pergunte antes de implementar.
+
+### 20. Instalação de dependências externas
+
+#### gosom/google-maps-scraper
+1. Baixe a release (asset linux-amd64), salve em `bin/google-maps-scraper`, `chmod +x`.
+2. Grave o SHA256 em `bin/SHA256SUMS` e valide antes de cada execução.
+3. Instale o runtime do browser uma vez: `PLAYWRIGHT_INSTALL_ONLY=1 ./bin/google-maps-scraper`.
+4. Versão usada: v1.20.0. Não rode `latest` sem registrar o SHA.
+
+#### Camoufox (substituído pelo camofox-browser já instalado; ver Parte A)
+
+#### Verificação antes da fase do Maps
+`bin/google-maps-scraper -h` deve imprimir o help. Se falhar, pare e reporte.
