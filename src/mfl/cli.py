@@ -147,7 +147,6 @@ def _maps_bairro(chave: str, info: dict) -> dict:
     contagem = maps.ingerir(con, saida, info, cnpj_icp.recorte()["municipios"], cnpj_icp.termos_franquia())
     con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"maps:{chave}", date.today().isoformat(), db.agora()))
     con.commit()
-    score.recalcular(con, date.today())
     return contagem
 
 
@@ -159,6 +158,7 @@ def cmd_maps(bairro: str = typer.Argument(..., help="chave em cfg/bairros.toml, 
     if bairro not in todos:
         raise typer.BadParameter(f"{bairro!r} não está em cfg/bairros.toml")
     _maps_bairro(bairro, todos[bairro])
+    score.recalcular(db.conectar(), date.today())
 
 
 @app.command("maps-fila")
@@ -180,6 +180,7 @@ def cmd_maps_fila(limite: int = typer.Option(5, help="Quantos bairros nesta exec
         except Exception as erro:  # um bairro com problema não para a noite; fica pendente para amanhã
             logger.error("maps_bairro_falhou", bairro=chave, erro=str(erro))
             falhas.append(chave)
+    score.recalcular(con, date.today())
     logger.info("maps_fila", feitos=min(limite, len(pendentes)), restantes=max(0, len(pendentes) - limite))
     if falhas:
         raise RuntimeError(f"bairros com falha: {', '.join(falhas)}")
