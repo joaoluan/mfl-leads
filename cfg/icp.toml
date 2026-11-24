@@ -14,6 +14,17 @@ unidade_unica = 8
 franquia = -25
 site_com_pedido_proprio = -30
 ig_inativo_6m = -10
+# Fase 6: está no grupo de donos (dono confirmado, WhatsApp certo) passa do corte sozinho.
+grupo_de_donos = 40
+# Usa sistema concorrente: continua na fila (alvo de troca, texto próprio), só cai um pouco.
+usa_concorrente = -10
+vende_ifood = 10
+
+[score]
+# Categorias dos clientes atuais (chaves de cfg/mensagens: pizzaria, churrascaria, padaria...). Clientes marcados na UI somam.
+categorias_clientes = ["pizzaria", "churrascaria", "padaria"]
+# "raio": base em Novo Hamburgo, vizinhas e cidades de clientes (São Leopoldo, Esteio).
+municipios_perto = ["Novo Hamburgo", "Campo Bom", "Estância Velha", "Ivoti", "Dois Irmãos", "São Leopoldo", "Esteio"]
 
 # Recorte do CNPJ (fase 4). Nomes como a Receita escreve, sem acento.
 [recorte]

@@ -12,7 +12,7 @@ import structlog
 import typer
 from dotenv import load_dotenv
 
-from mfl import bairros, cnpj_baixar, cnpj_etl, cnpj_icp, db, maps, resolve, evolution, export, log, seed, ui, webhook, whatsapp
+from mfl import bairros, cnpj_baixar, cnpj_etl, cnpj_icp, db, maps, resolve, score, evolution, export, log, seed, ui, webhook, whatsapp
 from mfl.fone import de_jid, para_e164
 
 app = typer.Typer(no_args_is_help=True)
@@ -173,6 +173,7 @@ def _maps_bairro(chave: str, info: dict) -> dict:
     contagem = maps.ingerir(con, saida, info, cnpj_icp.recorte()["municipios"], cnpj_icp.termos_franquia())
     con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"maps:{chave}", date.today().isoformat(), db.agora()))
     con.commit()
+    score.recalcular(con, date.today())
     return contagem
 
 
@@ -207,4 +208,13 @@ def cmd_maps_fila(limite: int = typer.Option(5, help="Quantos bairros nesta exec
 def cmd_resolver() -> None:
     """Junta contato do grupo com o CNPJ de mesmo telefone (quando o telefone não é de contador)."""
     log.configurar("resolve")
-    logger.info("grupo_cnpj_fundidos", total=resolve.resolver_grupo_cnpj(db.conectar()))
+    con = db.conectar()
+    logger.info("grupo_cnpj_fundidos", total=resolve.resolver_grupo_cnpj(con))
+    score.recalcular(con, date.today())
+
+
+@app.command("score")
+def cmd_score() -> None:
+    """Recalcula score e sinais de todos os leads (pesos em cfg/icp.toml)."""
+    log.configurar("score")
+    score.recalcular(db.conectar(), date.today())

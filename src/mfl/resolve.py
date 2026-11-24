@@ -107,7 +107,8 @@ def fundir(con: sqlite3.Connection, sobrevivente: str, absorvido: str) -> None:
     unicos = {c: dados.pop(c) for c in ("cnpj", "place_id", "ig_username")}
     con.execute("DELETE FROM entity WHERE entity_id=?", (absorvido,))
     con.execute("UPDATE revisao SET decidido=1 WHERE (a=? OR b=?) AND decidido=0", (absorvido, absorvido))
-    preencher(con, sobrevivente, {**dados, **unicos, "_celular": dados["status"] != "enriquecimento"})
+    preencher(con, sobrevivente, {**dados, **unicos, "_celular": dados["status"] != "enriquecimento",
+                                  "_fonte": "maps" if unicos["place_id"] else None})
 
 
 def resolver_grupo_cnpj(con: sqlite3.Connection) -> int:

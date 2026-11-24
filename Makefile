@@ -1,4 +1,4 @@
-.PHONY: seed export test etl icp maps resolve
+.PHONY: seed export test etl icp maps resolve score
 
 seed:
 	@test -n "$(CSV)" || (echo "uso: make seed CSV=arquivo.csv" >&2; exit 2)
@@ -23,3 +23,6 @@ maps:
 
 resolve:
 	uv run mfl resolver
+
+score:
+	uv run mfl score

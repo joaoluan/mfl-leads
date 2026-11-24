@@ -1,9 +1,10 @@
 import hashlib
 import json
+from datetime import date
 
 import pytest
 
-from mfl import db, maps, resolve, seed, ui
+from mfl import db, maps, resolve, score, seed, ui
 from mfl.cnpj_icp import ingerir as ingerir_cnpj
 
 BAIRRO = {"nome": "Moinhos de Vento", "municipio": "Porto Alegre", "bbox": "-30.03,-51.21,-30.02,-51.19", "celula_km": 0.5}
@@ -77,7 +78,7 @@ def test_ingestao_resolve_e_descarta(con, tmp_path):
 def test_fila_so_com_celular_validado(con, tmp_path):
     maps.ingerir(con, arquivo(tmp_path, [lugar("P1", "A", fone="51 99111-2222"), lugar("P2", "B", fone="51 3222-1111")]),
                  BAIRRO, MUNICIPIOS, [])
-    from datetime import date
+    score.recalcular(con, date(2026, 11, 24))  # grupo 40; P1 pizzaria (categoria de cliente) 30 + sem site 10
     from mfl import cadencia
     na_fila = {l["tel1"] for l, _ in cadencia.fila(con, date(2026, 11, 24), 50)}
     assert na_fila == {"+5551988887777", "+5551991112222"}
@@ -106,7 +107,8 @@ def test_tela_de_revisao_funde(con, tmp_path):
     assert "Bella Napoli Pizzas" in cliente.get("/revisao").get_data(as_text=True)
     (rid,) = con.execute("SELECT id FROM revisao").fetchone()
     cliente.post(f"/revisao/{rid}", data={"decisao": "mesmo"})
-    assert con.execute("SELECT place_id FROM entity WHERE cnpj='22222222000155'").fetchone()[0] == "P8"
+    assert tuple(con.execute("SELECT place_id, categoria FROM entity WHERE cnpj='22222222000155'").fetchone()) == (
+        "P8", "Pizzaria")
     assert con.execute("SELECT count(*) FROM entity WHERE place_id='P8'").fetchone()[0] == 1
 
 
