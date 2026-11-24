@@ -1,0 +1,11 @@
+[Unit]
+Description=mfl-leads: Maps, 6 bairros por noite
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Projetos/mfl-leads
+ExecStart=%h/.local/bin/uv run --frozen mfl maps-noturno
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=4h

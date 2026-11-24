@@ -12,7 +12,7 @@ import structlog
 import typer
 from dotenv import load_dotenv
 
-from mfl import bairros, cnpj_baixar, cnpj_etl, cnpj_icp, db, ig, maps, resolve, score, evolution, export, log, seed, ui, webhook, whatsapp
+from mfl import bairros, cadencia, cnpj_baixar, cnpj_etl, cnpj_icp, db, ig, maps, ops, resolve, score, evolution, export, log, seed, ui, webhook, whatsapp
 from mfl.fone import de_jid, para_e164
 
 app = typer.Typer(no_args_is_help=True)
@@ -199,9 +199,16 @@ def cmd_maps_fila(limite: int = typer.Option(5, help="Quantos bairros nesta exec
     pendentes = sorted(((k, v) for k, v in bairros.carregar().items()
                         if (cidade is None or v["municipio"] == cidade) and feitos.get(k, "") <= limite_data),
                        key=lambda kv: (ordem.get(kv[1]["municipio"], 2), kv[1]["municipio"], kv[0]))
+    falhas = []
     for chave, info in pendentes[:limite]:
-        _maps_bairro(chave, info)
+        try:
+            _maps_bairro(chave, info)
+        except Exception as erro:  # um bairro com problema não para a noite; fica pendente para amanhã
+            logger.error("maps_bairro_falhou", bairro=chave, erro=str(erro))
+            falhas.append(chave)
     logger.info("maps_fila", feitos=min(limite, len(pendentes)), restantes=max(0, len(pendentes) - limite))
+    if falhas:
+        raise RuntimeError(f"bairros com falha: {', '.join(falhas)}")
 
 
 @app.command("resolver")
@@ -238,3 +245,68 @@ def cmd_ig(limite: int = typer.Option(ig.POR_DIA, help="Perfis nesta execução 
         con.commit()
     if ig.rodar(con, date.today(), limite)["perfis"]:
         score.recalcular(con, date.today())
+
+
+@app.command("backup")
+def cmd_backup() -> None:
+    """Backup do banco e cfg (local, SSD backup-ssd; domingo também no Orange Pi)."""
+    log.configurar("ops")
+    con = db.conectar()
+    with ops.job(con, "backup"):
+        ops.backup(con, date.today())
+
+
+@app.command("diario")
+def cmd_diario() -> None:
+    """Rotina diária (timer): cadência, grupo x CNPJ, score e backup."""
+    log.configurar("ops")
+    con = db.conectar()
+    hoje = date.today()
+    with ops.job(con, "diario"):
+        cadencia.atualizar(con, hoje)
+        resolve.resolver_grupo_cnpj(con)
+        score.recalcular(con, hoje)
+        ops.backup(con, hoje)
+
+
+@app.command("maps-noturno")
+def cmd_maps_noturno(limite: int = typer.Option(6, help="Bairros por noite (~8 min cada)")) -> None:
+    """Timer: próximos bairros pendentes do Maps (374 bairros / 6 por noite ~ 60 dias)."""
+    log.configurar("maps")
+    con = db.conectar()
+    with ops.job(con, "maps"):
+        cmd_maps_fila(limite=limite, cidade=None)
+
+
+@app.command("ig-diario")
+def cmd_ig_diario() -> None:
+    """Timer: acha @ novos e visita até 30 perfis."""
+    log.configurar("ig")
+    con = db.conectar()
+    with ops.job(con, "ig"):
+        ig.extrair_handles(con)
+        if ig.rodar(con, date.today())["perfis"]:
+            score.recalcular(con, date.today())
+
+
+@app.command("cnpj-mensal")
+def cmd_cnpj_mensal() -> None:
+    """Timer: baixa e processa o CNPJ do mês quando a Receita publicar (uma vez por mês)."""
+    log.configurar("cnpj")
+    con = db.conectar()
+    mes = date.today().strftime("%Y-%m")
+    if (con.execute("SELECT valor FROM estado WHERE chave='cnpj_mes'").fetchone() or [None])[0] == mes:
+        return
+    with ops.job(con, "cnpj"):
+        try:
+            cnpj_baixar.listar(mes)
+        except (RuntimeError, OSError) as erro:  # ainda não publicado: o timer tenta de novo amanhã
+            logger.info("cnpj_mes_indisponivel", mes=mes, erro=str(erro))
+            return
+        cmd_cnpj_baixar(mes)
+        cmd_cnpj_etl(mes, manter_zips=False)
+        cmd_cnpj_icp()
+        resolve.resolver_grupo_cnpj(con)
+        score.recalcular(con, date.today())
+        con.execute("INSERT OR REPLACE INTO estado VALUES ('cnpj_mes', ?, ?)", (mes, db.agora()))
+        con.commit()

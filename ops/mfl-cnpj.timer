@@ -1,0 +1,10 @@
+[Unit]
+Description=mfl-leads: CNPJ do mês (quando publicado) (agenda)
+
+[Timer]
+OnCalendar=*-*-* 03:30
+Persistent=true
+
+
+[Install]
+WantedBy=timers.target

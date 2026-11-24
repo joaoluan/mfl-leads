@@ -1,0 +1,11 @@
+[Unit]
+Description=mfl-leads: Instagram, até 30 perfis
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Projetos/mfl-leads
+ExecStart=%h/.local/bin/uv run --frozen mfl ig-diario
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=1h
