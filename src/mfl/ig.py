@@ -138,16 +138,6 @@ def _api(metodo: str, caminho: str, corpo: dict | None = None):
         return json.load(resposta)
 
 
-def _abrir_aba(url: str) -> str:
-    for tentativa in range(10):
-        try:
-            return _api("POST", "/tabs", {"userId": USUARIO, "sessionKey": uuid.uuid4().hex, "url": url})["tabId"]
-        except urllib.error.HTTPError as erro:
-            if erro.code != 503 or tentativa == 9:
-                raise
-            time.sleep(3)  # 503: o camofox está reabrindo o navegador ocioso
-
-
 def visitar(username: str) -> dict:
     """Abre o perfil numa aba nova, lê a página e fecha a aba (a sessão fica, para não deslogar)."""
     for tentativa in range(3):
@@ -166,6 +156,16 @@ def visitar(username: str) -> dict:
                 _api("DELETE", f"/tabs/{aba}?userId={USUARIO}")
             except (urllib.error.URLError, OSError):
                 pass
+
+
+def _abrir_aba(url: str) -> str:
+    for tentativa in range(10):
+        try:
+            return _api("POST", "/tabs", {"userId": USUARIO, "sessionKey": uuid.uuid4().hex, "url": url})["tabId"]
+        except urllib.error.HTTPError as erro:
+            if erro.code != 503 or tentativa == 9:
+                raise
+            time.sleep(3)  # 503: o camofox está reabrindo o navegador ocioso
 
 
 def extrair_handles(con: sqlite3.Connection, buscar_site=None) -> int:
