@@ -41,6 +41,8 @@ def job(con: sqlite3.Connection, nome: str):
         except BlockingIOError:
             log.warning("job_ja_rodando", job=nome)
             raise JaRodando(nome) from None
+        con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"job:{nome}", f"rodando pid={os.getpid()}", agora()))
+        con.commit()  # a tela Coleta mostra "rodando" enquanto o pid existir
         try:
             yield
         except Exception as erro:

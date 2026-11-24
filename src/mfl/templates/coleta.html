@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block titulo %}Coleta{% endblock %}
+{% block corpo %}
+{% if algum_rodando %}<meta http-equiv="refresh" content="15">{% endif %}
+<style>
+.duas { display:grid; grid-template-columns:minmax(0, 5fr) minmax(0, 7fr); gap:28px; align-items:start; }
+.barrinha { height:6px; background:var(--linha); border-radius:3px; overflow:hidden; min-width:60px; }
+.barrinha > div { height:100%; background:var(--acao); }
+tr[aria-current] td { background:var(--realce); }
+.eventos td { font-size:13px; vertical-align:top; } .eventos .extra { color:var(--suave); word-break:break-word; }
+.eventos tr.error td, .eventos tr.warning td { background:var(--ruim); }
+.linha-acao { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin:10px 0 14px; }
+.linha-acao input[type=number] { width:70px; }
+.lista-bairros { max-height:520px; overflow:auto; border:1px solid var(--linha); border-radius:8px; }
+.lista-bairros table { margin:0; } .lista-bairros form { margin:0; }
+@media (max-width:860px) { .duas { grid-template-columns:1fr; } }
+</style>
+<h1>Coleta</h1>
+<p class="sub">De onde os leads vêm, o que está rodando agora e o que deu erro. Você pode disparar qualquer coleta na hora.</p>
+{% if aviso %}<div class="faixa ok" role="status">{{ aviso }}</div>{% endif %}
+{% if ig_checkpoint %}<div class="faixa erro">O Instagram pediu login ou verificação: a coleta de perfis está parada. Rode <code>baixar-insta --login</code> e depois <code>mfl ig --retomar</code>.</div>{% endif %}
+
+<h2>Rotinas</h2>
+<table>
+  <tr><th>Rotina</th><th>Situação</th><th>Última vez</th><th>Próxima automática</th><th></th></tr>
+  {% for r in rotinas %}<tr>
+    <td>{{ r.nome }}</td>
+    <td>{% if r.situacao == "rodando" %}<span class="chip">Rodando agora…</span>
+        {% elif r.situacao == "ok" %}<span class="chip bom">Terminou bem</span>
+        {% elif r.situacao == "erro" %}<span class="chip ruim">Deu erro</span><div class="suave">{{ r.detalhe[6:] }}</div>
+        {% elif r.situacao == "interrompido" %}<span class="chip ruim">Interrompida</span>
+        {% else %}<span class="suave">Nunca rodou</span>{% endif %}</td>
+    <td>{{ r.quando | quando }}</td>
+    <td>{{ r.proxima | quando }}</td>
+    <td>{% if r.job in ("ig", "diario") %}<form method="post" action="/coleta/rodar"><input type="hidden" name="acao" value="{{ r.job }}">
+        <button {{ 'disabled' if r.situacao == 'rodando' }}>Rodar agora</button></form>
+        {% elif r.job == "maps" %}<a href="#maps" class="suave">escolha abaixo</a>{% endif %}</td>
+  </tr>{% endfor %}
+</table>
+<p class="suave">Instagram: acha @ novos e visita até 30 perfis por dia (o que já foi visitado hoje conta). A rotina diária atualiza a cadência, recalcula o score e faz backup.</p>
+<form method="post" action="/coleta/rodar" class="linha-acao"><input type="hidden" name="acao" value="score"><input type="hidden" name="cidade" value="{{ cidade }}">
+  <button>Recalcular score agora</button><span class="suave">Leva poucos segundos. Use depois de mudar a pontuação ou marcar clientes.</span></form>
+
+<h2 id="maps">Google Maps</h2>
+<div class="duas">
+  <section aria-label="Cidades">
+    <table>
+      <tr><th>Cidade</th><th>Bairros raspados</th><th class="n">Leads do Maps</th></tr>
+      {% for c in cidades %}<tr {{ 'aria-current=true' if c.nome == cidade }}>
+        <td><a href="/coleta?cidade={{ c.nome | urlencode }}#maps">{{ c.nome }}</a></td>
+        <td><span class="suave">{{ c.feitos }} de {{ c.total }}</span><div class="barrinha"><div style="width: {{ (c.feitos / c.total * 100) if c.total else 0 }}%"></div></div></td>
+        <td class="n">{{ c.leads }}</td>
+      </tr>{% endfor %}
+    </table>
+  </section>
+  <section aria-labelledby="titulo-cidade">
+    <h3 id="titulo-cidade" style="margin-top:0">{{ cidade }}</h3>
+    <form method="post" action="/coleta/rodar" class="linha-acao">
+      <input type="hidden" name="acao" value="maps_cidade"><input type="hidden" name="cidade" value="{{ cidade }}">
+      <label class="campo">Bairros<input type="number" name="limite" value="3" min="1" max="20"></label>
+      <button class="primario">Raspar os próximos de {{ cidade }}</button>
+      <span class="suave">Pega os nunca raspados (ou há mais de 60 dias). Uns 8 minutos por bairro.</span>
+    </form>
+    {% if bairros_cidade %}<div class="lista-bairros"><table>
+      <tr><th>Bairro</th><th>Última raspagem</th><th></th></tr>
+      {% for b in bairros_cidade %}<tr>
+        <td>{{ b.nome }}</td>
+        <td>{% if b.feito %}{{ b.feito[8:10] }}/{{ b.feito[5:7] }}/{{ b.feito[:4] }}{% else %}<span class="suave">nunca</span>{% endif %}</td>
+        <td><form method="post" action="/coleta/rodar"><input type="hidden" name="acao" value="maps_bairro">
+          <input type="hidden" name="bairro" value="{{ b.chave }}"><input type="hidden" name="cidade" value="{{ cidade }}">
+          <button>Raspar agora</button></form></td>
+      </tr>{% endfor %}
+    </table></div>{% else %}<p class="suave">Nenhum bairro cadastrado para esta cidade.</p>{% endif %}
+  </section>
+</div>
+
+<h2>O que aconteceu</h2>
+<div class="acoes" role="tablist" aria-label="Log">
+  {% for k, nome in logs.items() %}<a class="botao{{ ' primario' if k == log }}" href="/coleta?cidade={{ cidade | urlencode }}&log={{ k }}#log" {{ 'aria-current=page' if k == log }}>{{ nome }}</a>{% endfor %}
+</div>
+{% if eventos %}<table class="eventos" id="log">
+  <tr><th>Quando</th><th>Evento</th><th>Detalhes</th></tr>
+  {% for e in eventos %}<tr class="{{ e.nivel }}">
+    <td style="white-space:nowrap">{{ e.quando | quando }}</td>
+    <td>{% if e.nivel in ("error", "warning") %}<b>{{ e.evento }}</b>{% else %}{{ e.evento }}{% endif %}</td>
+    <td class="extra">{{ e.extra }}</td>
+  </tr>{% endfor %}
+</table>{% else %}<p class="suave" id="log">Nada registrado ainda.</p>{% endif %}
+{% endblock %}

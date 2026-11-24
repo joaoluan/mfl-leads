@@ -124,7 +124,7 @@ def test_telas_e_fluxo(tmp_path, monkeypatch):
     whatsapp.registrar_envio(con, lead, "Oi", db.agora(), msg_id="X1")
     assert con.execute("SELECT template_id FROM touch").fetchone()[0] == "pizzaria:1"
     assert "Teto do dia atingido" in cliente.get("/").get_data(as_text=True)
-    assert cliente.post(f"/enviado/{lead}", data={"texto": "x"}).status_code == 409
+    assert "Mostrar mais 10 além do teto" in cliente.get("/").get_data(as_text=True)  # teto avisa, não trava
 
     whatsapp.processar(con, {"event": "messages.upsert", "data": {
         "key": {"remoteJid": "5551999990009@s.whatsapp.net", "fromMe": False, "id": "R1"},

@@ -157,8 +157,10 @@ def cmd_maps(bairro: str = typer.Argument(..., help="chave em cfg/bairros.toml, 
     todos = bairros.carregar()
     if bairro not in todos:
         raise typer.BadParameter(f"{bairro!r} não está em cfg/bairros.toml")
-    _maps_bairro(bairro, todos[bairro])
-    score.recalcular(db.conectar(), date.today())
+    con = db.conectar()
+    with ops.job(con, "maps"):  # mesma trava do timer: nunca duas raspagens ao mesmo tempo
+        _maps_bairro(bairro, todos[bairro])
+        score.recalcular(con, date.today())
 
 
 @app.command("maps-fila")
@@ -167,6 +169,11 @@ def cmd_maps_fila(limite: int = typer.Option(5, help="Quantos bairros nesta exec
     """Raspa os bairros nunca raspados ou raspados há mais de 60 dias (Porto Alegre e base primeiro)."""
     log.configurar("maps")
     con = db.conectar()
+    with ops.job(con, "maps"):
+        _maps_fila(con, limite, cidade)
+
+
+def _maps_fila(con, limite: int, cidade: str | None) -> None:
     limite_data = (date.today() - timedelta(days=60)).isoformat()
     feitos = {r[0][5:]: r[1] for r in con.execute("SELECT chave, valor FROM estado WHERE chave LIKE 'maps:%'")}
     ordem = {"Porto Alegre": 0, "Novo Hamburgo": 1}
@@ -237,10 +244,7 @@ def cmd_diario() -> None:
 @app.command("maps-noturno")
 def cmd_maps_noturno(limite: int = typer.Option(6, help="Bairros por noite (~8 min cada)")) -> None:
     """Timer: próximos bairros pendentes do Maps (374 bairros / 6 por noite ~ 60 dias)."""
-    log.configurar("maps")
-    con = db.conectar()
-    with ops.job(con, "maps"):
-        cmd_maps_fila(limite=limite, cidade=None)
+    cmd_maps_fila(limite=limite, cidade=None)
 
 
 @app.command("ig-diario")

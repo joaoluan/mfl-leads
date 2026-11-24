@@ -7,6 +7,8 @@
     <span class="suave">score {{ lead.score | int }}</span></span>
 </div>
 <div class="suave">{{ lead.categoria or "Sem categoria" }}{% if lead.bairro %} em {{ lead.bairro | title }}{% endif %}{% if lead.municipio %}, {{ lead.municipio | title }}{% endif %}</div>
+{% if erro == "telefone" %}<div class="faixa erro">Telefone não reconhecido. Use DDD + número, por exemplo (51) 99999-0000.</div>{% endif %}
+{% if erro == "bloqueado" %}<div class="faixa erro">Esse número pediu SAIR antes. Não dá para usar.</div>{% endif %}
 {% if sinais %}<div class="chips">{% for s in sinais %}{% set p = pesos.get(s, 0) %}<span class="chip {{ 'bom' if p > 0 else 'ruim' if p < 0 }}">{{ s | rotulo }}{% if p %} {{ "%+d" | format(p) }}{% endif %}</span>{% endfor %}</div>{% endif %}
 
 {% if texto and link and not lead.opt_out %}
@@ -53,6 +55,7 @@
   <label class="campo">Nome<input name="nome" value="{{ lead.nome or '' }}" autocomplete="off"></label>
   <label class="campo">Categoria<input name="categoria" value="{{ lead.categoria or '' }}" placeholder="pizzaria, bar…" autocomplete="off"></label>
   <label class="campo">Bairro<input name="bairro" value="{{ lead.bairro or '' }}" autocomplete="off"></label>
+  <label class="campo">WhatsApp<input name="tel1" value="{{ lead.tel1 | fone }}" placeholder="(51) 99999-0000" inputmode="tel" autocomplete="off"></label>
   <button>Salvar dados</button>
 </form>
 
