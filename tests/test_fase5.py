@@ -126,3 +126,14 @@ def test_wrapper_confere_sha_e_encerra_processo_pendurado(tmp_path, monkeypatch)
     sha.write_text(hashlib.sha256(falso.read_bytes()).hexdigest() + "  scraper\n")
     saida = maps.rodar(BAIRRO, tmp_path / "nova" / "o.json", tmp_path / "l.log")
     assert json.loads(saida.read_text())["place_id"] == "X"
+
+
+def test_pontuar_porta_e_bairro():
+    cnpj = {"tel1": None, "tel2": None, "cep": "90560004", "fantasia": "COZINHA & ARTE", "nome": "COZINHA & ARTE",
+            "endereco": "AVENIDA CRISTOVAO COLOMBO 1144"}
+    maps_ = {"cep": "90560001", "fantasia": "Cozinha & Arte", "bairro": "Moinhos de Vento", "municipio": "Porto Alegre",
+             "endereco": "Av. Cristóvão Colombo, 1144 - Floresta, Porto Alegre - RS"}
+    assert resolve.pontuar(maps_, cnpj, set()) >= resolve.VINCULA  # CEP5 + porta + nome
+    assert resolve.pontuar({**maps_, "endereco": "Av. Cristóvão Colombo, 17 - X"}, cnpj, set()) < resolve.VINCULA
+    outro = {**cnpj, "fantasia": "The Chefs Hamburgueria - Moinhos", "nome": "x"}
+    assert resolve.pontuar({**maps_, "fantasia": "Moinhos Pizzaria"}, outro, set()) < resolve.REVISA  # "Moinhos" não conta

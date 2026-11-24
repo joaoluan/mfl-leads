@@ -25,10 +25,17 @@ PREENCHE = ["cnpj", "place_id", "ig_username", "fantasia", "cnae", "categoria", 
             "endereco", "tel2", "email", "site", "nota", "avaliacoes"]
 
 
-def nome_normal(nome: str | None) -> str:
+def nome_normal(nome: str | None, lugar: set[str] = frozenset()) -> str:
+    """`lugar`: palavras do bairro/cidade ("Moinhos", "POA"), que não identificam a casa."""
     if not nome or PROVISORIO.match(nome):
         return ""
-    return " ".join(GENERICAS.sub(" ", SUFIXOS.sub(" ", normalizar(nome))).split())
+    return " ".join(t for t in GENERICAS.sub(" ", SUFIXOS.sub(" ", normalizar(nome))).split() if t not in lugar)
+
+
+def numero(endereco: str | None) -> str | None:
+    """Número do endereço no formato do Maps ("R. X, 905 - ...")."""
+    achado = re.search(r",\s*(\d+)\b", endereco or "")
+    return achado.group(1) if achado else None
 
 
 def telefones_compartilhados(con: sqlite3.Connection) -> set[str]:
@@ -43,10 +50,15 @@ def pontuar(a: dict, b: sqlite3.Row | dict, compartilhados: set[str]) -> float:
     if tels_a & tels_b:
         return 1.0
     cep_a, cep_b = a.get("cep") or "", b["cep"] or ""
-    nome_a, nome_b = nome_normal(a.get("fantasia") or a.get("nome")), nome_normal(b["fantasia"] or b["nome"])
+    lugar = set(normalizar(f"{a.get('bairro') or ''} {a.get('municipio') or ''} poa").split())
+    nome_a = nome_normal(a.get("fantasia") or a.get("nome"), lugar)
+    nome_b = nome_normal(b["fantasia"] or b["nome"], lugar)
     similar = fuzz.token_set_ratio(nome_a, nome_b) / 100 if nome_a and nome_b else 0.0
-    nota = 0.35 * (len(cep_a) >= 5 and cep_a[:5] == cep_b[:5]) + 0.30 * similar
-    if len(cep_a) == 8 and cep_a == cep_b and similar >= 0.85:
+    mesmo_cep5 = len(cep_a) >= 5 and cep_a[:5] == cep_b[:5]
+    nota = 0.35 * mesmo_cep5 + 0.30 * similar
+    # CEP do Maps e da Receita costumam diferir no fim; o número da porta não.
+    mesma_porta = numero(a.get("endereco")) in re.findall(r"\b\d+\b", b["endereco"] or "")
+    if similar >= 0.85 and ((len(cep_a) == 8 and cep_a == cep_b) or (mesmo_cep5 and mesma_porta)):
         nota = max(nota, VINCULA)
     return round(nota, 3)
 
