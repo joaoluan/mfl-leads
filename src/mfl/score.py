@@ -24,6 +24,7 @@ CONCORRENTE = re.compile(r"leadsfood|cardapioweb|cardapio\.?web|anota\.?ai|goome
 SOCIAL = re.compile(r"instagram\.com|facebook\.com|linktr\.ee|wa\.me|whatsapp\.com|wa\.link|contate\.me|bio\.site")
 WHATSAPP = re.compile(r"wa\.me|whatsapp\.com|wa\.link|contate\.me")
 DEMORA = re.compile(r"\b(demor\w*|atras\w*|esper(ei|amos|ando) (muito|mais|quase|\d)|lent[oa]|nunca chegou|chegou fri[oa])\b")
+IFOOD = re.compile(r"\bifood\b")
 ENCOMENDA = re.compile(r"\b(confeitaria|doceria|bolos?|tortas?|salgados?|docinhos?|panificadora)\b")  # categoria/nome
 
 
@@ -69,6 +70,9 @@ def sinais(lead: sqlite3.Row | dict, fontes: dict[str, list[dict]], perto: set[s
         avaliacoes = " ".join(normalizar(r.get("Description") or "") for m in maps for r in m.get("user_reviews") or [])
         if DEMORA.search(avaliacoes):
             s.append("reclamacao_demora")
+        # quem avalia "pedi pelo iFood" confirma que a casa vende lá
+        if any("ifood.com.br" in l.lower() for l in links) or IFOOD.search(avaliacoes):
+            s.append("vende_ifood")
         if ENCOMENDA.search(normalizar(f"{lead['categoria'] or ''} {lead['nome'] or ''}")) or "encomenda" in avaliacoes:
             s.append("aceita_encomenda")
     for perfil in fontes.get("instagram", []):
@@ -78,6 +82,9 @@ def sinais(lead: sqlite3.Row | dict, fontes: dict[str, list[dict]], perto: set[s
             s.append("wa_me_na_bio")
         if any(CONCORRENTE.search(l.lower()) for l in perfil.get("links") or []) and "usa_concorrente" not in s:
             s.append("usa_concorrente")
+        if "vende_ifood" not in s and (IFOOD.search(normalizar(perfil.get("bio") or "")) or
+                                       any("ifood.com.br" in l.lower() for l in perfil.get("links") or [])):
+            s.append("vende_ifood")
         ultimo = perfil.get("ultimo_post") or ""
         if ultimo >= (hoje - timedelta(days=30)).isoformat():
             s.append("ig_ativo_30d")
