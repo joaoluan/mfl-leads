@@ -6,7 +6,7 @@ import os
 import subprocess
 import time
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import structlog
@@ -141,12 +141,22 @@ def cmd_bairros_gerar() -> None:
 
 
 def _maps_bairro(chave: str, info: dict) -> dict:
+    """Raspa e ingere. Grava a data (bairro feito) e quantos lugares vieram (decide quando revisitar)."""
     con = db.conectar()
     pasta = db.RAIZ / "data" / "maps" / date.today().isoformat()
-    saida = maps.rodar(info, pasta / f"{chave}.json", db.RAIZ / "logs" / "maps" / f"{chave}.log")
-    contagem = maps.ingerir(con, saida, info, cnpj_icp.recorte()["municipios"], cnpj_icp.termos_franquia())
+    ingerir = lambda arquivo: maps.ingerir(con, arquivo, info, cnpj_icp.recorte()["municipios"], cnpj_icp.termos_franquia())
+    try:
+        saida = maps.rodar(info, pasta / f"{chave}.json", db.RAIZ / "logs" / "maps" / f"{chave}.log")
+    except maps.Incompleto as parcial:
+        ingerir(parcial.saida)  # aproveita o que veio; o bairro segue pendente
+        raise
+    contagem = ingerir(saida)
+    lugares = contagem["lugares"] = sum(contagem[k] for k in ("novos", "vinculados", "repetidos", "descartados"))
     con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"maps:{chave}", date.today().isoformat(), db.agora()))
+    con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"maps_rende:{chave}", str(lugares), db.agora()))
     con.commit()
+    if lugares == 0:
+        logger.warning("maps_vazio", bairro=chave)
     return contagem
 
 
@@ -165,30 +175,52 @@ def cmd_maps(bairro: str = typer.Argument(..., help="chave em cfg/bairros.toml, 
 
 @app.command("maps-fila")
 def cmd_maps_fila(limite: int = typer.Option(5, help="Quantos bairros nesta execução"),
-                  cidade: str | None = typer.Option(None, help="Só esta cidade (nome como no bairros.toml)")) -> None:
-    """Raspa os bairros nunca raspados ou raspados há mais de 60 dias (Porto Alegre e base primeiro)."""
+                  cidade: str | None = typer.Option(None, help="Só esta cidade (nome como no bairros.toml)"),
+                  ate: str | None = typer.Option(None, help="HH:MM: não começa bairro novo depois disso")) -> None:
+    """Raspa os bairros nunca raspados, depois os vencidos (45 dias se rendeu, 120 se veio vazio)."""
     log.configurar("maps")
     con = db.conectar()
     with ops.job(con, "maps"):
-        _maps_fila(con, limite, cidade)
+        _maps_fila(con, limite, cidade, ate)
 
 
-def _maps_fila(con, limite: int, cidade: str | None) -> None:
-    limite_data = (date.today() - timedelta(days=60)).isoformat()
+def pendentes_maps(con, hoje: date, cidade: str | None = None) -> list[tuple[str, dict]]:
+    """Nunca raspados primeiro; depois revisita por rendimento: rendeu (>= 10 lugares) volta em 45 dias, vazio em 120."""
     feitos = {r[0][5:]: r[1] for r in con.execute("SELECT chave, valor FROM estado WHERE chave LIKE 'maps:%'")}
+    rende = {r[0][11:]: int(r[1]) for r in con.execute("SELECT chave, valor FROM estado WHERE chave LIKE 'maps_rende:%'")}
+
+    def vence(chave: str) -> bool:
+        if chave not in feitos:
+            return True
+        dias = 60 if chave not in rende else 45 if rende[chave] >= 10 else 120
+        return feitos[chave] <= (hoje - timedelta(days=dias)).isoformat()
+
     ordem = {"Porto Alegre": 0, "Novo Hamburgo": 1}
-    pendentes = sorted(((k, v) for k, v in bairros.carregar().items()
-                        if (cidade is None or v["municipio"] == cidade) and feitos.get(k, "") <= limite_data),
-                       key=lambda kv: (ordem.get(kv[1]["municipio"], 2), kv[1]["municipio"], kv[0]))
-    falhas = []
+    return sorted(((k, v) for k, v in bairros.carregar().items() if (cidade is None or v["municipio"] == cidade) and vence(k)),
+                  key=lambda kv: (kv[0] in feitos, ordem.get(kv[1]["municipio"], 2), kv[1]["municipio"], kv[0]))
+
+
+def _maps_fila(con, limite: int, cidade: str | None, ate: str | None = None, agora=None) -> None:
+    """Até `limite` bairros; com `ate` (HH:MM), não começa bairro novo depois desse horário. Dois bairros
+    seguidos sem nenhum lugar = provável bloqueio do Google: para a noite com erro (aparece na Coleta)."""
+    agora = agora or (lambda: datetime.now().strftime("%H:%M"))
+    pendentes = pendentes_maps(con, date.today(), cidade)
+    falhas, feitos, vazios = [], 0, 0
     for chave, info in pendentes[:limite]:
+        if ate and agora() >= ate:
+            logger.info("maps_horario_limite", ate=ate)
+            break
+        feitos += 1
         try:
-            _maps_bairro(chave, info)
+            vazios = vazios + 1 if _maps_bairro(chave, info)["lugares"] == 0 else 0
         except Exception as erro:  # um bairro com problema não para a noite; fica pendente para amanhã
             logger.error("maps_bairro_falhou", bairro=chave, erro=str(erro))
             falhas.append(chave)
+        if vazios >= 2:
+            falhas.append("dois bairros seguidos sem nenhum lugar (o Google pode estar bloqueando); noite interrompida")
+            break
     score.recalcular(con, date.today())
-    logger.info("maps_fila", feitos=min(limite, len(pendentes)), restantes=max(0, len(pendentes) - limite))
+    logger.info("maps_fila", feitos=feitos, restantes=len(pendentes) - feitos)
     if falhas:
         raise RuntimeError(f"bairros com falha: {', '.join(falhas)}")
 
@@ -242,9 +274,10 @@ def cmd_diario() -> None:
 
 
 @app.command("maps-noturno")
-def cmd_maps_noturno(limite: int = typer.Option(12, help="Bairros por noite (~8 min cada)")) -> None:
-    """Timer: próximos bairros pendentes do Maps (374 bairros / 12 por noite ~ 31 dias)."""
-    cmd_maps_fila(limite=limite, cidade=None)
+def cmd_maps_noturno(limite: int = typer.Option(12, help="Teto de bairros por noite"),
+                     ate: str = typer.Option("04:00", help="Não começa bairro novo depois deste horário")) -> None:
+    """Timer: bairros pendentes até 04:00 (com depth 3, ~15-25 min por bairro: o último termina antes das 05:00)."""
+    cmd_maps_fila(limite=limite, cidade=None, ate=ate)
 
 
 @app.command("ig-diario")

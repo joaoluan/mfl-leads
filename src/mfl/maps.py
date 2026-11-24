@@ -25,10 +25,19 @@ log = structlog.get_logger()
 BINARIO = RAIZ / "bin" / "google-maps-scraper"
 SHA = RAIZ / "bin" / "SHA256SUMS"
 CONSULTAS = RAIZ / "cfg" / "maps_consultas.txt"
-TIMEOUT = 1800
+TIMEOUT = 3600  # depth 3: bairro grande (até 81 células) passa de 30 min
+PROFUNDIDADE = 3  # rolagens por busca; medido no Moinhos: depth 1 = 87 lugares, depth 3 = 119 (24/11/2026)
 ESPERA_SAIDA, INTERVALO = 15, 3  # segundos (variáveis para o teste)
 FECHADO = re.compile(r"fechad[oa] (permanentemente|temporariamente)", re.I)
 EMAIL = re.compile(r"^[\w.+-]+@[\w-]+(\.[\w-]+)+$")
+
+
+class Incompleto(Exception):
+    """Estourou o tempo: o que veio é ingerido, mas o bairro fica pendente para a próxima noite."""
+
+    def __init__(self, saida: Path):
+        super().__init__(f"tempo esgotado; {saida.name} parcial")
+        self.saida = saida
 
 
 def conferir_binario() -> None:
@@ -46,7 +55,7 @@ def rodar(bairro: dict, saida: Path, log_arquivo: Path) -> Path:
     saida.unlink(missing_ok=True)
     cmd = [str(BINARIO), "-input", str(CONSULTAS), "-results", str(saida), "-json",
            "-grid-bbox", bairro["bbox"], "-grid-cell", str(bairro["celula_km"]), "-grid-strict",
-           "-zoom", "16", "-depth", "1", "-c", "4", "-email", "-lang", "pt", "-exit-on-inactivity", "3m"]
+           "-zoom", "16", "-depth", str(PROFUNDIDADE), "-c", "4", "-email", "-lang", "pt", "-exit-on-inactivity", "3m"]
     for pasta in (saida.parent, log_arquivo.parent):
         pasta.mkdir(parents=True, exist_ok=True)
     inicio = time.monotonic()
@@ -69,6 +78,8 @@ def rodar(bairro: dict, saida: Path, log_arquivo: Path) -> Path:
                     log.error("maps_timeout", bairro=bairro["nome"], segundos=TIMEOUT)
     if not saida.exists():
         raise RuntimeError(f"Maps não gerou {saida.name}; veja {log_arquivo}")
+    if time.monotonic() - inicio > TIMEOUT:
+        raise Incompleto(saida)
     return saida
 
 
