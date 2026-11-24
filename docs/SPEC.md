@@ -116,6 +116,17 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - O sinal `vende_ifood` (+10) sai do que já coletamos: link `ifood.com.br` no Maps (site, pedido online) ou no Instagram, ou "iFood" nas avaliações do Maps ou na bio.
 - Quem vende no iFood recebe `cfg/mensagens/ifood.md` (pedido direto sem comissão). Ordem do texto D0: grupo > concorrente > iFood > categoria.
 
+### Operação (fase 9)
+- Timers systemd --user (`ops/mfl-*.timer`, `Persistent=true`: o que perdeu com o PC desligado roda ao ligar). Serviços `oneshot` com `Nice=10` e `IOSchedulingClass=idle`:
+  - `mfl-maps` 01:30: `mfl maps-noturno` (6 bairros, ~50 min; 374 bairros = ~60 dias). Bairro com falha não para a noite e fica pendente.
+  - `mfl-cnpj` 03:30: `mfl cnpj-mensal`, baixa e processa o mês quando a Receita publicar; uma vez por mês (`estado.cnpj_mes`).
+  - `mfl-diario` 08:00: cadência, grupo x CNPJ, score, backup.
+  - `mfl-ig` 10:30 + até 2 h aleatórias: `mfl ig-diario` (@ novos e até 30 perfis).
+- Cada job tem trava (`flock -n` em `data/travas/`) e grava ok/erro em `estado.job:<nome>`: o Painel mostra as rotinas e uma faixa vermelha avisa quando alguma falhou.
+- Backup diário: banco (API de backup do SQLite, seguro com o webhook gravando) + `cfg/` em `data/backup/diario` (7 dias), espelhado com o Parquet no SSD `backup-ssd` montado em `/mnt/backup-ssd` (30 dias). Domingo: cópia para o Orange Pi (`orangepi:backup/mfl-leads`, 60 dias). SSD desmontado ou Pi fora do ar não derrubam o backup local. `.env` fica fora (segredos).
+- Log JSONL rotaciona aos 20 MB (`logs/<job>.jsonl.1`).
+- Precisa de sudo do operador (uma vez): montar o SSD (fstab com `nofail`) e `loginctl enable-linger` para os serviços rodarem sem login.
+
 ### Fases (parar em cada uma, um PR por fase)
 1. Esqueleto, schema, seed por CSV, export.
 2. Evolution: envios e respostas, participantes do grupo, palavra-chave, opt-out.

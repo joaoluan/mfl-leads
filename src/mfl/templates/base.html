@@ -48,6 +48,7 @@ input, select { font:inherit; padding:5px 8px; background:var(--cartao); color:v
   <a href="/config" class="{{ 'ativo' if request.path.startswith('/config') }}">Config</a>
 </nav>
 <main>
+{% if jobs_com_erro %}<div class="faixa erro">Rotina com erro: {{ jobs_com_erro | join(", ") }}. Detalhes no <a href="/painel">Painel</a> e em <code>logs/</code>.</div>{% endif %}
 {% if ig_checkpoint %}<div class="faixa erro">Instagram pediu login ou verificação: a coleta parou. Rode <code>baixar-insta --login</code> e depois <code>uv run mfl ig --retomar</code>.</div>{% endif %}
 {% if not evolution_ok %}<div class="faixa erro">Evolution desconectada: seus envios e respostas não estão sendo registrados. Rode <code>uv run mfl evo-conectar</code>.</div>{% endif %}
 {% block corpo %}{% endblock %}

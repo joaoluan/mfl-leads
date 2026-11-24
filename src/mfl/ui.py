@@ -47,7 +47,9 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         revisoes = con().execute("SELECT count(*) FROM revisao WHERE decidido=0").fetchone()[0]
         ig_checkpoint = con().execute("SELECT 1 FROM estado WHERE chave='ig_checkpoint'").fetchone() is not None
         return {"evolution_ok": estado is None or estado[0] == "open", "pendentes": pendentes, "revisoes": revisoes,
-                "ig_checkpoint": ig_checkpoint}
+                "ig_checkpoint": ig_checkpoint,
+                "jobs_com_erro": [r[0][4:] for r in con().execute(
+                    "SELECT chave FROM estado WHERE chave LIKE 'job:%' AND valor LIKE 'erro%'")]}
 
     @app.get("/")
     def fila() -> str:
@@ -174,7 +176,9 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
 
     @app.get("/painel")
     def painel() -> str:
-        return render_template("painel.html", **_metricas(con(), cadencia.config(), hoje()))
+        jobs = con().execute("SELECT substr(chave, 5) AS nome, valor, atualizado_em FROM estado"
+                             " WHERE chave LIKE 'job:%' ORDER BY chave").fetchall()
+        return render_template("painel.html", jobs=jobs, **_metricas(con(), cadencia.config(), hoje()))
 
     @app.route("/config", methods=["GET", "POST"])
     def config() -> str:

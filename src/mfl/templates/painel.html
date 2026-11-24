@@ -25,4 +25,10 @@
   <td class="n">{{ "%.0f" | format(l.responderam / l.enviados * 100) }}%</td><td class="n">{{ l.trials }}</td></tr>
 {% else %}<tr><td colspan="5" class="suave">Sem envios ainda.</td></tr>{% endfor %}</table>
 {% endfor %}
+<h2>Rotinas automáticas</h2>
+{% if jobs %}<table>
+  <tr><th>Rotina</th><th>Última execução</th><th>Resultado</th></tr>
+  {% for j in jobs %}<tr><td>{{ j.nome }}</td><td>{{ j.atualizado_em[:16] | replace("T", " ") }}</td>
+    <td>{{ j.valor }}</td></tr>{% endfor %}
+</table>{% else %}<p class="suave">Nenhuma rotina rodou ainda.</p>{% endif %}
 {% endblock %}

@@ -1,0 +1,11 @@
+[Unit]
+Description=mfl-leads: cadência, score e backup
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Projetos/mfl-leads
+ExecStart=%h/.local/bin/uv run --frozen mfl diario
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=1h
