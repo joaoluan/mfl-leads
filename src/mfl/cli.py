@@ -243,6 +243,7 @@ def _maps_fila(con, limite: int, cidade: str | None, ate: str | None = None, ago
             alvos.remove(municipio)
     pendentes = {**buscas, **pendentes}  # tentativas vencidas não esperam a revisita do bairro em 45–120 dias
     falhas, feitos, vazios = [], 0, 0
+    buscas_restantes = 30
     ifood_disponivel = maps_disponivel = True
     for chave, info in list(pendentes.items())[:limite]:
         if ate and agora() >= ate:
@@ -265,10 +266,12 @@ def _maps_fila(con, limite: int, cidade: str | None, ate: str | None = None, ago
                 logger.error("ifood_bairro_falhou", bairro=chave, erro=str(erro))
                 falhas.append(f"iFood:{chave}")
                 ifood_disponivel = False  # bloqueio não provoca novas tentativas em cada bairro
-        if maps_disponivel and (not ate or agora() < ate):
+        if maps_disponivel and buscas_restantes > 0 and (not ate or agora() < ate):
+            tamanho_lote = min(maps.LOTE_IFOOD, buscas_restantes)
             try:
-                maps.completar_ifood(con, chave, info)
+                buscas_restantes -= maps.completar_ifood(con, chave, info, tamanho_lote)
             except Exception as erro:
+                buscas_restantes -= tamanho_lote  # reserva conservadora também quando o processo falha
                 logger.error("ifood_maps_falhou", bairro=chave, erro=str(erro))
                 falhas.append(f"Maps/iFood:{chave}")
     score.recalcular(con, date.today())
@@ -315,11 +318,15 @@ def cmd_backup() -> None:
 
 @app.command("ifood")
 def cmd_ifood(endereco: str = typer.Argument(..., help="Rua, número e cidade de um ponto de entrega"),
-              limite: int = typer.Option(30, min=1, max=ifood.LIMITE_MAX, help="Lojas novas ou incompletas por execução")) -> None:
+              limite: int = typer.Option(30, min=1, max=ifood.LIMITE_MAX, help="Lojas novas ou incompletas por execução"),
+              retomar_detalhes: bool = typer.Option(False, help="Retoma endereço/CNPJ após resolver o bloqueio no iFood")) -> None:
     """Coleta lojas do iFood pelo camofox e recalcula o score. Não envia mensagens."""
     log.configurar("ifood")
     con = db.conectar()
     with ops.job(con, "ifood"):
+        if retomar_detalhes:
+            con.execute("DELETE FROM estado WHERE chave='ifood_detalhes_bloqueados'")
+            con.commit()
         ifood.rodar(con, endereco, limite)
         score.recalcular(con, date.today())
 

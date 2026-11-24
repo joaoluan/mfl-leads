@@ -286,6 +286,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         rotinas = controle.rotinas(con())
         return render_template("coleta.html", rotinas=rotinas, cidades=cidades, cidade=cidade, bairros_cidade=lista,
                                limite_ifood=ifood.LIMITE_MAX,
+                               ifood_suspenso=ifood.detalhes_suspensos(con()),
                                log=log, logs=controle.LOGS, eventos=controle.eventos(log),
                                aviso=AVISOS_COLETA.get(request.args.get("aviso", "")),
                                algum_rodando=any(r["situacao"] == "rodando" for r in rotinas))

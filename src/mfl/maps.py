@@ -28,6 +28,7 @@ SHA = RAIZ / "bin" / "SHA256SUMS"
 CONSULTAS = RAIZ / "cfg" / "maps_consultas.txt"
 TIMEOUT = 3600  # depth 3: bairro grande (até 81 células) passa de 30 min
 PROFUNDIDADE = 3  # rolagens por busca; medido no Moinhos: depth 1 = 87 lugares, depth 3 = 119 (24/11/2026)
+LOTE_IFOOD = 10
 ESPERA_SAIDA, INTERVALO = 15, 3  # segundos (variáveis para o teste)
 FECHADO = re.compile(r"fechad[oa] (permanentemente|temporariamente)", re.I)
 EMAIL = re.compile(r"^[\w.+-]+@[\w-]+(\.[\w-]+)+$")
@@ -82,7 +83,8 @@ def rodar(bairro: dict, saida: Path, log_arquivo: Path, consultas: Path | None =
                 except subprocess.TimeoutExpired:
                     proc.kill()
                 if atrasado:
-                    log.error("maps_timeout", bairro=bairro["nome"], segundos=timeout)
+                    registrar = log.error if consultas is None else log.warning
+                    registrar("maps_timeout", bairro=bairro["nome"], segundos=timeout)
     if not saida.exists():
         raise RuntimeError(f"Maps não gerou {saida.name}; veja {log_arquivo}")
     if time.monotonic() - inicio > timeout:
@@ -211,7 +213,7 @@ def ingerir(con: sqlite3.Connection, arquivo: Path, bairro: dict, municipios: li
     return contagem
 
 
-def alvos_ifood(con: sqlite3.Connection, cidade: str | None = None) -> list[sqlite3.Row]:
+def alvos_ifood(con: sqlite3.Connection, cidade: str | None = None, limite: int = LOTE_IFOOD) -> list[sqlite3.Row]:
     """Alvos vencidos também entram na noite quando os bairros das duas fontes estão em dia."""
     hoje = date.fromisoformat(agora()[:10])
     return con.execute(
@@ -221,13 +223,13 @@ def alvos_ifood(con: sqlite3.Connection, cidade: str | None = None) -> list[sqli
         " AND (? IS NULL OR lower(e.municipio) IN (lower(?),lower(?)))"
         " AND EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id AND s.source='ifood')"
         " AND (q.id IS NULL OR (q.done=0 AND q.next_at<=?)) ORDER BY coalesce(q.next_at,''),e.entity_id LIMIT ?",
-        (cidade, cidade, normalizar(cidade or ""), hoje.isoformat(), 30 if cidade else -1)).fetchall()
+        (cidade, cidade, normalizar(cidade or ""), hoje.isoformat(), min(limite, LOTE_IFOOD) if cidade else -1)).fetchall()
 
 
-def completar_ifood(con: sqlite3.Connection, chave: str, bairro: dict) -> int:
-    """Busca até 30 descobertas do iFood pelo nome/cidade, com tentativas espaçadas na fila existente."""
+def completar_ifood(con: sqlite3.Connection, chave: str, bairro: dict, limite: int = LOTE_IFOOD) -> int:
+    """Lotes de até 10 nomes cabem no orçamento de 5 min; parcial volta amanhã sem perder resultados."""
     hoje = date.fromisoformat(agora()[:10])
-    leads = alvos_ifood(con, bairro["municipio"])
+    leads = alvos_ifood(con, bairro["municipio"], limite)
     if not leads:
         return 0
     filas = []
@@ -246,16 +248,19 @@ def completar_ifood(con: sqlite3.Connection, chave: str, bairro: dict) -> int:
     consultas = pasta / f"{chave}.txt"
     consultas.write_text("\n".join(" ".join(f"{l['nome']} {l['municipio']} RS".split()) for l in leads) + "\n", encoding="utf-8")
     municipios, franquias = cnpj_icp.recorte()["municipios"], cnpj_icp.termos_franquia()
+    parcial = False
     try:
         saida = rodar(bairro, pasta / f"{chave}.json", RAIZ / "logs" / "maps" / f"ifood-{chave}.log", consultas)
-    except Incompleto as parcial:
-        ingerir(con, parcial.saida, bairro, municipios, franquias)
-        raise
+    except Incompleto as erro:
+        saida, parcial = erro.saida, True
     ingerir(con, saida, bairro, municipios, franquias)
     con.executemany(
         "UPDATE queue SET next_at=?,done=EXISTS (SELECT 1 FROM entity e WHERE e.entity_id=queue.entity_id"
         " AND (e.place_id IS NOT NULL OR e.status<>'enriquecimento' OR e.opt_out=1)) WHERE id=?",
-        [((hoje + timedelta(days=7)).isoformat(), i) for i in filas])
+        [((hoje + timedelta(days=1 if parcial else 7)).isoformat(), i) for i in filas])
     con.commit()
-    log.info("ifood_maps_completado", bairro=chave, buscados=len(leads))
+    if parcial:
+        log.warning("ifood_maps_parcial", bairro=chave, buscados=len(leads), motivo="Tempo do lote esgotado; resultados salvos, pendências voltam amanhã")
+    else:
+        log.info("ifood_maps_completado", bairro=chave, buscados=len(leads))
     return len(leads)

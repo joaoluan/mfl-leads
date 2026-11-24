@@ -37,7 +37,9 @@ ROTINAS = {  # job -> (nome na tela, timer do systemd, o que faz)
 }
 EVENTOS = {"maps_ingerido": "Bairro raspado", "maps_bairro_falhou": "Bairro falhou", "maps_fila": "Lote do Maps terminou",
            "ifood_ingerido": "Lojas do iFood importadas", "ifood_sem_endereco": "iFood não mostrou endereço das lojas",
-           "ifood_detalhes_bloqueados": "iFood bloqueou endereço e CNPJ (403)", "ifood_cnpj_divergente": "CNPJ divergente: conferir vínculo",
+           "ifood_detalhes_bloqueados": "Detalhes do iFood suspensos", "ifood_cnpj_divergente": "CNPJ divergente: conferir vínculo",
+           "ifood_detalhes_suspensos": "Detalhes suspensos: coleta somente lojas novas",
+           "ifood_maps_parcial": "Busca parcial no Maps: resultados salvos",
            "ifood_sem_ponto": "Bairro sem ponto de entrega: iFood pendente", "ifood_bairro_falhou": "Coleta do iFood falhou",
            "ifood_maps_completado": "Descobertas do iFood buscadas no Maps", "ifood_maps_falhou": "Busca das lojas no Maps falhou",
            "ig_rodado": "Perfis do Instagram visitados", "ig_checkpoint": "Instagram pediu verificação",

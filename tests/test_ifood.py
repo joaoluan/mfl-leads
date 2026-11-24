@@ -104,9 +104,9 @@ def test_cli_coleta_e_ui_filtra_e_dispara(tmp_path, monkeypatch):
     monkeypatch.setattr(ops, "RAIZ", tmp_path)
     monkeypatch.setattr(log, "configurar", lambda *_: None)
     chamadas = []
-    def coletar(endereco, limite, conhecidos, municipios):
+    def coletar(endereco, limite, conhecidos, municipios, **opcoes):
         chamadas.append((endereco, limite, conhecidos))
-        return [loja()]
+        return [loja()], None
     monkeypatch.setattr(ifood, "coletar", coletar)
     resultado = CliRunner().invoke(cli.app, ["ifood", "Rua Fictícia, 10, Porto Alegre", "--limite", "3"])
     assert resultado.exit_code == 0, resultado.exception
@@ -134,9 +134,9 @@ def test_limite_ifood_da_tela_ate_coletor(tmp_path, monkeypatch, limite):
     monkeypatch.setattr(log, "configurar", lambda *_: None)
     monkeypatch.setattr(controle, "_proximas", lambda: {})
     recebidos = []
-    def coletar(endereco, quantidade, conhecidos, municipios):
+    def coletar(endereco, quantidade, conhecidos, municipios, **opcoes):
         recebidos.append(quantidade)
-        return []
+        return [], None
     monkeypatch.setattr(ifood, "coletar", coletar)
     def disparar(job, *args):
         assert job == "ifood"
@@ -268,7 +268,7 @@ def test_backfill_preserva_conversa_e_manda_conflito_de_cnpj_para_revisao(tmp_pa
     assert con.execute("SELECT cnpj FROM entity WHERE entity_id=?", (eid,)).fetchone()[0] is None
 
 
-def test_recoleta_incompletos_antigos_uma_vez_por_dia(tmp_path, monkeypatch):
+def test_recoleta_incompletos_usa_data_dos_detalhes(tmp_path, monkeypatch):
     con = db.conectar(tmp_path / "t.db")
     ifood.ingerir(con, [loja()], [])
     raw = json.loads(con.execute("SELECT raw_json FROM source_record").fetchone()[0])
@@ -276,13 +276,14 @@ def test_recoleta_incompletos_antigos_uma_vez_por_dia(tmp_path, monkeypatch):
     con.execute("UPDATE source_record SET raw_json=?", (json.dumps(raw),))
     con.commit()
     conhecidos = []
-    def coletar(endereco, limite, ignorados, municipios):
-        conhecidos.append(ignorados)
-        return [loja()]
+    def coletar(endereco, limite, ignorados, municipios, **opcoes):
+        conhecidos.append((ignorados, opcoes["revisitar"]))
+        return [loja().model_copy(update={"detalhes_em": db.agora()})], None
     monkeypatch.setattr(ifood, "coletar", coletar)
     ifood.rodar(con, "Rua Fictícia, 10, Porto Alegre", 1)
     ifood.rodar(con, "Rua Fictícia, 10, Porto Alegre", 1)
-    assert conhecidos == [set(), {str(loja().id)}]
+    identificador = str(loja().id)
+    assert conhecidos == [({identificador}, {identificador}), ({identificador}, set())]
 
 
 @pytest.mark.parametrize("bloqueado", [False, True])
@@ -301,10 +302,11 @@ def test_lote_segue_sem_detalhes_mas_respeita_bloqueio(monkeypatch, bloqueado):
             return l
         return loja(2, nome="Cozinha Teste Verde", detalhes={"cnpj": CNPJ_TESTE})
     monkeypatch.setattr(ifood, "ler_detalhes", detalhes)
-    lojas = ifood.coletar("Rua Fictícia, 10, Porto Alegre", 2, set(), ["Porto Alegre"])
+    lojas, motivo = ifood.coletar("Rua Fictícia, 10, Porto Alegre", 2, set(), ["Porto Alegre"])
     assert len(lojas) == 2
     assert len(visitadas) == (1 if bloqueado else 2)
     assert lojas[1].cnpj == (None if bloqueado else CNPJ_TESTE)
+    assert motivo == ("403" if bloqueado else None)
 
 
 def test_leitura_parcial_nao_funde_cnpjs_distintos_pelo_endereco(tmp_path):
@@ -338,3 +340,67 @@ def test_painel_sem_dados_preserva_jsonld_apos_esperar(monkeypatch):
     l = ifood.ler_detalhes("aba", loja(), ["Porto Alegre"])
     assert l.endereco == "Rua Fictícia, 10" and l.cnpj is None
     assert any("const s=" in e for e in esperas)
+
+
+@pytest.mark.parametrize("erro", [ifood.DetalhesBloqueados, TimeoutError])
+def test_bloqueio_persiste_e_outros_processos_so_descobrem_novas(tmp_path, monkeypatch, erro):
+    caminho = tmp_path / "t.db"
+    con = db.conectar(caminho)
+    monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
+    monkeypatch.setattr(ifood, "api", lambda *a: {})
+    monkeypatch.setattr(ifood, "_js", lambda aba, js: [item(n) for n in range(1,4)] if js == ifood.JS_LISTA else True)
+    visitadas = []
+    def bloquear(aba, l, municipios):
+        visitadas.append(l.id)
+        raise erro("detalhes indisponíveis")
+    monkeypatch.setattr(ifood, "ler_detalhes", bloquear)
+    assert ifood.rodar(con, "Rua Fictícia, 1, Porto Alegre", 1)["novos"] == 1
+    assert ifood.detalhes_suspensos(con) == "detalhes indisponíveis"
+    con.close()
+    con = db.conectar(caminho)
+    for n in (2,3):
+        assert ifood.rodar(con, f"Rua Fictícia, {n}, Porto Alegre", 1)["novos"] == 1
+    assert len(visitadas) == 1
+    assert con.execute("SELECT count(*) FROM source_record WHERE source='ifood'").fetchone()[0] == 3
+
+
+def test_lojas_novas_tem_prioridade_sobre_incompletas(monkeypatch):
+    monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
+    monkeypatch.setattr(ifood, "api", lambda *a: {})
+    monkeypatch.setattr(ifood, "_js", lambda aba, js: [item(n) for n in range(1,6)] if js == ifood.JS_LISTA else True)
+    visitadas = []
+    monkeypatch.setattr(ifood, "ler_detalhes", lambda aba, l, municipios: visitadas.append(l.id) or l)
+    antigos = {str(loja(n).id) for n in (1,2,3)}
+    lojas, bloqueio = ifood.coletar("Rua Fictícia, 1, Porto Alegre", 2, antigos, ["Porto Alegre"], revisitar=antigos)
+    assert [l.id for l in lojas] == [loja(4).id, loja(5).id]
+    assert visitadas == [loja(4).id, loja(5).id] and bloqueio is None
+
+
+def test_metadado_de_leitura_nao_conta_como_dado_atualizado(tmp_path):
+    con = db.conectar(tmp_path / "t.db")
+    ifood.ingerir(con, [loja()], [])
+    resultado = ifood.ingerir(con, [loja().model_copy(update={"detalhes_em": db.agora()})], [])
+    assert resultado["atualizados"] == 0 and resultado["repetidos"] == 1
+
+
+def test_retomada_de_detalhes_exige_opcao_explicita(tmp_path, monkeypatch):
+    caminho = tmp_path / "t.db"
+    con = db.conectar(caminho)
+    ifood.suspender_detalhes(con, "403 confirmado")
+    monkeypatch.setenv("MFL_DB", str(caminho))
+    monkeypatch.setattr(ops, "RAIZ", tmp_path)
+    monkeypatch.setattr(log, "configurar", lambda *a: None)
+    opcoes = []
+    def coletar(*args, **kwargs):
+        opcoes.append(kwargs["detalhar"])
+        return [], None
+    monkeypatch.setattr(ifood, "coletar", coletar)
+    runner = CliRunner()
+    assert runner.invoke(cli.app, ["ifood", "Rua Fictícia, 1, Porto Alegre"]).exit_code == 0
+    assert ifood.detalhes_suspensos(con) == "403 confirmado"
+    assert runner.invoke(cli.app, ["ifood", "Rua Fictícia, 1, Porto Alegre", "--retomar-detalhes"]).exit_code == 0
+    assert ifood.detalhes_suspensos(con) is None and opcoes == [False, True]

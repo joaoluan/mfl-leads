@@ -11,6 +11,7 @@ import time
 import urllib.error
 import uuid
 from urllib.parse import urlsplit
+from datetime import date, timedelta
 
 import structlog
 from pydantic import BaseModel, Field
@@ -69,6 +70,22 @@ class Loja(BaseModel):
     cep: str | None = None
     bairro: str | None = None
     cnpj: str | None = None
+    detalhes_em: str | None = None
+
+
+def detalhes_suspensos(con: sqlite3.Connection) -> str | None:
+    linha = con.execute("SELECT valor FROM estado WHERE chave='ifood_detalhes_bloqueados'").fetchone()
+    return linha[0] if linha else None
+
+
+def suspender_detalhes(con: sqlite3.Connection, motivo: str) -> None:
+    """O bloqueio sobrevive ao processo e vale para todos os bairros até retomada explícita."""
+    con.execute("INSERT OR REPLACE INTO estado VALUES ('ifood_detalhes_bloqueados',?,?)", (motivo[:200], agora()))
+    con.commit()
+
+
+def _franquias(termos: list[str]) -> re.Pattern | None:
+    return re.compile(r"\b(" + "|".join(re.escape(t) for t in termos) + r")\b") if termos else None
 
 
 def cnpj_valido(bruto: str | None) -> str | None:
@@ -173,7 +190,7 @@ def _esperar(aba: str, expressao: str):
         try:
             if _js(aba, "!!document.querySelector('#px-captcha, iframe[src*=captcha]') || "
                    "/access denied|acesso negado/i.test(document.title)"):
-                raise RuntimeError("iFood pediu verificação ou bloqueou o acesso. Coleta interrompida.")
+                raise DetalhesBloqueados("iFood pediu verificação ou bloqueou o acesso. Coleta interrompida.")
             if resultado := _js(aba, expressao):
                 return resultado
         except urllib.error.HTTPError as erro:
@@ -193,17 +210,20 @@ def ler_detalhes(aba: str, loja: Loja, municipios: list[str]) -> Loja:
     try:
         _esperar(aba, "(() => {const s=" + JS_SOBRE + ";return !!s && !!(s.endereco_bloco || s.cnpj || s.bloqueado);})()")
     except TimeoutError:
-        pass  # painel montado sem dados: preserva o JSON-LD e permite consultar a próxima loja
+        pass  # o JSON-LD pode já ter dados úteis mesmo com o painel vazio
     sobre = _js(aba, JS_SOBRE) or {}
     painel = detalhes_do_painel(sobre)
     if sobre.get("bloqueado") and not (painel or estruturados):
         raise DetalhesBloqueados("iFood bloqueou os detalhes das lojas (403); lista preservada.")
     completa = analisar({**loja.model_dump(mode="json"), "detalhes": {**estruturados, **painel}}, municipios)
-    return completa or loja
+    if not (painel or estruturados):
+        raise DetalhesBloqueados("Painel Sobre sem dados; leitura de detalhes suspensa.")
+    return (completa or loja).model_copy(update={"detalhes_em": agora()})
 
 
-def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[str]) -> list[Loja]:
-    """Segue as telas públicas do site. Bloqueio nunca vira coleta vazia bem-sucedida."""
+def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[str], *,
+            revisitar: set[str] | None = None, detalhar: bool = True) -> tuple[list[Loja], str | None]:
+    """Prioriza descobertas; devolve o motivo da suspensão junto da lista preservada."""
     aba = _abrir()
     try:
         _esperar(aba, "!!document.querySelector('input[placeholder=\"Endereço de entrega e número\"]')")
@@ -219,13 +239,18 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
         _js(aba, "(() => {[...document.querySelectorAll('button')].find(b=>b.innerText==='Salvar endereço').click();return true;})()")
         _esperar(aba, f"({JS_LISTA}).length")
         lojas: dict[str, Loja] = {}
+        antigas: dict[str, Loja] = {}
+        padrao = _franquias(cnpj_icp.termos_franquia())
         sem_novas = 0
         for _ in range(20):
             antes = len(lojas)
             for item in _js(aba, JS_LISTA):
                 loja = analisar(item, municipios)
-                if loja and str(loja.id) not in conhecidos:
-                    lojas[str(loja.id)] = loja
+                if loja and not (padrao and padrao.search(normalizar(loja.nome))):
+                    if str(loja.id) not in conhecidos:
+                        lojas[str(loja.id)] = loja
+                    elif detalhar and str(loja.id) in (revisitar or set()):
+                        antigas[str(loja.id)] = loja
             if len(lojas) >= limite:
                 break
             sem_novas = sem_novas + 1 if len(lojas) == antes else 0
@@ -233,18 +258,20 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
                 break
             _js(aba, "(() => {window.scrollTo(0, document.body.scrollHeight);return true;})()")
             time.sleep(2)
-        escolhidas = list(lojas.values())[:limite]
-        for loja in escolhidas:
+        escolhidas = [*lojas.values(), *antigas.values()][:limite]
+        bloqueio = None
+        for i, loja in enumerate(escolhidas if detalhar else []):
             try:
                 completa = ler_detalhes(aba, loja, municipios)
-            except DetalhesBloqueados:
-                log.warning("ifood_detalhes_bloqueados", motivo="O iFood retornou 403 para os dados da loja; lista preservada")
+            except (DetalhesBloqueados, TimeoutError) as erro:
+                bloqueio = str(erro)
+                log.warning("ifood_detalhes_bloqueados", motivo=bloqueio)
                 break
-            lojas[str(loja.id)] = completa
+            escolhidas[i] = completa
             if not completa.endereco:
                 log.warning("ifood_sem_endereco", motivo="Detalhes indisponíveis; lojas seguem sem vínculo automático")
             time.sleep(2)
-        return [lojas[str(l.id)] for l in escolhidas]
+        return escolhidas, bloqueio
     finally:
         try:
             api("DELETE", f"/tabs/{aba}?userId={USUARIO}")
@@ -255,7 +282,7 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
 def ingerir(con: sqlite3.Connection, lojas: list[Loja], franquias: list[str]) -> dict[str, int]:
     """Idempotência pelo UUID da loja, endereço para vínculo, nome apenas para revisão."""
     total = {"novos": 0, "vinculados": 0, "revisao": 0, "repetidos": 0, "descartados": 0, "atualizados": 0}
-    padrao = re.compile(r"\b(" + "|".join(re.escape(t) for t in franquias) + r")\b") if franquias else None
+    padrao = _franquias(franquias)
     compartilhados = resolve.telefones_compartilhados(con)
     momento = agora()
     gravados = 0
@@ -308,7 +335,9 @@ def ingerir(con: sqlite3.Connection, lojas: list[Loja], franquias: list[str]) ->
                 for campo, valor in anterior.items():
                     if campo in novos and novos[campo] is None and valor is not None:
                         novos[campo] = valor
-                total["atualizados" if novos != anterior else "repetidos"] += 1
+                mudou = any(novos.get(c) != anterior.get(c) for c in
+                            ("nome", "categoria", "municipio", "bairro", "endereco", "cep", "cnpj"))
+                total["atualizados" if mudou else "repetidos"] += 1
             elif candidato is not None and nota >= resolve.VINCULA:
                 eid = candidato["entity_id"]
                 resolve.preencher(con, eid, dados)
@@ -343,10 +372,18 @@ def rodar(con: sqlite3.Connection, endereco: str, limite: int = 30) -> dict[str,
     from mfl.score import config
     municipios = config()["recorte"]["municipios"]
     conhecidos = set()
-    for registro in con.execute("SELECT source_key,raw_json,captured_at FROM source_record WHERE source='ifood'"):
+    revisitar = set()
+    motivo = detalhes_suspensos(con)
+    if motivo:
+        log.info("ifood_detalhes_suspensos", motivo=motivo)
+    vencido = (date.fromisoformat(agora()[:10]) - timedelta(days=7)).isoformat()
+    for registro in con.execute("SELECT source_key,raw_json FROM source_record WHERE source='ifood'"):
         dados = json.loads(registro["raw_json"])
+        conhecidos.add(registro["source_key"])
         completo = all(dados.get(c) for c in ("endereco", "cep", "cnpj"))
-        # Registros antigos sem o campo CNPJ voltam agora; tentativas novas, no máximo uma por dia.
-        if completo or ("cnpj" in dados and registro["captured_at"][:10] == agora()[:10]):
-            conhecidos.add(registro["source_key"])
-    return ingerir(con, coletar(endereco, limite, conhecidos, municipios), cnpj_icp.termos_franquia())
+        if not motivo and not completo and (dados.get("detalhes_em") or "")[:10] <= vencido:
+            revisitar.add(registro["source_key"])
+    lojas, bloqueio = coletar(endereco, limite, conhecidos, municipios, revisitar=revisitar, detalhar=not motivo)
+    if bloqueio:
+        suspender_detalhes(con, bloqueio)
+    return ingerir(con, lojas, cnpj_icp.termos_franquia())

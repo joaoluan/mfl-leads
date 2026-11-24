@@ -19,6 +19,8 @@ tr[aria-current] td { background:var(--realce); }
 <p class="sub">De onde os leads vêm, o que está rodando agora e o que deu erro. Você pode disparar qualquer coleta na hora.</p>
 {% if aviso %}<div class="faixa ok" role="status">{{ aviso }}</div>{% endif %}
 {% if ig_checkpoint %}<div class="faixa erro">O Instagram pediu login ou verificação: a coleta de perfis está parada. Rode <code>baixar-insta --login</code> e depois <code>mfl ig --retomar</code>.</div>{% endif %}
+{% if ifood_suspenso %}<div class="faixa" role="status">Endereço e CNPJ do iFood estão suspensos: {{ ifood_suspenso }}
+  A lista continua coletando lojas novas. Após resolver o acesso, retome pelo comando <code>mfl ifood "endereço" --retomar-detalhes</code>.</div>{% endif %}
 
 <h2>Rotinas</h2>
 <p class="suave">Maps e iFood rodam juntos na rodada das 01h30, bairro por bairro. Instagram completa os perfis às 04h,
@@ -85,9 +87,10 @@ tr[aria-current] td { background:var(--realce); }
 <h2 id="ifood">iFood</h2>
 <p class="suave">A coleta automática usa um endereço comercial do bairro já vindo de Maps ou CNPJ. Sem endereço válido, fica pendente.
   Para coletar outro ponto manualmente, informe rua, número e cidade abaixo. A lista varia conforme esse endereço.
-  A coleta abre “Ver mais” para ler endereço e CNPJ. Pula lojas completas e franquias; volta às incompletas sem duplicar.
+  Lojas novas têm prioridade. Sem bloqueio, as vagas restantes completam dados antigos, com pelo menos 7 dias entre tentativas.
+  Depois de um bloqueio, as próximas coletas leem só a lista até você retomar os detalhes.
   Casas sem telefone ficam em enriquecimento até o Maps ou Instagram completar.
-  Se faltar endereço da loja, confira os possíveis duplicados em Revisão. Verificação ou bloqueio interrompe a coleta.</p>
+  Se faltar endereço da loja, confira os possíveis duplicados em Revisão. Bloqueio dos detalhes mantém somente a descoberta pela lista.</p>
 <form method="post" action="/coleta/rodar" class="linha-acao">
   <input type="hidden" name="acao" value="ifood">
   <label class="campo">Endereço de entrega<input name="endereco" required maxlength="300" placeholder="Rua, número, cidade - RS" style="width:min(480px,80vw)"></label>
