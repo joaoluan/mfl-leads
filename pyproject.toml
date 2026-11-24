@@ -1,0 +1,30 @@
+[project]
+name = "mfl-leads"
+version = "0.1.0"
+description = "Esteira local de leads do MyFoodLink"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "phonenumbers>=9.0.44",
+    "pydantic>=2.14.4",
+    "python-dotenv>=1.2.4",
+    "structlog>=26.1.0",
+    "typer>=0.29.2",
+]
+
+[project.scripts]
+mfl = "mfl.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mfl"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
