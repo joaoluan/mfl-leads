@@ -179,7 +179,7 @@ def _esperar(aba: str, expressao: str):
             if erro.code != 409:  # navegação durante leitura: aguarda a página, sem repetir cliques
                 raise
         time.sleep(1)
-    raise RuntimeError("iFood não carregou a etapa esperada. Confira o endereço ou tente mais tarde.")
+    raise TimeoutError("iFood não carregou a etapa esperada. Confira o endereço ou tente mais tarde.")
 
 
 def ler_detalhes(aba: str, loja: Loja, municipios: list[str]) -> Loja:
@@ -189,6 +189,10 @@ def ler_detalhes(aba: str, loja: Loja, municipios: list[str]) -> Loja:
     estruturados = _js(aba, JS_DETALHES) or {}
     _js(aba, "(() => {document.querySelector('.merchant-details__button').click();return true;})()")
     _esperar(aba, "!!document.querySelector('.merchant-details-about')")
+    try:
+        _esperar(aba, "(() => {const s=" + JS_SOBRE + ";return !!s && !!(s.endereco_bloco || s.cnpj || s.bloqueado);})()")
+    except TimeoutError:
+        pass  # painel montado sem dados: preserva o JSON-LD e permite consultar a próxima loja
     sobre = _js(aba, JS_SOBRE) or {}
     painel = detalhes_do_painel(sobre)
     if sobre.get("bloqueado") and not (painel or estruturados):
@@ -287,7 +291,8 @@ def ingerir(con: sqlite3.Connection, lojas: list[Loja], franquias: list[str]) ->
                 if candidato is not None and nota >= resolve.VINCULA:
                     conversou = con.execute("SELECT 1 FROM touch WHERE entity_id=? UNION ALL SELECT 1 FROM reply WHERE entity_id=?",
                                              (eid, eid)).fetchone()
-                    if atual["status"] in ("enriquecimento", "novo", "qualificado", "na_fila") and not conversou:
+                    cnpj_diverge = atual["cnpj"] and candidato["cnpj"] and atual["cnpj"] != candidato["cnpj"]
+                    if atual["status"] in ("enriquecimento", "novo", "qualificado", "na_fila") and not conversou and not cnpj_diverge:
                         resolve.fundir(con, candidato["entity_id"], eid)
                         eid = candidato["entity_id"]
                     else:

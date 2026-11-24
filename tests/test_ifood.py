@@ -276,3 +276,36 @@ def test_lote_segue_sem_detalhes_mas_respeita_bloqueio(monkeypatch, bloqueado):
     assert len(lojas) == 2
     assert len(visitadas) == (1 if bloqueado else 2)
     assert lojas[1].cnpj == (None if bloqueado else CNPJ_TESTE)
+
+
+def test_leitura_parcial_nao_funde_cnpjs_distintos_pelo_endereco(tmp_path):
+    con = db.conectar(tmp_path / "t.db")
+    primeiro = criar_lead(con, "Nome Antigo Fictício", None, cnpj=CNPJ_TESTE, status="enriquecimento", municipio="Porto Alegre")
+    ifood.ingerir(con, [loja(detalhes={"cnpj": CNPJ_TESTE})], [])
+    segundo = criar_lead(con, "Cantina Teste Azul", None, cnpj="87654321000007", status="enriquecimento",
+                         municipio="Porto Alegre", cep="90000001", endereco="Rua Fictícia, 10")
+    parcial = loja(detalhes={"endereco": "Rua Fictícia, 10", "cep": "90000001"})
+    assert ifood.ingerir(con, [parcial], [])["revisao"] == 1
+    assert {r[0] for r in con.execute("SELECT cnpj FROM entity")} == {CNPJ_TESTE, "87654321000007"}
+    assert con.execute("SELECT entity_id FROM source_record WHERE source='ifood'").fetchone()[0] == primeiro
+    assert tuple(con.execute("SELECT a,b FROM revisao WHERE decidido=0").fetchone()) == (primeiro, segundo)
+
+
+def test_painel_sem_dados_preserva_jsonld_apos_esperar(monkeypatch):
+    esperas = []
+    def esperar(aba, expressao):
+        esperas.append(expressao)
+        if "const s=" in expressao:
+            raise TimeoutError("dados não chegaram")
+        return True
+    def js(aba, expressao):
+        if expressao == ifood.JS_DETALHES:
+            return {"endereco": "Rua Fictícia, 10", "cep": "90000001"}
+        if expressao == ifood.JS_SOBRE:
+            return {}
+        return True
+    monkeypatch.setattr(ifood, "_esperar", esperar)
+    monkeypatch.setattr(ifood, "_js", js)
+    l = ifood.ler_detalhes("aba", loja(), ["Porto Alegre"])
+    assert l.endereco == "Rua Fictícia, 10" and l.cnpj is None
+    assert any("const s=" in e for e in esperas)
