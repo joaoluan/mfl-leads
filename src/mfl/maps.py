@@ -48,7 +48,8 @@ def rodar(bairro: dict, saida: Path, log_arquivo: Path) -> Path:
     cmd = [str(BINARIO), "-input", str(CONSULTAS), "-results", str(saida), "-json",
            "-grid-bbox", bairro["bbox"], "-grid-cell", str(bairro["celula_km"]), "-grid-strict",
            "-zoom", "16", "-depth", "1", "-c", "4", "-email", "-lang", "pt", "-exit-on-inactivity", "3m"]
-    log_arquivo.parent.mkdir(parents=True, exist_ok=True)
+    for pasta in (saida.parent, log_arquivo.parent):
+        pasta.mkdir(parents=True, exist_ok=True)
     inicio = time.monotonic()
     with log_arquivo.open("w") as registro:
         proc = subprocess.Popen(cmd, stdout=registro, stderr=subprocess.STDOUT,

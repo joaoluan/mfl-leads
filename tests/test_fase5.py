@@ -124,5 +124,5 @@ def test_wrapper_confere_sha_e_encerra_processo_pendurado(tmp_path, monkeypatch)
     with pytest.raises(RuntimeError, match="SHA256"):
         maps.rodar(BAIRRO, tmp_path / "o.json", tmp_path / "l.log")
     sha.write_text(hashlib.sha256(falso.read_bytes()).hexdigest() + "  scraper\n")
-    saida = maps.rodar(BAIRRO, tmp_path / "o.json", tmp_path / "l.log")
+    saida = maps.rodar(BAIRRO, tmp_path / "nova" / "o.json", tmp_path / "l.log")
     assert json.loads(saida.read_text())["place_id"] == "X"
