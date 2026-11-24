@@ -6,17 +6,18 @@
   <span><span class="selo">{{ lead.status | rotulo }}</span>{% if lead.motivo_descarte %} <span class="suave">({{ lead.motivo_descarte | rotulo }})</span>{% endif %}
     <span class="suave">score {{ lead.score | int }}</span></span>
 </div>
-<div class="suave">{{ lead.categoria or "sem categoria" }} · {{ lead.bairro or "sem bairro" }}{% if lead.municipio %}, {{ lead.municipio | title }}{% endif %}</div>
+<div class="suave">{{ lead.categoria or "Sem categoria" }}{% if lead.bairro %} em {{ lead.bairro | title }}{% endif %}{% if lead.municipio %}, {{ lead.municipio | title }}{% endif %}</div>
 {% if sinais %}<div class="chips">{% for s in sinais %}{% set p = pesos.get(s, 0) %}<span class="chip {{ 'bom' if p > 0 else 'ruim' if p < 0 }}">{{ s | rotulo }}{% if p %} {{ "%+d" | format(p) }}{% endif %}</span>{% endfor %}</div>{% endif %}
 
-{% if link and not lead.opt_out %}
+{% if texto and link and not lead.opt_out %}
 <h2>Texto sugerido</h2>
 <div class="texto" id="texto">{{ texto }}</div>
 <div class="acoes">
   <a class="botao primario" href="{{ link }}" target="whatsapp">Abrir WhatsApp</a>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('texto').innerText); this.textContent='Copiado'">Copiar</button>
+  <button type="button" data-copiar="texto">Copiar texto</button>
 </div>
 {% endif %}
+{% if not texto and link and not lead.opt_out %}<div class="acoes"><a class="botao primario" href="{{ link }}" target="whatsapp">Abrir conversa no WhatsApp</a></div>{% endif %}
 
 <h2>Conversa</h2>
 {% for l in linha | reverse %}
@@ -34,7 +35,7 @@
   <form method="post" action="/lead/{{ lead.entity_id }}/status"><input type="hidden" name="status" value="descartado">
     <select name="motivo" aria-label="Motivo do descarte">{% for m in motivos %}<option value="{{ m }}">{{ m | rotulo }}</option>{% endfor %}</select>
     <button>Descartar</button></form>
-  <form method="post" action="/lead/{{ lead.entity_id }}/status" onsubmit="return confirm('Pediu SAIR é permanente: o número nunca mais entra. Confirmar?')">
+  <form method="post" action="/lead/{{ lead.entity_id }}/status" data-confirmar="Pediu SAIR é permanente: o número nunca mais entra na fila. Confirmar?">
     <input type="hidden" name="status" value="opt_out"><button class="perigo">Pediu SAIR</button></form>
 </div>
 
@@ -48,10 +49,10 @@
   {% if lead[campo] %}<tr><th>{{ nome }}</th><td>{{ lead[campo] }}</td></tr>{% endif %}
   {% endfor %}
 </table>
-<form method="post" action="/lead/{{ lead.entity_id }}/dados" class="acoes">
-  <input name="nome" value="{{ lead.nome or '' }}" placeholder="Nome" aria-label="Nome">
-  <input name="categoria" value="{{ lead.categoria or '' }}" placeholder="Categoria (pizzaria, bar...)" aria-label="Categoria">
-  <input name="bairro" value="{{ lead.bairro or '' }}" placeholder="Bairro" aria-label="Bairro">
+<form method="post" action="/lead/{{ lead.entity_id }}/dados" class="acoes" style="align-items:flex-end">
+  <label class="campo">Nome<input name="nome" value="{{ lead.nome or '' }}" autocomplete="off"></label>
+  <label class="campo">Categoria<input name="categoria" value="{{ lead.categoria or '' }}" placeholder="pizzaria, bar…" autocomplete="off"></label>
+  <label class="campo">Bairro<input name="bairro" value="{{ lead.bairro or '' }}" autocomplete="off"></label>
   <button>Salvar dados</button>
 </form>
 

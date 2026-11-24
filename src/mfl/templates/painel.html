@@ -2,32 +2,29 @@
 {% block titulo %}Painel{% endblock %}
 {% block corpo %}
 <h1>Painel</h1>
-<p class="sub">Abordagens contam só mensagens mandadas pela fila; conversa com quem já respondeu não entra.</p>
+<p class="sub">Abordagens contam só as mensagens mandadas pela fila. Conversa com quem já respondeu não entra na conta.</p>
 {% if alerta_bloqueio %}<div class="faixa erro">Bloqueio acima de 3% nos últimos 3 dias seguidos. Reduza o ritmo e revise os textos.</div>{% endif %}
-<div class="grade">
-  <div class="cartao"><span class="suave">Abordados hoje</span><b>{{ hoje_n }}</b></div>
-  <div class="cartao"><span class="suave">Abordados na semana</span><b>{{ semana_n }}</b></div>
-  <div class="cartao"><span class="suave">Taxa de resposta (30 dias)</span><b>{{ "%.0f" | format(taxa_resposta * 100) }}%</b>
-    <span class="suave">{{ enviados_30 }} abordados</span></div>
-  <div class="cartao"><span class="suave">Bloqueio estimado (7 dias)</span><b>{{ "%.1f" | format(taxa_bloqueio * 100) }}%</b>
-    <span class="suave">{{ envios_7 }} envios com tique</span></div>
-  <div class="cartao"><span class="suave">Trials</span><b>{{ status.get("trial", 0) }}</b></div>
-  <div class="cartao"><span class="suave">Clientes</span><b>{{ status.get("cliente", 0) }}</b></div>
-</div>
+<dl class="fita">
+  <div><dt>Abordados hoje</dt><dd>{{ hoje_n }}</dd></div>
+  <div><dt>Abordados na semana</dt><dd>{{ semana_n }}</dd></div>
+  <div><dt>Taxa de resposta</dt><dd>{{ "%.0f" | format(taxa_resposta * 100) }}%<small>{{ enviados_30 }} abordados em 30 dias</small></dd></div>
+  <div><dt>Bloqueio estimado</dt><dd>{{ "%.1f" | format(taxa_bloqueio * 100) | replace(".", ",") }}%<small>{{ envios_7 }} envios com tique em 7 dias</small></dd></div>
+  <div><dt>Trials</dt><dd>{{ status.get("trial", 0) }}<small>{{ status.get("cliente", 0) }} cliente(s) pagando</small></dd></div>
+</dl>
 
 <h2>Coleta</h2>
-<div class="grade">
-  <div class="cartao"><span class="suave">Prontos para a fila</span><b>{{ esteira.prontos }}</b><span class="suave">com WhatsApp e score no corte</span></div>
-  <div class="cartao"><span class="suave">Bairros no Maps</span><b>{{ esteira.bairros_feitos }} / {{ esteira.bairros_total }}</b>
-    <div class="barra" style="margin:6px 0 0"><div style="width: {{ (esteira.bairros_feitos / esteira.bairros_total * 100) if esteira.bairros_total else 0 }}%"></div></div></div>
-  <div class="cartao"><span class="suave">Lugares do Maps</span><b>{{ esteira.lugares_maps }}</b></div>
-  <div class="cartao"><span class="suave">Perfis do Instagram</span><b>{{ esteira.perfis_ig }}</b><span class="suave">visitados de {{ esteira.handles_ig }} achados</span></div>
-  <div class="cartao"><span class="suave">Sem WhatsApp ainda</span><b>{{ "{:,}".format(esteira.enriquecimento).replace(",", ".") }}</b><span class="suave">esperando Maps ou Instagram</span></div>
-</div>
+<dl class="fita">
+  <div><dt>Prontos para a fila</dt><dd>{{ esteira.prontos }}<small>com WhatsApp e score no corte</small></dd></div>
+  <div><dt>Bairros no Maps</dt><dd>{{ esteira.bairros_feitos }} de {{ esteira.bairros_total }}
+    <span class="barra" style="display:block;margin:6px 0 0"><span style="display:block;height:100%;background:var(--acao);width: {{ (esteira.bairros_feitos / esteira.bairros_total * 100) if esteira.bairros_total else 0 }}%"></span></span></dd></div>
+  <div><dt>Lugares do Maps</dt><dd>{{ esteira.lugares_maps }}</dd></div>
+  <div><dt>Perfis do Instagram</dt><dd>{{ esteira.perfis_ig }}<small>visitados de {{ esteira.handles_ig }} achados</small></dd></div>
+  <div><dt>Sem WhatsApp ainda</dt><dd>{{ "{:,}".format(esteira.enriquecimento).replace(",", ".") }}<small>esperando Maps ou Instagram</small></dd></div>
+</dl>
 
 <h2>Leads por status</h2>
 <table><tr><th>Status</th><th class="n">Leads</th></tr>
-{% for s, n in status | dictsort %}<tr><td>{{ s | rotulo }}</td><td class="n">{{ n }}</td></tr>{% endfor %}</table>
+{% for s, n in status | dictsort %}<tr><td>{{ s | rotulo }}</td><td class="n">{{ "{:,}".format(n).replace(",", ".") }}</td></tr>{% endfor %}</table>
 
 {% for nome, linhas in tabelas.items() %}
 <h2>{{ nome }} (30 dias)</h2>

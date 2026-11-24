@@ -2,7 +2,7 @@
 {% block titulo %}Respostas{% endblock %}
 {% block corpo %}
 <h1>Respostas para revisar</h1>
-<p class="sub">Uma conversa por lead. Classificar marca todas as mensagens dele como lidas.</p>
+<p class="sub">Uma conversa por lead. Ao classificar, todas as mensagens dele saem desta lista.</p>
 {% for c in itens %}
 <div class="cartao">
   <div class="topo">
@@ -13,14 +13,14 @@
   {% for m in c.msgs %}<div class="bolha recebida">{{ m.texto }}<span class="suave">{{ m.recebido_em | quando }}</span></div>{% endfor %}
   <div class="acoes">
     {% for k in classes %}
-    <form method="post" action="/respostas/{{ c.ultima.id }}"><input type="hidden" name="classificacao" value="{{ k }}">
+    <form method="post" action="/respostas/{{ c.ultima.id }}"{% if k == 'opt_out' %} data-confirmar="Pediu SAIR é permanente: o número nunca mais entra na fila. Confirmar?"{% endif %}><input type="hidden" name="classificacao" value="{{ k }}">
       <button class="{{ 'primario' if k == c.palpite }}{{ ' perigo' if k == 'opt_out' }}">{{ k | rotulo }}</button></form>
     {% endfor %}
   </div>
   {% if c.palpite in sugestoes %}
-  <div class="suave" style="margin-top:12px">Resposta sugerida para "{{ c.palpite | rotulo }}":</div>
-  <div class="texto">{{ sugestoes[c.palpite] }}</div>
-  <div class="acoes"><button onclick="navigator.clipboard.writeText(this.parentElement.previousElementSibling.innerText); this.textContent='Copiado'">Copiar</button></div>
+  <div class="suave" style="margin-top:12px">Resposta sugerida para “{{ c.palpite | rotulo }}”:</div>
+  <div class="texto" id="sugestao-{{ c.ultima.id }}">{{ sugestoes[c.palpite] }}</div>
+  <div class="acoes"><button type="button" data-copiar="sugestao-{{ c.ultima.id }}">Copiar resposta</button></div>
   {% endif %}
 </div>
 {% else %}<div class="cartao vazio">Nenhuma resposta pendente.</div>{% endfor %}
