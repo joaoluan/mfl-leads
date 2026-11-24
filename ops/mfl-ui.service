@@ -1,0 +1,15 @@
+# systemd --user: ln -s ~/Projetos/mfl-leads/ops/mfl-ui.service ~/.config/systemd/user/
+#                 systemctl --user daemon-reload && systemctl --user enable --now mfl-ui
+[Unit]
+Description=mfl-leads: UI local (127.0.0.1:8000)
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/Projetos/mfl-leads
+ExecStart=%h/.local/bin/uv run --frozen mfl ui
+Restart=always
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=default.target

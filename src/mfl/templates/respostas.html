@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Respostas{% endblock %}
+{% block corpo %}
+<h1>Respostas para revisar</h1>
+{% for r in itens %}
+<div class="cartao">
+  <div><a href="/lead/{{ r.entity_id }}"><b>{{ r.fantasia or r.nome }}</b></a>
+    <span class="suave">· {{ r.tel1 }} · {{ r.recebido_em }} · status {{ r.status }}</span></div>
+  <pre class="texto">{{ r.texto }}</pre>
+  <div class="acoes">
+    {% for c in classes %}
+    <form method="post" action="/respostas/{{ r.id }}"><input type="hidden" name="classificacao" value="{{ c }}">
+      <button class="{{ 'primario' if c == r.classificacao }}">{{ c }}</button></form>
+    {% endfor %}
+  </div>
+  {% if r.classificacao in sugestoes %}
+  <div class="suave" style="margin-top:8px">Resposta sugerida:</div>
+  <pre class="texto">{{ sugestoes[r.classificacao] }}</pre>
+  <button onclick="navigator.clipboard.writeText(this.previousElementSibling.innerText)">Copiar</button>
+  {% endif %}
+</div>
+{% else %}<p class="suave">Nenhuma resposta pendente.</p>{% endfor %}
+{% endblock %}

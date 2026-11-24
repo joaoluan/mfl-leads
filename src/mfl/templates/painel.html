@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Painel{% endblock %}
+{% block corpo %}
+<h1>Painel</h1>
+{% if alerta_bloqueio %}<div class="faixa erro">Bloqueio acima de 3% nos últimos 3 dias seguidos. Reduza o ritmo e revise os textos.</div>{% endif %}
+<div class="grade">
+  <div class="cartao"><span class="suave">Abordados hoje</span><b>{{ hoje_n }}</b></div>
+  <div class="cartao"><span class="suave">Abordados na semana</span><b>{{ semana_n }}</b></div>
+  <div class="cartao"><span class="suave">Taxa de resposta (30 dias)</span><b>{{ "%.0f" | format(taxa_resposta * 100) }}%</b>
+    <span class="suave">{{ enviados_30 }} abordados</span></div>
+  <div class="cartao"><span class="suave">Bloqueio estimado (7 dias)</span><b>{{ "%.1f" | format(taxa_bloqueio * 100) }}%</b>
+    <span class="suave">{{ envios_7 }} envios com tique</span></div>
+  <div class="cartao"><span class="suave">Trials</span><b>{{ status.get("trial", 0) }}</b></div>
+  <div class="cartao"><span class="suave">Clientes</span><b>{{ status.get("cliente", 0) }}</b></div>
+</div>
+
+<h2>Leads por status</h2>
+<table><tr><th>Status</th><th class="n">Leads</th></tr>
+{% for s, n in status | dictsort %}<tr><td>{{ s }}</td><td class="n">{{ n }}</td></tr>{% endfor %}</table>
+
+{% for nome, linhas in tabelas.items() %}
+<h2>{{ nome }} (30 dias)</h2>
+<table><tr><th></th><th class="n">Abordados</th><th class="n">Responderam</th><th class="n">Resposta</th><th class="n">Trial ou cliente</th></tr>
+{% for l in linhas %}<tr><td>{{ l.chave }}</td><td class="n">{{ l.enviados }}</td><td class="n">{{ l.responderam }}</td>
+  <td class="n">{{ "%.0f" | format(l.responderam / l.enviados * 100) }}%</td><td class="n">{{ l.trials }}</td></tr>
+{% else %}<tr><td colspan="5" class="suave">Sem envios ainda.</td></tr>{% endfor %}</table>
+{% endfor %}
+{% endblock %}

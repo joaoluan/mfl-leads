@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block titulo %}{{ lead.fantasia or lead.nome }}{% endblock %}
+{% block corpo %}
+<h1>{{ lead.fantasia or lead.nome }}</h1>
+<div class="suave">Status: <b>{{ lead.status }}</b>{% if lead.motivo_descarte %} ({{ lead.motivo_descarte }}){% endif %}
+  · score {{ lead.score | int }}{% if lead.opt_out %} · opt-out{% endif %}</div>
+
+<h2>Dados</h2>
+<table>
+  {% for campo in ["tel1", "tel2", "email", "site", "ig_username", "cnpj", "cnae", "endereco", "municipio", "cep", "nota", "avaliacoes"] %}
+  {% if lead[campo] %}<tr><th>{{ campo }}</th><td>{{ lead[campo] }}</td></tr>{% endif %}
+  {% endfor %}
+</table>
+<form method="post" action="/lead/{{ lead.entity_id }}/dados" class="acoes">
+  <input name="nome" value="{{ lead.nome or '' }}" placeholder="Nome" aria-label="Nome">
+  <input name="categoria" value="{{ lead.categoria or '' }}" placeholder="Categoria (pizzaria, bar...)" aria-label="Categoria">
+  <input name="bairro" value="{{ lead.bairro or '' }}" placeholder="Bairro" aria-label="Bairro">
+  <button>Salvar dados</button>
+</form>
+
+<h2>Origem (LGPD: de onde veio o contato)</h2>
+<table><tr><th>Fonte</th><th>Endereço</th><th>Coletado em</th></tr>
+{% for o in origem %}<tr><td>{{ o.source }}</td><td>{{ o.url }}</td><td>{{ o.captured_at }}</td></tr>{% endfor %}
+</table>
+
+{% if link and not lead.opt_out %}
+<h2>Texto sugerido</h2>
+<pre class="texto" id="texto">{{ texto }}</pre>
+<div class="acoes">
+  <button onclick="navigator.clipboard.writeText(document.getElementById('texto').innerText)">Copiar</button>
+  <a class="botao primario" href="{{ link }}" target="whatsapp">Abrir WhatsApp</a>
+</div>
+{% endif %}
+
+<h2>Status</h2>
+<div class="acoes">
+  {% for s in status_ficha if s != "descartado" %}
+  <form method="post" action="/lead/{{ lead.entity_id }}/status"><input type="hidden" name="status" value="{{ s }}">
+    <button {{ 'disabled' if lead.status == s }}>{{ s }}</button></form>
+  {% endfor %}
+  <form method="post" action="/lead/{{ lead.entity_id }}/status"><input type="hidden" name="status" value="descartado">
+    <select name="motivo" aria-label="Motivo do descarte">{% for m in motivos %}<option>{{ m }}</option>{% endfor %}</select>
+    <button>Descartar</button></form>
+  <form method="post" action="/lead/{{ lead.entity_id }}/status" onsubmit="return confirm('Opt-out é permanente. Confirmar?')">
+    <input type="hidden" name="status" value="opt_out"><button>Opt-out</button></form>
+</div>
+
+<h2>Linha do tempo</h2>
+{% for l in linha %}
+<div class="cartao"><div class="suave">{{ l.quando }} · {{ l.tipo }}{% if l.extra %} · {{ l.extra }}{% endif %}</div>
+  <pre class="texto">{{ l.texto }}</pre></div>
+{% else %}<p class="suave">Nenhuma mensagem ainda.</p>{% endfor %}
+{% endblock %}

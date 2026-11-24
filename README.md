@@ -23,3 +23,10 @@ Banco em `db/leads.db` (ou `MFL_DB`), logs em `logs/<job>.jsonl` (ou `MFL_LOGS`)
 A Evolution não grava mensagens. O webhook só grava as de números que já são lead
 (envio vira toque, resposta vira reply com sugestão de classificação, "SAIR" vira opt-out permanente).
 Firewall: `sudo ufw allow in on mfl-evo to 172.31.250.1 port 8001 proto tcp`.
+
+## UI
+
+    systemctl --user start mfl-ui        # http://127.0.0.1:8000 (ops/mfl-ui.service)
+    uv run mfl marcar 51999990000 cliente
+
+Telas: fila do dia, ficha (/lead/<id>), respostas, painel e config (tetos, pesos e textos em `cfg/`).

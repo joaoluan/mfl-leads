@@ -1,0 +1,16 @@
+# Pesos do score (usados a partir da fase 6). Score abaixo do corte não entra na fila.
+corte = 40
+
+[pesos]
+mesma_categoria_de_cliente = 30
+raio = 20
+wa_me_na_bio = 20
+reclamacao_demora = 15
+aberto_menos_12m = 15
+sem_site = 10
+aceita_encomenda = 10
+ig_ativo_30d = 8
+unidade_unica = 8
+franquia = -25
+site_com_pedido_proprio = -30
+ig_inativo_6m = -10
