@@ -2,6 +2,7 @@
 {% block titulo %}Painel{% endblock %}
 {% block corpo %}
 <h1>Painel</h1>
+<p class="sub">Abordagens contam só mensagens mandadas pela fila; conversa com quem já respondeu não entra.</p>
 {% if alerta_bloqueio %}<div class="faixa erro">Bloqueio acima de 3% nos últimos 3 dias seguidos. Reduza o ritmo e revise os textos.</div>{% endif %}
 <div class="grade">
   <div class="cartao"><span class="suave">Abordados hoje</span><b>{{ hoje_n }}</b></div>
@@ -14,21 +15,32 @@
   <div class="cartao"><span class="suave">Clientes</span><b>{{ status.get("cliente", 0) }}</b></div>
 </div>
 
+<h2>Coleta</h2>
+<div class="grade">
+  <div class="cartao"><span class="suave">Prontos para a fila</span><b>{{ esteira.prontos }}</b><span class="suave">com WhatsApp e score no corte</span></div>
+  <div class="cartao"><span class="suave">Bairros no Maps</span><b>{{ esteira.bairros_feitos }} / {{ esteira.bairros_total }}</b>
+    <div class="barra" style="margin:6px 0 0"><div style="width: {{ (esteira.bairros_feitos / esteira.bairros_total * 100) if esteira.bairros_total else 0 }}%"></div></div></div>
+  <div class="cartao"><span class="suave">Lugares do Maps</span><b>{{ esteira.lugares_maps }}</b></div>
+  <div class="cartao"><span class="suave">Perfis do Instagram</span><b>{{ esteira.perfis_ig }}</b><span class="suave">visitados de {{ esteira.handles_ig }} achados</span></div>
+  <div class="cartao"><span class="suave">Sem WhatsApp ainda</span><b>{{ "{:,}".format(esteira.enriquecimento).replace(",", ".") }}</b><span class="suave">esperando Maps ou Instagram</span></div>
+</div>
+
 <h2>Leads por status</h2>
 <table><tr><th>Status</th><th class="n">Leads</th></tr>
-{% for s, n in status | dictsort %}<tr><td>{{ s }}</td><td class="n">{{ n }}</td></tr>{% endfor %}</table>
+{% for s, n in status | dictsort %}<tr><td>{{ s | rotulo }}</td><td class="n">{{ n }}</td></tr>{% endfor %}</table>
 
 {% for nome, linhas in tabelas.items() %}
 <h2>{{ nome }} (30 dias)</h2>
 <table><tr><th></th><th class="n">Abordados</th><th class="n">Responderam</th><th class="n">Resposta</th><th class="n">Trial ou cliente</th></tr>
-{% for l in linhas %}<tr><td>{{ l.chave }}</td><td class="n">{{ l.enviados }}</td><td class="n">{{ l.responderam }}</td>
+{% for l in linhas %}<tr><td>{{ l.chave | rotulo }}</td><td class="n">{{ l.enviados }}</td><td class="n">{{ l.responderam }}</td>
   <td class="n">{{ "%.0f" | format(l.responderam / l.enviados * 100) }}%</td><td class="n">{{ l.trials }}</td></tr>
 {% else %}<tr><td colspan="5" class="suave">Sem envios ainda.</td></tr>{% endfor %}</table>
 {% endfor %}
+
 <h2>Rotinas automáticas</h2>
 {% if jobs %}<table>
   <tr><th>Rotina</th><th>Última execução</th><th>Resultado</th></tr>
-  {% for j in jobs %}<tr><td>{{ j.nome }}</td><td>{{ j.atualizado_em[:16] | replace("T", " ") }}</td>
-    <td>{{ j.valor }}</td></tr>{% endfor %}
+  {% for j in jobs %}<tr><td>{{ j.nome }}</td><td>{{ j.atualizado_em | quando }}</td>
+    <td>{% if j.valor == "ok" %}<span class="chip bom">ok</span>{% else %}<span class="chip ruim">{{ j.valor }}</span>{% endif %}</td></tr>{% endfor %}
 </table>{% else %}<p class="suave">Nenhuma rotina rodou ainda.</p>{% endif %}
 {% endblock %}
