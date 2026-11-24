@@ -14,3 +14,12 @@ unidade_unica = 8
 franquia = -25
 site_com_pedido_proprio = -30
 ig_inativo_6m = -10
+
+# Recorte do CNPJ (fase 4). Nomes como a Receita escreve, sem acento.
+[recorte]
+municipios = ["PORTO ALEGRE", "CANOAS", "GRAVATAI", "VIAMAO", "SAO LEOPOLDO", "NOVO HAMBURGO", "ALVORADA",
+              "CACHOEIRINHA", "SAPUCAIA DO SUL", "ESTEIO", "GUAIBA", "MONTENEGRO", "CAMPO BOM", "ESTANCIA VELHA",
+              "IVOTI", "DOIS IRMAOS", "SAPIRANGA", "PORTAO"]
+cnaes = ["5611201", "5611203", "5611204", "5611205", "5612100", "5620104", "1091102", "4721102", "4721104"]
+# Mesmo CNPJ básico com este número de estabelecimentos ativos no RS ou mais = rede.
+filiais_rede = 4
