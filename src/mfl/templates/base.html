@@ -129,14 +129,16 @@ input, select { font:inherit; min-height:38px; padding:6px 10px; background:var(
 <nav aria-label="Principal">
   <a href="/" class="marca">MFL <span>Leads</span></a>
   <a href="/" class="aba" {{ 'aria-current=page' if request.path == '/' }}>Fila</a>
+  <a href="/leads" class="aba" {{ 'aria-current=page' if request.path.startswith('/leads') }}>Leads</a>
   <a href="/respostas" class="aba" {{ 'aria-current=page' if request.path.startswith('/respostas') }}>Respostas{% if pendentes %}<span class="contador" aria-label="{{ pendentes }} pendentes">{{ pendentes }}</span>{% endif %}</a>
   {% if revisoes %}<a href="/revisao" class="aba" {{ 'aria-current=page' if request.path.startswith('/revisao') }}>Revisão<span class="contador" aria-label="{{ revisoes }} pendentes">{{ revisoes }}</span></a>{% endif %}
+  <a href="/coleta" class="aba" {{ 'aria-current=page' if request.path.startswith('/coleta') }}>Coleta{% if jobs_com_erro %}<span class="contador" aria-label="rotina com erro">!</span>{% endif %}</a>
   <a href="/painel" class="aba" {{ 'aria-current=page' if request.path.startswith('/painel') }}>Painel</a>
   <a href="/config" class="aba" {{ 'aria-current=page' if request.path.startswith('/config') }}>Textos e regras</a>
-  <form class="busca" action="/busca" role="search"><input type="search" name="q" value="{{ request.args.get('q', '') if request.path == '/busca' }}" placeholder="Buscar nome, telefone, @…" aria-label="Buscar lead" autocomplete="off" spellcheck="false"></form>
+  <form class="busca" action="/leads" role="search"><input type="search" name="q" value="{{ request.args.get('q', '') if request.path == '/leads' }}" placeholder="Buscar nome, telefone, @…" aria-label="Buscar lead" autocomplete="off" spellcheck="false"></form>
 </nav>
 <main id="conteudo">
-{% if jobs_com_erro %}<div class="faixa erro">Rotina com erro: {{ jobs_com_erro | join(", ") }}. Veja o motivo no <a href="/painel">Painel</a> ou em <code>logs/</code>.</div>{% endif %}
+{% if jobs_com_erro %}<div class="faixa erro">Rotina com erro: {{ jobs_com_erro | join(", ") }}. Veja o motivo em <a href="/coleta">Coleta</a>.</div>{% endif %}
 {% if ig_checkpoint %}<div class="faixa erro">O Instagram pediu login e a coleta parou. Rode <code>baixar-insta --login</code> e depois <code>uv run mfl ig --retomar</code>.</div>{% endif %}
 {% if not evolution_ok %}<div class="faixa erro">A Evolution está desconectada: seus envios e respostas não estão sendo registrados. Rode <code>uv run mfl evo-conectar</code>.</div>{% endif %}
 {% block corpo %}{% endblock %}

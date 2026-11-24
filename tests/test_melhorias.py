@@ -42,7 +42,7 @@ def test_conversa_agrupada_e_cliente_nao_rebaixa(tmp_path):
     cliente.post(f"/respostas/{ultima}", data={"classificacao": "nao"})
     assert con.execute("SELECT status FROM entity WHERE entity_id=?", (eid,)).fetchone()[0] == "cliente"
     assert con.execute("SELECT count(*) FROM reply WHERE revisado=0").fetchone()[0] == 0
-    assert "Cliente Antigo" in cliente.get("/busca?q=99999-0002").get_data(as_text=True)
+    assert "Cliente Antigo" in cliente.get("/busca?q=99999-0002", follow_redirects=True).get_data(as_text=True)
 
 
 def test_conversa_nao_gasta_o_teto(tmp_path):
@@ -96,3 +96,54 @@ def test_regras_em_formulario_validam_e_gravam(tmp_path, monkeypatch):
     form["score.categorias_clientes"] = dados["score"]["categorias_clientes"]
     assert cliente.post("/config", data={"arquivo": "icp.toml", **form}).status_code == 302
     assert tomllib.loads((tmp_path / "icp.toml").read_text()) == dados
+
+
+def test_leads_filtra_e_pagina(tmp_path, monkeypatch):
+    monkeypatch.setattr(ui, "POR_PAGINA", 2)
+    con = db.conectar(tmp_path / "t.db")
+    criar_lead(con, "Pizza Um", "+5551999990011", score=90, municipio="Porto Alegre", bairro="Centro")
+    criar_lead(con, "Pizza Dois", "+5551999990012", score=80, municipio="PORTO ALEGRE")
+    criar_lead(con, "Bar Três", None, score=70, municipio="Canoas", status="enriquecimento")
+    cliente = ui.criar_app(tmp_path / "t.db").test_client()
+    tudo = cliente.get("/leads").get_data(as_text=True)
+    assert "Página 1 de 2" in tudo and "Pizza Um" in tudo and "Bar Três" not in tudo
+    poa = cliente.get("/leads?cidade=PORTO+ALEGRE").get_data(as_text=True)  # acha as duas grafias
+    assert "Pizza Um" in poa and "Pizza Dois" in poa and "Página 1 de 1" in poa
+    sem = cliente.get("/leads?status=enriquecimento").get_data(as_text=True)
+    assert "Bar Três" in sem and "Pizza Um" not in sem
+    assert "Bar Três" not in cliente.get("/leads?whatsapp=1&pagina=2").get_data(as_text=True)
+    assert "Pizza Um" in cliente.get("/leads?bairro=centro").get_data(as_text=True)
+
+
+def test_ficha_aceita_whatsapp_digitado(tmp_path):
+    con = db.conectar(tmp_path / "t.db")
+    lead = criar_lead(con, "Sem Zap", None, status="enriquecimento")
+    saiu = criar_lead(con, "Saiu", "+5551999990021")
+    whatsapp.marcar_opt_out(con, saiu, "pediu_sair")
+    cliente = ui.criar_app(tmp_path / "t.db").test_client()
+    r = cliente.post(f"/lead/{lead}/dados", data={"nome": "", "tel1": "(51) 99999-0021"})
+    assert "erro=bloqueado" in r.headers["Location"]
+    assert "erro=telefone" in cliente.post(f"/lead/{lead}/dados", data={"tel1": "123"}).headers["Location"]
+    cliente.post(f"/lead/{lead}/dados", data={"tel1": "(51) 98888-0000"})
+    assert tuple(con.execute("SELECT tel1, status FROM entity WHERE entity_id=?", (lead,)).fetchone()) == ("+5551988880000", "novo")
+
+
+def test_coleta_dispara_so_acoes_conhecidas(tmp_path, monkeypatch):
+    from mfl import controle, ops
+    disparos = []
+    monkeypatch.setattr(controle, "disparar", lambda job, *args: disparos.append((job, *args)))
+    monkeypatch.setattr(controle, "_proximas", lambda: {})
+    con = db.conectar(tmp_path / "t.db")
+    cliente = ui.criar_app(tmp_path / "t.db").test_client()
+    assert "Raspar os próximos de Porto Alegre" in cliente.get("/coleta").get_data(as_text=True)
+    chave = next(k for k, v in __import__("mfl.bairros").bairros.carregar().items() if v["municipio"] == "Porto Alegre")
+    assert cliente.post("/coleta/rodar", data={"acao": "maps_bairro", "bairro": chave}).status_code == 302
+    cliente.post("/coleta/rodar", data={"acao": "maps_cidade", "cidade": "Porto Alegre", "limite": "99"})
+    assert disparos == [("maps", "maps", chave), ("maps", "maps-fila", "--limite", "20", "--cidade", "Porto Alegre")]
+    assert cliente.post("/coleta/rodar", data={"acao": "maps_bairro", "bairro": "../etc"}).status_code == 400
+    assert cliente.post("/coleta/rodar", data={"acao": "rm"}).status_code == 400
+    with ops.job(con, "ig"):  # rodando: não dispara de novo e a tela mostra
+        assert "aviso=rodando" in cliente.post("/coleta/rodar", data={"acao": "ig"}).headers["Location"]
+        assert "Rodando agora" in cliente.get("/coleta").get_data(as_text=True)
+    assert len(disparos) == 2
+    assert con.execute("SELECT valor FROM estado WHERE chave='job:ig'").fetchone()[0] == "ok"

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block titulo %}Leads{% endblock %}
+{% block corpo %}
+<style>
+.filtros { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; margin:12px 0 18px; }
+.filtros label.campo { min-width:0; }
+.filtros input[type=search] { width:220px; } .filtros input[name=bairro] { width:150px; }
+.filtros .marca { display:inline-flex; gap:6px; align-items:center; padding-bottom:9px; }
+.paginas { display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-top:14px; }
+td .fontes { font-size:12px; color:var(--suave); }
+@media (max-width:760px) { .filtros input[type=search], .filtros input[name=bairro] { width:100%; } .filtros label.campo { flex:1 1 45%; } }
+</style>
+<div class="topo">
+  <h1>Leads</h1>
+  <span class="suave"><b>{{ "{:,}".format(total).replace(",", ".") }}</b> lead(s){% if filtros %} com esses filtros{% endif %}</span>
+</div>
+
+<form class="filtros" method="get" action="/leads">
+  <label class="campo">Nome, telefone, @ ou CNPJ<input type="search" name="q" value="{{ filtros.q or '' }}" autocomplete="off" spellcheck="false"></label>
+  <label class="campo">Status<select name="status">
+    <option value="">Todos</option>
+    <option value="prontos" {{ 'selected' if filtros.status == 'prontos' }}>Prontos para a fila</option>
+    {% for s in status_todos %}<option value="{{ s }}" {{ 'selected' if filtros.status == s }}>{{ s | rotulo }}</option>{% endfor %}
+  </select></label>
+  <label class="campo">Cidade<select name="cidade">
+    <option value="">Todas</option>
+    {% for c, nome in cidades.items() %}<option value="{{ c }}" {{ 'selected' if filtros.cidade == c }}>{{ nome }}</option>{% endfor %}
+  </select></label>
+  <label class="campo">Bairro<input name="bairro" value="{{ filtros.bairro or '' }}" autocomplete="off"></label>
+  <label class="campo">Veio de<select name="fonte">
+    <option value="">Qualquer fonte</option>
+    {% for f in ("maps", "cnpj", "instagram") %}<option value="{{ f }}" {{ 'selected' if filtros.fonte == f }}>{{ f | rotulo }}</option>{% endfor %}
+  </select></label>
+  <label class="campo">Ordem<select name="ordem">
+    <option value="">Maior score</option>
+    <option value="recentes" {{ 'selected' if filtros.ordem == 'recentes' }}>Mexidos por último</option>
+    <option value="nome" {{ 'selected' if filtros.ordem == 'nome' }}>Nome</option>
+  </select></label>
+  <label class="marca"><input type="checkbox" name="whatsapp" value="1" {{ 'checked' if filtros.whatsapp }}>Só com WhatsApp</label>
+  <button class="primario">Filtrar</button>
+  {% if filtros %}<a class="botao" href="/leads">Limpar</a>{% endif %}
+</form>
+
+{% if leads %}<table>
+  <tr><th>Lead</th><th>Status</th><th>Telefone</th><th>Onde</th><th class="n">Score</th></tr>
+  {% for l in leads %}<tr>
+    <td><a href="/lead/{{ l.entity_id }}"><b>{{ l.fantasia or l.nome }}</b></a>
+      <div class="fontes">{{ l.categoria or "Sem categoria" }}{% if l.fontes %} · {% for f in l.fontes.split(",") %}{{ f | rotulo }}{{ ", " if not loop.last }}{% endfor %}{% endif %}</div></td>
+    <td><span class="selo">{{ l.status | rotulo }}</span></td>
+    <td style="white-space:nowrap">{% if l.tel1 %}{{ l.tel1 | fone }}{% if l.status == "enriquecimento" %}<div class="suave">fixo</div>{% endif %}{% else %}<span class="suave">—</span>{% endif %}</td>
+    <td>{{ (l.bairro or "") | title }}{% if l.municipio %}<div class="suave">{{ l.municipio | title }}</div>{% endif %}</td>
+    <td class="n">{{ l.score | int }}</td>
+  </tr>{% endfor %}
+</table>
+<div class="paginas" role="navigation" aria-label="Páginas">
+  {% if pagina > 1 %}<a class="botao" href="/leads?{{ dict(filtros, pagina=pagina - 1) | urlencode }}">Anterior</a>{% endif %}
+  <span class="suave">Página {{ pagina }} de {{ paginas }}</span>
+  {% if pagina < paginas %}<a class="botao" href="/leads?{{ dict(filtros, pagina=pagina + 1) | urlencode }}">Próxima</a>{% endif %}
+</div>
+{% else %}<div class="cartao vazio">Nenhum lead com esses filtros.</div>{% endif %}
+{% endblock %}

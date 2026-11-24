@@ -35,9 +35,5 @@
 {% endfor %}
 
 <h2>Rotinas automáticas</h2>
-{% if jobs %}<table>
-  <tr><th>Rotina</th><th>Última execução</th><th>Resultado</th></tr>
-  {% for j in jobs %}<tr><td>{{ j.nome }}</td><td>{{ j.atualizado_em | quando }}</td>
-    <td>{% if j.valor == "ok" %}<span class="chip bom">ok</span>{% else %}<span class="chip ruim">{{ j.valor }}</span>{% endif %}</td></tr>{% endfor %}
-</table>{% else %}<p class="suave">Nenhuma rotina rodou ainda.</p>{% endif %}
+<p class="suave">O que está rodando, os erros e os botões para coletar agora ficam em <a href="/coleta">Coleta</a>.</p>
 {% endblock %}

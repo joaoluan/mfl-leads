@@ -1,18 +1,26 @@
-"""UI local (Flask, 127.0.0.1:8000): fila, ficha, respostas, painel e config. Sem login: só localhost."""
+"""UI local (Flask, 127.0.0.1:8000): fila, leads, ficha, respostas, coleta, painel e config. Sem login: só localhost."""
 
 import json
 import re
 import sqlite3
+import subprocess
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
 
-from mfl import ajustes, bairros, cadencia, db, mensagens, resolve, score, whatsapp
+from mfl import ajustes, bairros, cadencia, cnpj_icp, controle, db, mensagens, resolve, score, whatsapp
 from mfl.db import FUSO, agora
-from mfl.fone import legivel
+from mfl.fone import legivel, para_e164
 
-STATUS_FICHA = ["respondeu", "trial", "cliente", "objecao", "frio", "na_fila", "descartado"]
+STATUS_FICHA = ["novo", "respondeu", "trial", "cliente", "objecao", "frio", "na_fila", "descartado"]
+STATUS_TODOS = ["novo", "na_fila", "enriquecimento", "enviado_d0", "d3", "d7", "respondeu", "objecao", "trial", "cliente",
+                "frio", "opt_out", "descartado"]
+PRONTOS = "status IN ('novo','qualificado','na_fila') AND tel1 IS NOT NULL AND opt_out=0 AND score >= :corte"
+POR_PAGINA = 50
+AVISOS_COLETA = {"disparado": "Disparado. Acompanhe abaixo; a página se atualiza sozinha enquanto roda.",
+                 "rodando": "Já tem uma coleta desse tipo rodando. Espere terminar.",
+                 "score": "Score recalculado.", "falhou": "Não consegui disparar (systemd-run falhou). Veja o terminal."}
 MOTIVOS_DESCARTE = ["sem_whatsapp", "nao_e_restaurante", "franquia", "outro"]
 CLASSES = {"interesse": "respondeu", "preco": "respondeu", "ja_tenho": "objecao", "nao": "frio", "opt_out": None, "outro": None}
 # Classificar resposta só mexe no status de quem está em prospecção: cliente que diz "não" continua cliente.
@@ -96,13 +104,14 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         cadencia.atualizar(con(), d)
         limite, motivo = cadencia.teto(con(), cfg, d)
         feitos = cadencia.feitos(con(), d)
+        mais = min(max(request.args.get("mais", 0, type=int), 0), 100)  # além do teto, por conta do operador
         cartoes = []
-        for lead, etapa in cadencia.fila(con(), d, limite - feitos):
+        for lead, etapa in cadencia.fila(con(), d, max(limite - feitos, 0) + mais):
             template_id, texto = mensagens.sugerir(con(), lead, etapa, d)
             cartoes.append({"lead": lead, "etapa": etapa, "template_id": template_id, "texto": texto,
                             "sinais": json.loads(lead["sinais"] or "[]"),
                             "link": mensagens.link_whatsapp(lead["tel1"], texto)})
-        return render_template("fila.html", cartoes=cartoes, feitos=feitos, teto=limite, motivo_teto=motivo,
+        return render_template("fila.html", cartoes=cartoes, feitos=feitos, teto=limite, motivo_teto=motivo, mais=mais,
                                na_janela=cadencia.na_janela(cfg, datetime.now(FUSO)), pesos=score.config()["pesos"])
 
     @app.post("/api/abrir/<entity_id>")
@@ -122,9 +131,6 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
     def enviado(entity_id: str):
         """Reserva para quando a Evolution não capturou (caída ou DM do Instagram)."""
         lead_ou_404(entity_id)
-        limite, _ = cadencia.teto(con(), cadencia.config(), hoje())
-        if cadencia.feitos(con(), hoje()) >= limite:
-            abort(409, "teto do dia atingido")
         whatsapp.registrar_envio(con(), entity_id, request.form["texto"], agora(),
                                  template_id=request.form.get("template_id"))
         return redirect(request.referrer or url_for("fila"))
@@ -151,7 +157,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         return render_template("lead.html", lead=lead, origem=origem, linha=linha, texto=texto,
                                sinais=json.loads(lead["sinais"] or "[]"), pesos=score.config()["pesos"],
                                template_id=template_id, link=mensagens.link_whatsapp(lead["tel1"], texto) if lead["tel1"] else None,
-                               status_ficha=STATUS_FICHA, motivos=MOTIVOS_DESCARTE)
+                               status_ficha=STATUS_FICHA, motivos=MOTIVOS_DESCARTE, erro=request.args.get("erro"))
 
     @app.post("/lead/<entity_id>/status")
     def mudar_status(entity_id: str):
@@ -169,11 +175,22 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
 
     @app.post("/lead/<entity_id>/dados")
     def mudar_dados(entity_id: str):
-        """O operador completa nome, categoria e bairro que vieram faltando."""
-        lead_ou_404(entity_id)
+        """O operador completa nome, categoria, bairro e o WhatsApp que achou por fora."""
+        lead = lead_ou_404(entity_id)
         campos = {c: request.form.get(c, "").strip() or None for c in ("nome", "categoria", "bairro")}
         con().execute("UPDATE entity SET nome=coalesce(:nome, nome), categoria=:categoria, bairro=:bairro,"
                       " atualizado_em=:agora WHERE entity_id=:id", {**campos, "agora": agora(), "id": entity_id})
+        bruto = request.form.get("tel1", "").strip()
+        tel = para_e164(bruto) if bruto else None
+        if bruto and not tel:
+            return redirect(url_for("ficha", entity_id=entity_id, erro="telefone"))
+        if tel and tel != lead["tel1"]:
+            if db.bloqueado(con(), tel):
+                return redirect(url_for("ficha", entity_id=entity_id, erro="bloqueado"))
+            con().execute("UPDATE entity SET tel1=?, tel2=coalesce(tel2, ?) WHERE entity_id=?", (tel, lead["tel1"], entity_id))
+            con().execute("INSERT OR REPLACE INTO validacao VALUES (?,?,?)", (tel, "whatsapp", agora()))
+            if lead["status"] == "enriquecimento":
+                whatsapp.mudar_status(con(), entity_id, "novo")
         con().commit()
         return redirect(url_for("ficha", entity_id=entity_id))
 
@@ -213,19 +230,86 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         return redirect(url_for("respostas"))
 
     @app.get("/busca")
-    def busca() -> str:
-        """Acha um lead por nome, @ do Instagram, telefone ou CNPJ."""
-        q = request.args.get("q", "").strip()
-        leads: list[sqlite3.Row] = []
-        if q:
-            termos, filtros = [f"%{q}%"] * 3, ["nome LIKE ?", "fantasia LIKE ?", "ig_username LIKE ?"]
-            digitos = re.sub(r"\D", "", q)
-            if len(digitos) >= 4:
-                termos += [f"%{digitos}%"] * 3
-                filtros += ["tel1 LIKE ?", "tel2 LIKE ?", "cnpj LIKE ?"]
-            leads = con().execute(f"SELECT * FROM entity WHERE {' OR '.join(filtros)}"
-                                  " ORDER BY status IN ('enriquecimento','descartado'), score DESC LIMIT 50", termos).fetchall()
-        return render_template("busca.html", q=q, leads=leads)
+    def busca():
+        return redirect(url_for("leads", q=request.args.get("q", "")))
+
+    @app.get("/leads")
+    def leads() -> str:
+        """O banco inteiro: filtra por texto, status, cidade, bairro, fonte e WhatsApp; 50 por página."""
+        a = request.args
+        filtros, p = [], {"corte": score.config()["corte"]}
+        if q := a.get("q", "").strip():
+            p["q"], cond = f"%{q}%", ["nome LIKE :q", "fantasia LIKE :q", "ig_username LIKE :q"]
+            if len(digitos := re.sub(r"\D", "", q)) >= 4:
+                p["d"] = f"%{digitos}%"
+                cond += ["tel1 LIKE :d", "tel2 LIKE :d", "cnpj LIKE :d"]
+            filtros.append(f"({' OR '.join(cond)})")
+        if (status := a.get("status", "")) == "prontos":
+            filtros.append(PRONTOS)
+        elif status in STATUS_TODOS:
+            filtros.append("status = :status")
+            p["status"] = status
+        cidades = _cidades()
+        if (cidade := a.get("cidade", "")) in cidades:
+            filtros.append("upper(municipio) IN (upper(:c1), upper(:c2))")  # CNPJ: SAO LEOPOLDO; Maps: São Leopoldo
+            p["c1"], p["c2"] = cidade, cidades[cidade]
+        if bairro := a.get("bairro", "").strip():
+            filtros.append("bairro LIKE :bairro")
+            p["bairro"] = f"%{bairro}%"
+        if (fonte := a.get("fonte", "")) in ("cnpj", "maps", "instagram"):
+            filtros.append("EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id AND s.source=:fonte)")
+            p["fonte"] = fonte
+        if a.get("whatsapp"):
+            filtros.append("tel1 IS NOT NULL AND status <> 'enriquecimento'")  # fixo sem WhatsApp não conta
+        ordem = {"recentes": "atualizado_em DESC", "nome": "coalesce(fantasia, nome)"}.get(a.get("ordem", ""), "score DESC")
+        onde = " AND ".join(filtros) or "1"
+        total = con().execute(f"SELECT count(*) FROM entity e WHERE {onde}", p).fetchone()[0]
+        paginas = max(1, -(-total // POR_PAGINA))
+        pagina = min(max(a.get("pagina", 1, type=int), 1), paginas)
+        linhas = con().execute(
+            f"SELECT e.*, (SELECT group_concat(DISTINCT source) FROM source_record s WHERE s.entity_id=e.entity_id) AS fontes"
+            f" FROM entity e WHERE {onde} ORDER BY {ordem}, entity_id LIMIT {POR_PAGINA} OFFSET {(pagina - 1) * POR_PAGINA}",
+            p).fetchall()
+        filtros_url = {k: v for k, v in a.items() if k != "pagina" and v}
+        return render_template("leads.html", leads=linhas, total=total, pagina=pagina, paginas=paginas, filtros=filtros_url,
+                               cidades=cidades, status_todos=STATUS_TODOS)
+
+    @app.get("/coleta")
+    def coleta() -> str:
+        cidade = request.args.get("cidade") or "Porto Alegre"
+        log = request.args.get("log") if request.args.get("log") in controle.LOGS else "maps"
+        cidades, lista = controle.progresso_maps(con(), cidade)
+        rotinas = controle.rotinas(con())
+        return render_template("coleta.html", rotinas=rotinas, cidades=cidades, cidade=cidade, bairros_cidade=lista,
+                               log=log, logs=controle.LOGS, eventos=controle.eventos(log),
+                               aviso=AVISOS_COLETA.get(request.args.get("aviso", "")),
+                               algum_rodando=any(r["situacao"] == "rodando" for r in rotinas))
+
+    @app.post("/coleta/rodar")
+    def rodar_coleta():
+        """Dispara uma coleta agora. Só ações conhecidas e argumentos conferidos (bairro e cidade do bairros.toml)."""
+        acao, cidade = request.form.get("acao", ""), request.form.get("cidade", "")
+        todos = bairros.carregar()
+        if acao == "score":
+            score.recalcular(con(), hoje())
+            return redirect(url_for("coleta", cidade=cidade or None, aviso="score"))
+        if acao == "maps_bairro" and request.form.get("bairro") in todos:
+            job, args = "maps", ["maps", request.form["bairro"]]
+        elif acao == "maps_cidade" and cidade in {b["municipio"] for b in todos.values()}:
+            limite = min(max(request.form.get("limite", 1, type=int), 1), 20)
+            job, args = "maps", ["maps-fila", "--limite", str(limite), "--cidade", cidade]
+        elif acao in ("ig", "diario"):
+            job, args = acao, ["ig-diario" if acao == "ig" else "diario"]
+        else:
+            abort(400)
+        estado = con().execute("SELECT valor FROM estado WHERE chave=?", (f"job:{job}",)).fetchone()
+        if controle.rodando(estado[0] if estado else None):
+            return redirect(url_for("coleta", cidade=cidade or None, aviso="rodando"))
+        try:
+            controle.disparar(job, *args)
+        except (OSError, subprocess.SubprocessError):
+            return redirect(url_for("coleta", cidade=cidade or None, aviso="falhou"))
+        return redirect(url_for("coleta", cidade=cidade or None, log=job if job in controle.LOGS else None, aviso="disparado"))
 
     @app.get("/revisao")
     def revisao() -> str:
@@ -246,9 +330,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
 
     @app.get("/painel")
     def painel() -> str:
-        jobs = con().execute("SELECT substr(chave, 5) AS nome, valor, atualizado_em FROM estado"
-                             " WHERE chave LIKE 'job:%' ORDER BY chave").fetchall()
-        return render_template("painel.html", jobs=jobs, esteira=_esteira(con()), **_metricas(con(), cadencia.config(), hoje()))
+        return render_template("painel.html", esteira=_esteira(con()), **_metricas(con(), cadencia.config(), hoje()))
 
     @app.route("/config", methods=["GET", "POST"])
     def config() -> str:
@@ -285,6 +367,13 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         return render_template("config.html", titulo=titulo, conteudo=conteudo, erros_texto=erros_texto, **comum)
 
     return app
+
+
+def _cidades() -> dict[str, str]:
+    """Cidades do recorte (como a Receita escreve) -> como o Maps escreve (com acento), para filtrar as duas formas."""
+    from mfl.classifica import normalizar
+    exibicao = {normalizar(b["municipio"]).upper(): b["municipio"] for b in bairros.carregar().values()}
+    return {m: exibicao.get(m, m.title()) for m in cnpj_icp.recorte()["municipios"]}
 
 
 def _metricas(con: sqlite3.Connection, cfg: dict, hoje: date) -> dict:
