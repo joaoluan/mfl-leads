@@ -315,7 +315,7 @@ def cmd_backup() -> None:
 
 @app.command("ifood")
 def cmd_ifood(endereco: str = typer.Argument(..., help="Rua, número e cidade de um ponto de entrega"),
-              limite: int = typer.Option(30, min=1, max=100, help="Lojas novas por execução")) -> None:
+              limite: int = typer.Option(30, min=1, max=ifood.LIMITE_MAX, help="Lojas novas ou incompletas por execução")) -> None:
     """Coleta lojas do iFood pelo camofox e recalcula o score. Não envia mensagens."""
     log.configurar("ifood")
     con = db.conectar()

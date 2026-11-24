@@ -24,6 +24,7 @@ from mfl.db import LOTE, agora
 log = structlog.get_logger()
 USUARIO = "mfl-ifood"  # sessão separada da conta secundária do Instagram
 ESPERA = 30
+LIMITE_MAX = 1000
 JS_LISTA = """[...document.querySelectorAll('a[href*="/delivery/"]')].map(a => ({
   url: a.href, nome: a.querySelector('.merchant-v2__name')?.textContent?.trim() || '',
   categoria: a.querySelector('[aria-label^="Categoria "]')?.textContent?.trim() || null
@@ -337,8 +338,8 @@ def ingerir(con: sqlite3.Connection, lojas: list[Loja], franquias: list[str]) ->
 
 
 def rodar(con: sqlite3.Connection, endereco: str, limite: int = 30) -> dict[str, int]:
-    if not endereco.strip() or len(endereco) > 300 or not 1 <= limite <= 1000:
-        raise ValueError("Informe um endereço com até 300 caracteres e limite entre 1 e 1000 lojas.")
+    if not endereco.strip() or len(endereco) > 300 or not 1 <= limite <= LIMITE_MAX:
+        raise ValueError(f"Informe um endereço com até 300 caracteres e limite entre 1 e {LIMITE_MAX} lojas.")
     from mfl.score import config
     municipios = config()["recorte"]["municipios"]
     conhecidos = set()

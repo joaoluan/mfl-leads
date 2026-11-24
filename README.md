@@ -45,7 +45,7 @@ Também pelo terminal, com o camofox-browser em `127.0.0.1:9377`:
 
     uv run mfl ifood "Rua, número, cidade - RS" --limite 30
 
-Visita até 30 lojas novas ou incompletas (limite ajustável de 1 a 100) e marca `vende_ifood`.
+Visita até 30 lojas novas ou incompletas por padrão (limite ajustável de 1 a 1000) e marca `vende_ifood`.
 Abre “Ver mais” para ler endereço, bairro, CEP e CNPJ no painel Sobre. Repetir a coleta completa as lojas antigas sem duplicar;
 leituras parciais preservam os dados já conhecidos. Lojas completas são puladas e incompletas têm no máximo uma tentativa por dia.
 Veja o resultado em **Leads → Veio de → iFood**. Sem telefone, a casa aguarda Maps/Instagram.
