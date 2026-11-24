@@ -39,7 +39,7 @@ ROTULOS = {
     "unidade_unica": "Unidade única", "usa_concorrente": "Usa concorrente", "franquia": "Franquia",
     "site_com_pedido_proprio": "Site com pedido próprio", "ig_inativo_6m": "Instagram parado",
     "sem_whatsapp": "Sem WhatsApp", "nao_e_restaurante": "Não é restaurante",
-    "cnpj": "Receita (CNPJ)", "maps": "Google Maps", "instagram": "Instagram",
+    "cnpj": "Receita (CNPJ)", "maps": "Google Maps", "instagram": "Instagram", "ifood": "iFood",
 }
 
 
@@ -256,7 +256,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         if bairro := a.get("bairro", "").strip():
             filtros.append("bairro LIKE :bairro")
             p["bairro"] = f"%{bairro}%"
-        if (fonte := a.get("fonte", "")) in ("cnpj", "maps", "instagram"):
+        if (fonte := a.get("fonte", "")) in ("cnpj", "maps", "instagram", "ifood"):
             filtros.append("EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id AND s.source=:fonte)")
             p["fonte"] = fonte
         if a.get("whatsapp"):
@@ -304,6 +304,12 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
             job, args = "maps", ["maps-fila", "--limite", str(limite), "--cidade", cidade]
         elif acao in ("ig", "diario"):
             job, args = acao, ["ig-diario" if acao == "ig" else "diario"]
+        elif acao == "ifood":
+            endereco = request.form.get("endereco", "").strip()
+            limite = request.form.get("limite", 30, type=int)
+            if not endereco or len(endereco) > 300 or not 1 <= limite <= 100:
+                abort(400)
+            job, args = "ifood", ["ifood", endereco, "--limite", str(limite)]
         else:
             abort(400)
         estado = con().execute("SELECT valor FROM estado WHERE chave=?", (f"job:{job}",)).fetchone()

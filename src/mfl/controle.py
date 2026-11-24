@@ -16,14 +16,18 @@ from mfl import bairros
 from mfl.db import RAIZ
 
 ROTINAS = {  # job -> (nome na tela, timer do systemd, o que faz)
-    "maps": ("Google Maps", "mfl-maps.timer",
+    "maps": ("Maps + iFood", "mfl-maps.timer",
              "Procura comida no mapa, bairro por bairro (restaurante, pizzaria, padaria…). De cada lugar pega nome, "
              "telefone, site, Instagram, nota e avaliações. Junta com o lead que já existe ou cria um novo. "
-             "É a principal fonte de telefone."),
+             "Depois coleta o iFood a partir de um endereço comercial do bairro e busca no Maps as novas lojas sem telefone."),
     "ig": ("Instagram", "mfl-ig.timer",
            "Não procura casas novas: completa as que já existem. Acha o @ nos links do Maps e nos sites e visita até "
            "30 perfis por dia, primeiro os leads sem WhatsApp. Se a bio tem WhatsApp, o lead entra na fila. Também vê "
            "se a casa posta e se vende no iFood (sinais do score)."),
+    "ifood": ("iFood", "mfl-maps.timer",
+              "Na mesma rodada do Maps, descobre lojas que entregam perto de um endereço comercial já coletado no bairro. "
+              "Cria leads novos e completa os existentes. O Maps busca as descobertas sem telefone. "
+              "Abre Ver mais para ler endereço e CNPJ. Nome parecido vai para Revisão; CNPJ ou link exato confirmam o vínculo."),
     "diario": ("Rotina diária", "mfl-diario.timer",
                "Atualiza a cadência (quem passou de 3 ou 7 dias sem resposta vira lembrete; depois do D7, frio), "
                "recalcula o score de todos e faz o backup."),
@@ -32,11 +36,15 @@ ROTINAS = {  # job -> (nome na tela, timer do systemd, o que faz)
              "(nome, endereço, data de abertura, filiais). Não traz telefone útil: o da Receita costuma ser do contador."),
 }
 EVENTOS = {"maps_ingerido": "Bairro raspado", "maps_bairro_falhou": "Bairro falhou", "maps_fila": "Lote do Maps terminou",
+           "ifood_ingerido": "Lojas do iFood importadas", "ifood_sem_endereco": "iFood não mostrou endereço das lojas",
+           "ifood_detalhes_bloqueados": "iFood bloqueou endereço e CNPJ (403)", "ifood_cnpj_divergente": "CNPJ divergente: conferir vínculo",
+           "ifood_sem_ponto": "Bairro sem ponto de entrega: iFood pendente", "ifood_bairro_falhou": "Coleta do iFood falhou",
+           "ifood_maps_completado": "Descobertas do iFood buscadas no Maps", "ifood_maps_falhou": "Busca das lojas no Maps falhou",
            "ig_rodado": "Perfis do Instagram visitados", "ig_checkpoint": "Instagram pediu verificação",
            "ig_em_checkpoint": "Instagram parado (verificação)", "ig_handles": "@ do Instagram achados",
            "score_recalculado": "Score recalculado", "job_ja_rodando": "Já estava rodando", "backup": "Backup",
            "bairros_gerados": "Lista de bairros gerada", "cidade": "Bairros da cidade lidos"}
-LOGS = {"maps": "Google Maps", "ig": "Instagram", "ops": "Rotinas", "score": "Score", "cnpj": "CNPJ", "evolution": "WhatsApp"}
+LOGS = {"maps": "Maps + iFood", "ig": "Instagram", "ifood": "iFood manual", "ops": "Rotinas", "score": "Score", "cnpj": "CNPJ", "evolution": "WhatsApp"}
 
 
 def disparar(job: str, *args: str) -> None:
@@ -53,7 +61,7 @@ def rodando(valor: str | None) -> bool:
 
 
 def _proximas() -> dict[str, str]:
-    timers = [t for _, t, _ in ROTINAS.values()]
+    timers = [t for _, t, _ in ROTINAS.values() if t]
     try:
         saida = subprocess.run(["systemctl", "--user", "show", *timers, "-p", "Id", "-p", "NextElapseUSecRealtime"],
                                capture_output=True, text=True, timeout=5).stdout
@@ -88,8 +96,11 @@ def _andamento(con: sqlite3.Connection, job: str) -> str:
         logs = sorted((RAIZ / "logs" / "maps").glob("*.log"), key=lambda p: p.stat().st_mtime)
         if not logs:
             return ""
-        nome = bairros.carregar().get(logs[-1].stem, {}).get("nome", logs[-1].stem)
+        chave = logs[-1].stem.removeprefix("ifood-")
+        nome = bairros.carregar().get(chave, {}).get("nome", chave)
         paginas = logs[-1].read_text(encoding="utf-8", errors="replace").count('"message":"job finished"')
+        if logs[-1].stem.startswith("ifood-"):
+            return f"Buscando descobertas do iFood em {nome}: {paginas} páginas lidas"
         return f"Raspando {nome}: {paginas} páginas lidas até agora"
     if job == "ig":
         feitos = con.execute("SELECT count(*) FROM source_record WHERE source='instagram'"
@@ -126,6 +137,7 @@ def eventos(job: str, quantos: int = 40) -> list[dict]:
 def progresso_maps(con: sqlite3.Connection, cidade: str | None) -> tuple[list[dict], list[dict]]:
     """Por cidade: bairros feitos/total e leads do Maps. Bairros da cidade escolhida com a data da última raspagem."""
     feitos = {r[0][5:]: r[1] for r in con.execute("SELECT chave, valor FROM estado WHERE chave LIKE 'maps:%'")}
+    ifood_feitos = {r[0][13:]: r[1] for r in con.execute("SELECT chave,valor FROM estado WHERE chave LIKE 'ifood_bairro:%'")}
     leads = dict(con.execute(
         "SELECT upper(e.municipio), count(DISTINCT e.entity_id) FROM entity e JOIN source_record s"
         " ON s.entity_id=e.entity_id AND s.source='maps' GROUP BY 1").fetchall())
@@ -137,7 +149,7 @@ def progresso_maps(con: sqlite3.Connection, cidade: str | None) -> tuple[list[di
         c["total"] += 1
         c["feitos"] += chave in feitos
         if info["municipio"] == cidade:
-            lista.append({"chave": chave, "nome": info["nome"], "feito": feitos.get(chave, "")})
+            lista.append({"chave": chave, "nome": info["nome"], "feito": feitos.get(chave, ""), "ifood_feito": ifood_feitos.get(chave, "")})
     lista.sort(key=lambda b: (b["feito"] != "", b["feito"], b["nome"]))  # nunca raspados primeiro
     return sorted(cidades.values(), key=lambda c: (-c["leads"], c["nome"])), lista
 

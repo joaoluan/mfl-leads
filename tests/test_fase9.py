@@ -85,6 +85,10 @@ def test_noite_do_maps_revisita_por_rendimento_horario_e_bloqueio(con, monkeypat
     assert rodados == ["d", "a"]  # dois vazios seguidos: para antes do c
 
     rodados.clear()
-    horas = iter(["03:50", "04:00"])
-    cli._maps_fila(con, 12, None, ate="04:00", agora=lambda: next(horas))
+    hora = {"valor": "03:50"}
+    def termina_tarde(chave, info):
+        hora["valor"] = "04:00"
+        return falso(chave, info)
+    monkeypatch.setattr(cli, "_maps_bairro", termina_tarde)
+    cli._maps_fila(con, 12, None, ate="04:00", agora=lambda: hora["valor"])
     assert rodados == ["d"]  # às 04:00 não começa outro
