@@ -57,11 +57,11 @@ def test_ingestao_resolve_e_descarta(con, tmp_path):
         lugar("P8", "Bella Napoli Pizzas", cep="90570-123"),                    # CEP5 + nome parecido → revisão
     ]
     contagem = maps.ingerir(con, arquivo(tmp_path, lugares), BAIRRO, MUNICIPIOS, ["subway"])
-    assert contagem == {"novos": 3, "vinculados": 2, "revisao": 1, "repetidos": 0, "descartados": 3, "aptos": 3}
+    assert contagem == {"novos": 4, "vinculados": 2, "revisao": 1, "repetidos": 0, "descartados": 2, "aptos": 3}
     assert tuple(status_de(con, place_id="P1")) == ("novo", None)
     assert con.execute("SELECT tel1 FROM entity WHERE place_id='P1'").fetchone()[0] == "+5551991112222"
     assert tuple(status_de(con, place_id="P2")) == ("enriquecimento", None)
-    assert [status_de(con, place_id=p)[1] for p in ("P3", "P4", "P5")] == ["fechado", "fora_da_regiao", "franquia"]
+    assert [status_de(con, place_id=p)[1] for p in ("P3", "P4", "P5")] == ["fechado", "fora_da_regiao", None]  # franquia entra (só perde pontos no score)
     dono = con.execute("SELECT nome, place_id, status, tel1 FROM entity WHERE tel1='+5551988887777'").fetchone()
     assert tuple(dono) == ("Casa do Dono", "P6", "novo", "+5551988887777")
     cantina = con.execute("SELECT place_id, status, tel1, categoria FROM entity WHERE cnpj='11111111000155'").fetchone()

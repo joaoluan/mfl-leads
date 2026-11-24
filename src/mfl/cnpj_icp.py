@@ -33,8 +33,11 @@ def termos_franquia(arquivo: Path = FRANQUIAS) -> list[str]:
 
 
 def consultar(parquet: Path, cfg: dict, franquias: list[str]) -> list[dict]:
-    """Só ativa (já no ETL), só RS, só município e CNAE do recorte, com endereço, sem rede/franquia."""
-    padrao = r"\b(" + "|".join(re.escape(t) for t in franquias) + r")\b" if franquias else r"$^"
+    """Só ativa (já no ETL), só RS, só município e CNAE do recorte, com endereço, sem rede (filiais_rede).
+
+    Franquia por nome não é mais excluída: entra e só perde pontos no score (sinal "franquia").
+    shortcut: `franquias` é ignorado; tirar o parâmetro depois que o #22 entrar.
+    """
     con = duckdb.connect()
     sql = f"""
     WITH e AS (SELECT * FROM read_parquet('{parquet}/estab/uf=RS/*.parquet')),
@@ -56,11 +59,10 @@ def consultar(parquet: Path, cfg: dict, franquias: list[str]) -> list[dict]:
       AND list_contains($cnaes, e.cnae_fiscal_principal)
       AND nullif(trim(e.logradouro), '') IS NOT NULL
       AND f.n < $filiais_rede
-      AND NOT regexp_matches(lower(strip_accents(coalesce(e.nome_fantasia, ''))), $padrao)
     ORDER BY cnpj
     """
     cursor = con.execute(sql, {"municipios": cfg["municipios"], "cnaes": cfg["cnaes"],
-                               "filiais_rede": cfg["filiais_rede"], "padrao": padrao})
+                               "filiais_rede": cfg["filiais_rede"]})
     colunas = [c[0] for c in cursor.description]
     return [dict(zip(colunas, linha)) for linha in cursor.fetchall()]
 

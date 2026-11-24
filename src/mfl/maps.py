@@ -146,8 +146,7 @@ def _descarte(lugar: dict, dados: dict, municipios: set[str], franquias: re.Patt
         return "fechado"
     if normalizar(dados["municipio"] or "").upper() not in municipios:
         return "fora_da_regiao"
-    if franquias and franquias.search(normalizar(dados["nome"])):
-        return "franquia"
+    # franquia não é descartada: entra e só perde pontos no score (sinal "franquia")
     return None
 
 

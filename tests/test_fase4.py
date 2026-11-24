@@ -72,7 +72,7 @@ def test_etl_aborta_se_layout_mudar(tmp_path):
 def test_recorte_icp(amostra):
     destino, _ = amostra
     linhas = cnpj_icp.consultar(destino, CFG, ["subway", "mc donalds"])
-    assert [l["fantasia"] for l in linhas] == ["CANTINA BOA", "PADARIA PÃO QUENTE"]
+    assert [l["fantasia"] for l in linhas] == ["CANTINA BOA", "SUBWAY CENTRO", "PADARIA PÃO QUENTE"]  # franquia entra
     assert linhas[0]["porte"] == "01" and linhas[0]["cnae_descricao"] == "Restaurantes e similares"
     assert "razao_social" not in linhas[0]
 
@@ -81,11 +81,12 @@ def test_ingestao_idempotente_e_enriquecimento(amostra, tmp_path):
     destino, _ = amostra
     con = db.conectar(tmp_path / "t.db")
     linhas = cnpj_icp.consultar(destino, CFG, ["subway"])
-    assert cnpj_icp.ingerir(con, linhas, "teste")["novos"] == 2
-    assert cnpj_icp.ingerir(con, linhas, "teste") == {"novos": 0, "repetidos": 2}
-    rows = con.execute("SELECT status, tel1, tel2, municipio FROM entity ORDER BY cnpj").fetchall()
-    assert [tuple(r) for r in rows] == [("enriquecimento", None, "+555133334444", "PORTO ALEGRE"),
-                                        ("enriquecimento", None, "+5551985711759", "PORTO ALEGRE")]
+    assert cnpj_icp.ingerir(con, linhas, "teste")["novos"] == 3
+    assert cnpj_icp.ingerir(con, linhas, "teste") == {"novos": 0, "repetidos": 3}
+    rows = [tuple(r) for r in con.execute("SELECT status, tel1, tel2, municipio FROM entity WHERE fantasia <> 'SUBWAY CENTRO'"
+                                          " ORDER BY cnpj")]
+    assert rows == [("enriquecimento", None, "+555133334444", "PORTO ALEGRE"),
+                    ("enriquecimento", None, "+5551985711759", "PORTO ALEGRE")]
 
 
 def test_recorte_real_esta_bem_formado():
