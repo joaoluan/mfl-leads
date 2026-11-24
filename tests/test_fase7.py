@@ -111,3 +111,23 @@ def test_shortcode_longo_ou_estranho_nao_derruba_a_rodada():
     assert ig.data_do_post("_" * 11) is None  # decodifica, mas cai fora de qualquer data plausível
     dados = ig.analisar(pagina(grade=[f"/casa/p/{'_' * 40}/", f"/casa/p/{RECENTE}/"]))
     assert dados["ultimo_post"] == HOJE.isoformat()
+
+
+def test_visita_reabre_a_aba_quando_o_camofox_reinicia(monkeypatch):
+    import io
+    import urllib.error
+    monkeypatch.setattr(ig, "ESPERA_PAGINA", 0)
+    monkeypatch.setattr(ig.time, "sleep", lambda _s: None)
+    chamadas = []
+
+    def api(metodo, caminho, corpo=None):
+        chamadas.append((metodo, caminho.split("/")[-1]))
+        if metodo == "POST" and caminho == "/tabs":
+            return {"tabId": f"aba{len(chamadas)}"}
+        if caminho.endswith("/evaluate") and sum(1 for c in chamadas if c[1] == "evaluate") == 1:
+            raise urllib.error.HTTPError(caminho, 410, "Gone", {}, io.BytesIO())
+        return {"result": {"ok": True}}
+
+    monkeypatch.setattr(ig, "_api", api)
+    assert ig.visitar("casa") == {"ok": True}
+    assert [m for m, _ in chamadas].count("DELETE") == 2  # fechou a aba perdida e a boa
