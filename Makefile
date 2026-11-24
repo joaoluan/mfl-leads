@@ -1,4 +1,4 @@
-.PHONY: seed export test etl icp
+.PHONY: seed export test etl icp maps resolve
 
 seed:
 	@test -n "$(CSV)" || (echo "uso: make seed CSV=arquivo.csv" >&2; exit 2)
@@ -16,3 +16,10 @@ etl:
 
 icp:
 	uv run mfl cnpj-icp
+
+maps:
+	@test -n "$(BAIRRO)" || (echo "uso: make maps BAIRRO=moinhos-de-vento" >&2; exit 2)
+	uv run mfl maps "$(BAIRRO)"
+
+resolve:
+	uv run mfl resolver

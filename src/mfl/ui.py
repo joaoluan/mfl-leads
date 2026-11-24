@@ -8,7 +8,7 @@ from pathlib import Path
 
 from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
 
-from mfl import cadencia, db, mensagens, whatsapp
+from mfl import cadencia, db, mensagens, resolve, whatsapp
 from mfl.db import FUSO, agora
 
 STATUS_FICHA = ["respondeu", "trial", "cliente", "objecao", "frio", "na_fila", "descartado"]
@@ -44,7 +44,8 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
     def comum() -> dict:
         estado = con().execute("SELECT valor FROM estado WHERE chave='evolution_conexao'").fetchone()
         pendentes = con().execute("SELECT count(*) FROM reply WHERE revisado=0").fetchone()[0]
-        return {"evolution_ok": estado is None or estado[0] == "open", "pendentes": pendentes}
+        revisoes = con().execute("SELECT count(*) FROM revisao WHERE decidido=0").fetchone()[0]
+        return {"evolution_ok": estado is None or estado[0] == "open", "pendentes": pendentes, "revisoes": revisoes}
 
     @app.get("/")
     def fila() -> str:
@@ -151,6 +152,23 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
             whatsapp.mudar_status(con(), resposta["entity_id"], CLASSES[classe])
         con().commit()
         return redirect(url_for("respostas"))
+
+    @app.get("/revisao")
+    def revisao() -> str:
+        pares = con().execute("SELECT * FROM revisao WHERE decidido=0 ORDER BY score DESC LIMIT 50").fetchall()
+        lead = lambda i: con().execute("SELECT * FROM entity WHERE entity_id=?", (i,)).fetchone()
+        itens = [(p, lead(p["a"]), lead(p["b"])) for p in pares]
+        return render_template("revisao.html", itens=[i for i in itens if i[1] and i[2]])
+
+    @app.post("/revisao/<int:revisao_id>")
+    def decidir(revisao_id: int):
+        """'mesmo': o novo (a, do Maps) é absorvido pelo que já existia (b), que guarda toques e respostas."""
+        par = con().execute("SELECT * FROM revisao WHERE id=? AND decidido=0", (revisao_id,)).fetchone() or abort(404)
+        if request.form["decisao"] == "mesmo":
+            resolve.fundir(con(), par["b"], par["a"])
+        con().execute("UPDATE revisao SET decidido=1 WHERE id=?", (revisao_id,))
+        con().commit()
+        return redirect(url_for("revisao"))
 
     @app.get("/painel")
     def painel() -> str:

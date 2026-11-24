@@ -1,0 +1,2245 @@
+# Gerado por `mfl bairros-gerar` (OpenStreetMap). bbox = minLat,minLon,maxLat,maxLon.
+
+[algarve]
+nome = "Algarve"
+municipio = "Alvorada"
+bbox = "-30.05149,-51.09026,-30.02014,-51.05833"
+celula_km = 0.5
+
+[americana-sumare]
+nome = "Americana / Sumaré"
+municipio = "Alvorada"
+bbox = "-30.01145,-51.09313,-29.96521,-51.06862"
+celula_km = 0.5
+
+[aparecida]
+nome = "Aparecida"
+municipio = "Alvorada"
+bbox = "-30.05094,-51.06417,-30.0183,-51.04825"
+celula_km = 0.5
+
+[alvorada-bela-vista]
+nome = "Bela Vista"
+municipio = "Alvorada"
+bbox = "-30.01503,-51.08775,-30.00307,-51.07283"
+celula_km = 0.5
+
+[alvorada-centro]
+nome = "Centro"
+municipio = "Alvorada"
+bbox = "-30.01094,-51.09153,-29.99336,-51.06901"
+celula_km = 0.5
+
+[alvorada-cocao]
+nome = "Cocão"
+municipio = "Alvorada"
+bbox = "-30.03171,-51.07476,-30.00021,-51.04971"
+celula_km = 0.5
+
+[alvorada-estancia-grande]
+nome = "Estância Grande"
+municipio = "Alvorada"
+bbox = "-30.04246,-51.0297,-29.99497,-50.97494"
+celula_km = 0.7
+
+[formosa-maria-regina]
+nome = "Formosa / Maria Regina"
+municipio = "Alvorada"
+bbox = "-30.0117,-51.07415,-29.96482,-51.04703"
+celula_km = 0.5
+
+[alvorada-industrial]
+nome = "Industrial"
+municipio = "Alvorada"
+bbox = "-30.00395,-51.03753,-29.95681,-50.94851"
+celula_km = 0.9
+
+[intersul]
+nome = "Intersul"
+municipio = "Alvorada"
+bbox = "-30.03125,-51.09435,-30.01002,-51.06037"
+celula_km = 0.5
+
+[alvorada-piratini]
+nome = "Piratini"
+municipio = "Alvorada"
+bbox = "-30.02768,-51.05823,-29.99751,-51.03341"
+celula_km = 0.5
+
+[umbu]
+nome = "Umbu"
+municipio = "Alvorada"
+bbox = "-30.00654,-51.05478,-29.96421,-51.03059"
+celula_km = 0.5
+
+[cachoeirinha]
+nome = "Cachoeirinha"
+municipio = "Cachoeirinha"
+bbox = "-29.97238,-51.12735,-29.86524,-51.06297"
+celula_km = 1.1
+
+[25-de-julho]
+nome = "25 de Julho"
+municipio = "Campo Bom"
+bbox = "-29.69025,-51.05098,-29.68045,-51.03756"
+celula_km = 0.5
+
+[alto-paulista]
+nome = "Alto Paulista"
+municipio = "Campo Bom"
+bbox = "-29.67017,-51.05831,-29.65918,-51.05058"
+celula_km = 0.5
+
+[campo-bom-bela-vista]
+nome = "Bela Vista"
+municipio = "Campo Bom"
+bbox = "-29.69263,-51.06031,-29.68564,-51.04719"
+celula_km = 0.5
+
+[cohab-leste]
+nome = "COHAB Leste"
+municipio = "Campo Bom"
+bbox = "-29.68177,-51.04479,-29.67935,-51.04017"
+celula_km = 0.5
+
+[celeste]
+nome = "Celeste"
+municipio = "Campo Bom"
+bbox = "-29.68634,-51.07649,-29.67735,-51.06971"
+celula_km = 0.5
+
+[celina-deuner]
+nome = "Celina Deuner"
+municipio = "Campo Bom"
+bbox = "-29.68198,-51.05199,-29.67411,-51.04357"
+celula_km = 0.5
+
+[campo-bom-centro]
+nome = "Centro"
+municipio = "Campo Bom"
+bbox = "-29.68716,-51.07024,-29.67357,-51.04925"
+celula_km = 0.5
+
+[dona-augusta]
+nome = "Dona Augusta"
+municipio = "Campo Bom"
+bbox = "-29.68647,-51.08167,-29.67691,-51.07414"
+celula_km = 0.5
+
+[genuino-sampaio]
+nome = "Genuíno Sampaio"
+municipio = "Campo Bom"
+bbox = "-29.6781,-51.07621,-29.67007,-51.06915"
+celula_km = 0.5
+
+[imigrante-norte]
+nome = "Imigrante Norte"
+municipio = "Campo Bom"
+bbox = "-29.67663,-51.09001,-29.65733,-51.07905"
+celula_km = 0.5
+
+[imigrante-sul]
+nome = "Imigrante Sul"
+municipio = "Campo Bom"
+bbox = "-29.6863,-51.08799,-29.67601,-51.07978"
+celula_km = 0.5
+
+[campo-bom-ipiranga]
+nome = "Ipiranga"
+municipio = "Campo Bom"
+bbox = "-29.67735,-51.08196,-29.66409,-51.07545"
+celula_km = 0.5
+
+[jardim-do-sol]
+nome = "Jardim do Sol"
+municipio = "Campo Bom"
+bbox = "-29.67992,-51.04461,-29.66647,-51.02974"
+celula_km = 0.5
+
+[metzler]
+nome = "Metzler"
+municipio = "Campo Bom"
+bbox = "-29.67396,-51.069,-29.66288,-51.058"
+celula_km = 0.5
+
+[campo-bom-operario]
+nome = "Operário"
+municipio = "Campo Bom"
+bbox = "-29.70115,-51.07898,-29.68172,-51.06842"
+celula_km = 0.5
+
+[paulista]
+nome = "Paulista"
+municipio = "Campo Bom"
+bbox = "-29.67499,-51.05895,-29.66525,-51.04732"
+celula_km = 0.5
+
+[porto-blos]
+nome = "Porto Blos"
+municipio = "Campo Bom"
+bbox = "-29.69608,-51.05795,-29.68707,-51.04489"
+celula_km = 0.5
+
+[quatro-colonias]
+nome = "Quatro Colônias"
+municipio = "Campo Bom"
+bbox = "-29.66844,-51.03852,-29.65437,-51.0324"
+celula_km = 0.5
+
+[campo-bom-rio-branco]
+nome = "Rio Branco"
+municipio = "Campo Bom"
+bbox = "-29.67572,-51.05193,-29.66361,-51.04436"
+celula_km = 0.5
+
+[santa-lucia]
+nome = "Santa Lúcia"
+municipio = "Campo Bom"
+bbox = "-29.67235,-51.0459,-29.66349,-51.03575"
+celula_km = 0.5
+
+[campo-bom-santo-antonio]
+nome = "Santo Antônio"
+municipio = "Campo Bom"
+bbox = "-29.66556,-51.04492,-29.65875,-51.03572"
+celula_km = 0.5
+
+[vila-rica]
+nome = "Vila Rica"
+municipio = "Campo Bom"
+bbox = "-29.6989,-51.06278,-29.69184,-51.05678"
+celula_km = 0.5
+
+[vila-dos-gringos]
+nome = "Vila dos Gringos"
+municipio = "Campo Bom"
+bbox = "-29.6945,-51.06477,-29.68445,-51.05946"
+celula_km = 0.5
+
+[zona-industrial-sul]
+nome = "Zona Industrial Sul"
+municipio = "Campo Bom"
+bbox = "-29.69761,-51.07201,-29.68193,-51.06321"
+celula_km = 0.5
+
+[brigadeira]
+nome = "Brigadeira"
+municipio = "Canoas"
+bbox = "-29.88365,-51.18055,-29.85887,-51.11665"
+celula_km = 0.5
+
+[canoas-centro]
+nome = "Centro"
+municipio = "Canoas"
+bbox = "-29.93204,-51.19306,-29.89679,-51.17604"
+celula_km = 0.5
+
+[estancia-velha]
+nome = "Estância Velha"
+municipio = "Canoas"
+bbox = "-29.92868,-51.15597,-29.90541,-51.13121"
+celula_km = 0.5
+
+[fatima]
+nome = "Fátima"
+municipio = "Canoas"
+bbox = "-29.95732,-51.20468,-29.92695,-51.17699"
+celula_km = 0.5
+
+[guajuviras]
+nome = "Guajuviras"
+municipio = "Canoas"
+bbox = "-29.91612,-51.1464,-29.87652,-51.10604"
+celula_km = 0.5
+
+[canoas-harmonia]
+nome = "Harmonia"
+municipio = "Canoas"
+bbox = "-29.92279,-51.24067,-29.90461,-51.19136"
+celula_km = 0.5
+
+[igara]
+nome = "Igara"
+municipio = "Canoas"
+bbox = "-29.90561,-51.17706,-29.89181,-51.14278"
+celula_km = 0.5
+
+[ilha-das-garcas]
+nome = "Ilha das Garças"
+municipio = "Canoas"
+bbox = "-29.96597,-51.22789,-29.94256,-51.20373"
+celula_km = 0.5
+
+[canoas-industrial]
+nome = "Industrial"
+municipio = "Canoas"
+bbox = "-29.88539,-51.24298,-29.86192,-51.1802"
+celula_km = 0.5
+
+[marechal-rondon]
+nome = "Marechal Rondon"
+municipio = "Canoas"
+bbox = "-29.92835,-51.17806,-29.90384,-51.15348"
+celula_km = 0.5
+
+[mathias-velho]
+nome = "Mathias Velho"
+municipio = "Canoas"
+bbox = "-29.90801,-51.24048,-29.89534,-51.17704"
+celula_km = 0.5
+
+[mato-grande]
+nome = "Mato Grande"
+municipio = "Canoas"
+bbox = "-29.95736,-51.2475,-29.90657,-51.18093"
+celula_km = 0.8
+
+[niteroi]
+nome = "Niterói"
+municipio = "Canoas"
+bbox = "-29.96749,-51.17727,-29.9364,-51.12558"
+celula_km = 0.5
+
+[nossa-senhora-das-gracas]
+nome = "Nossa Senhora das Graças"
+municipio = "Canoas"
+bbox = "-29.95778,-51.17778,-29.92317,-51.1245"
+celula_km = 0.6
+
+[canoas-olaria]
+nome = "Olaria"
+municipio = "Canoas"
+bbox = "-29.93355,-51.13443,-29.90697,-51.11383"
+celula_km = 0.5
+
+[canoas-rio-branco]
+nome = "Rio Branco"
+municipio = "Canoas"
+bbox = "-29.97079,-51.20776,-29.95059,-51.17648"
+celula_km = 0.5
+
+[canoas-sao-jose]
+nome = "São José"
+municipio = "Canoas"
+bbox = "-29.89435,-51.18052,-29.878,-51.14031"
+celula_km = 0.5
+
+[sao-luis]
+nome = "São Luís"
+municipio = "Canoas"
+bbox = "-29.90799,-51.24919,-29.87725,-51.17644"
+celula_km = 0.6
+
+[becker]
+nome = "Becker"
+municipio = "Dois Irmãos"
+bbox = "-29.60174,-51.07789,-29.58993,-51.05308"
+celula_km = 0.5
+
+[beira-rio]
+nome = "Beira Rio"
+municipio = "Dois Irmãos"
+bbox = "-29.59788,-51.10091,-29.5902,-51.0862"
+celula_km = 0.5
+
+[dois-irmaos-centro]
+nome = "Centro"
+municipio = "Dois Irmãos"
+bbox = "-29.59368,-51.0944,-29.57755,-51.08186"
+celula_km = 0.5
+
+[dois-irmaos-cidade-nova]
+nome = "Cidade Nova"
+municipio = "Dois Irmãos"
+bbox = "-29.62806,-51.16616,-29.61873,-51.13243"
+celula_km = 0.5
+
+[dois-irmaos-floresta]
+nome = "Floresta"
+municipio = "Dois Irmãos"
+bbox = "-29.58086,-51.09565,-29.57083,-51.0858"
+celula_km = 0.5
+
+[dois-irmaos-industrial]
+nome = "Industrial"
+municipio = "Dois Irmãos"
+bbox = "-29.59097,-51.08566,-29.58659,-51.07545"
+celula_km = 0.5
+
+[portal-da-serra]
+nome = "Portal da Serra"
+municipio = "Dois Irmãos"
+bbox = "-29.58857,-51.10721,-29.57989,-51.09527"
+celula_km = 0.5
+
+[dois-irmaos-primavera]
+nome = "Primavera"
+municipio = "Dois Irmãos"
+bbox = "-29.591,-51.10122,-29.57853,-51.08971"
+celula_km = 0.5
+
+[dois-irmaos-sete-de-setembro]
+nome = "Sete de Setembro"
+municipio = "Dois Irmãos"
+bbox = "-29.58485,-51.08473,-29.57872,-51.07435"
+celula_km = 0.5
+
+[dois-irmaos-sao-joao]
+nome = "São João"
+municipio = "Dois Irmãos"
+bbox = "-29.60219,-51.09087,-29.59709,-51.07034"
+celula_km = 0.5
+
+[dois-irmaos-sao-miguel]
+nome = "São Miguel"
+municipio = "Dois Irmãos"
+bbox = "-29.58767,-51.1239,-29.58288,-51.11459"
+celula_km = 0.5
+
+[sao-pedro]
+nome = "São Pedro"
+municipio = "Dois Irmãos"
+bbox = "-29.5988,-51.0898,-29.58898,-51.06978"
+celula_km = 0.5
+
+[dois-irmaos-uniao]
+nome = "União"
+municipio = "Dois Irmãos"
+bbox = "-29.62175,-51.13954,-29.56976,-51.07727"
+celula_km = 0.8
+
+[vale-verde]
+nome = "Vale Verde"
+municipio = "Dois Irmãos"
+bbox = "-29.57559,-51.09633,-29.56582,-51.08835"
+celula_km = 0.5
+
+[dois-irmaos-vila-rosa]
+nome = "Vila Rosa"
+municipio = "Dois Irmãos"
+bbox = "-29.60484,-51.10057,-29.59264,-51.0897"
+celula_km = 0.5
+
+[esteio-centro]
+nome = "Centro"
+municipio = "Esteio"
+bbox = "-29.85418,-51.17956,-29.83985,-51.152"
+celula_km = 0.5
+
+[esteio-industrial]
+nome = "Industrial"
+municipio = "Esteio"
+bbox = "-29.88539,-51.24298,-29.85101,-51.17982"
+celula_km = 0.6
+
+[jardim-planalto]
+nome = "Jardim Planalto"
+municipio = "Esteio"
+bbox = "-29.86462,-51.14139,-29.84985,-51.13384"
+celula_km = 0.5
+
+[esteio-liberdade]
+nome = "Liberdade"
+municipio = "Esteio"
+bbox = "-29.86285,-51.17226,-29.85039,-51.1588"
+celula_km = 0.5
+
+[novo-esteio]
+nome = "Novo Esteio"
+municipio = "Esteio"
+bbox = "-29.85958,-51.19423,-29.84171,-51.17367"
+celula_km = 0.5
+
+[olimpica]
+nome = "Olímpica"
+municipio = "Esteio"
+bbox = "-29.86472,-51.15798,-29.85313,-51.14514"
+celula_km = 0.5
+
+[parque-primavera]
+nome = "Parque Primavera"
+municipio = "Esteio"
+bbox = "-29.8677,-51.13648,-29.85176,-51.12306"
+celula_km = 0.5
+
+[esteio-primavera]
+nome = "Primavera"
+municipio = "Esteio"
+bbox = "-29.85446,-51.16028,-29.84413,-51.14359"
+celula_km = 0.5
+
+[santo-inacio]
+nome = "Santo Inácio"
+municipio = "Esteio"
+bbox = "-29.86523,-51.14767,-29.84857,-51.13779"
+celula_km = 0.5
+
+[esteio-sao-jose]
+nome = "São José"
+municipio = "Esteio"
+bbox = "-29.86415,-51.16633,-29.85343,-51.15105"
+celula_km = 0.5
+
+[esteio-sao-sebastiao]
+nome = "São Sebastião"
+municipio = "Esteio"
+bbox = "-29.86651,-51.18043,-29.85261,-51.16785"
+celula_km = 0.5
+
+[tamandare]
+nome = "Tamandaré"
+municipio = "Esteio"
+bbox = "-29.8442,-51.17184,-29.83296,-51.14976"
+celula_km = 0.5
+
+[tres-marias]
+nome = "Três Marias"
+municipio = "Esteio"
+bbox = "-29.87232,-51.12576,-29.85849,-51.10079"
+celula_km = 0.5
+
+[esteio-tres-portos]
+nome = "Três Portos"
+municipio = "Esteio"
+bbox = "-29.84429,-51.18521,-29.82994,-51.16597"
+celula_km = 0.5
+
+[area-de-varzea-do-rio-dos-sinos]
+nome = "Área de Várzea do Rio dos Sinos"
+municipio = "Esteio"
+bbox = "-29.8623,-51.23155,-29.82965,-51.17719"
+celula_km = 0.6
+
+[estancia-velha-bela-vista]
+nome = "Bela Vista"
+municipio = "Estância Velha"
+bbox = "-29.66359,-51.1958,-29.65301,-51.17938"
+celula_km = 0.5
+
+[campo-grande]
+nome = "Campo Grande"
+municipio = "Estância Velha"
+bbox = "-29.67096,-51.23065,-29.63663,-51.19443"
+celula_km = 0.5
+
+[estancia-velha-centro]
+nome = "Centro"
+municipio = "Estância Velha"
+bbox = "-29.65467,-51.18061,-29.64469,-51.16454"
+celula_km = 0.5
+
+[colinas-verdes]
+nome = "Colinas Verdes"
+municipio = "Estância Velha"
+bbox = "-29.64856,-51.1897,-29.63224,-51.17217"
+celula_km = 0.5
+
+[encosta-do-sol]
+nome = "Encosta do Sol"
+municipio = "Estância Velha"
+bbox = "-29.67942,-51.19185,-29.66254,-51.16533"
+celula_km = 0.5
+
+[estancia-velha-floresta]
+nome = "Floresta"
+municipio = "Estância Velha"
+bbox = "-29.65341,-51.16587,-29.63542,-51.15269"
+celula_km = 0.5
+
+[estancia-velha-industrial]
+nome = "Industrial"
+municipio = "Estância Velha"
+bbox = "-29.69314,-51.21647,-29.66307,-51.19647"
+celula_km = 0.5
+
+[lago-azul]
+nome = "Lago Azul"
+municipio = "Estância Velha"
+bbox = "-29.68068,-51.19759,-29.66089,-51.17649"
+celula_km = 0.5
+
+[lira]
+nome = "Lira"
+municipio = "Estância Velha"
+bbox = "-29.65627,-51.19385,-29.64684,-51.17938"
+celula_km = 0.5
+
+[pedras]
+nome = "Pedras"
+municipio = "Estância Velha"
+bbox = "-29.63788,-51.16393,-29.6245,-51.13864"
+celula_km = 0.5
+
+[quintas]
+nome = "Quintas"
+municipio = "Estância Velha"
+bbox = "-29.66389,-51.20194,-29.65062,-51.19287"
+celula_km = 0.5
+
+[rincao-gaucho]
+nome = "Rincão Gaúcho"
+municipio = "Estância Velha"
+bbox = "-29.65762,-51.15477,-29.63652,-51.14189"
+celula_km = 0.5
+
+[rincao-da-saudade]
+nome = "Rincão da Saudade"
+municipio = "Estância Velha"
+bbox = "-29.65151,-51.2013,-29.6304,-51.18142"
+celula_km = 0.5
+
+[rincao-de-ilheus]
+nome = "Rincão de Ilhéus"
+municipio = "Estância Velha"
+bbox = "-29.66986,-51.15489,-29.65197,-51.14312"
+celula_km = 0.5
+
+[rosas]
+nome = "Rosas"
+municipio = "Estância Velha"
+bbox = "-29.64916,-51.17949,-29.61994,-51.16334"
+celula_km = 0.5
+
+[sol-nascente]
+nome = "Sol Nascente"
+municipio = "Estância Velha"
+bbox = "-29.67176,-51.16506,-29.65171,-51.15202"
+celula_km = 0.5
+
+[estancia-velha-uniao]
+nome = "União"
+municipio = "Estância Velha"
+bbox = "-29.67083,-51.18068,-29.65211,-51.16171"
+celula_km = 0.5
+
+[aguas]
+nome = "Águas"
+municipio = "Estância Velha"
+bbox = "-29.63869,-51.14376,-29.62744,-51.13355"
+celula_km = 0.5
+
+[gravatai]
+nome = "Gravataí"
+municipio = "Gravataí"
+bbox = "-30.0159,-51.10079,-29.76561,-50.8112"
+celula_km = 3.6
+
+[alegria]
+nome = "Alegria"
+municipio = "Guaíba"
+bbox = "-30.14842,-51.32919,-30.13554,-51.31081"
+celula_km = 0.5
+
+[altos-da-alegria]
+nome = "Altos da Alegria"
+municipio = "Guaíba"
+bbox = "-30.15436,-51.36264,-30.12109,-51.3277"
+celula_km = 0.5
+
+[alvorada]
+nome = "Alvorada"
+municipio = "Guaíba"
+bbox = "-30.13821,-51.32801,-30.11869,-51.30564"
+celula_km = 0.5
+
+[guaiba-bom-fim]
+nome = "Bom Fim"
+municipio = "Guaíba"
+bbox = "-30.14977,-51.39145,-30.12589,-51.35327"
+celula_km = 0.5
+
+[guaiba-centro]
+nome = "Centro"
+municipio = "Guaíba"
+bbox = "-30.11934,-51.33093,-30.09875,-51.30848"
+celula_km = 0.5
+
+[chaves-barcellos]
+nome = "Chaves Barcellos"
+municipio = "Guaíba"
+bbox = "-30.10101,-51.34664,-30.05217,-51.30151"
+celula_km = 0.6
+
+[colina]
+nome = "Colina"
+municipio = "Guaíba"
+bbox = "-30.1324,-51.34808,-30.1163,-51.32945"
+celula_km = 0.5
+
+[columbia-city]
+nome = "Columbia City"
+municipio = "Guaíba"
+bbox = "-30.13455,-51.38589,-30.1151,-51.3473"
+celula_km = 0.5
+
+[coronel-nassuca]
+nome = "Coronel Nassuca"
+municipio = "Guaíba"
+bbox = "-30.13154,-51.33664,-30.11412,-51.32227"
+celula_km = 0.5
+
+[ermo]
+nome = "Ermo"
+municipio = "Guaíba"
+bbox = "-30.13301,-51.32906,-30.11614,-51.3133"
+celula_km = 0.5
+
+[florida]
+nome = "Florida"
+municipio = "Guaíba"
+bbox = "-30.16107,-51.33978,-30.14373,-51.32029"
+celula_km = 0.5
+
+[jardim-iolanda]
+nome = "Jardim Iolanda"
+municipio = "Guaíba"
+bbox = "-30.15193,-51.3473,-30.13414,-51.32133"
+celula_km = 0.5
+
+[jardim-dos-lagos]
+nome = "Jardim dos Lagos"
+municipio = "Guaíba"
+bbox = "-30.12206,-51.37863,-30.10047,-51.3433"
+celula_km = 0.5
+
+[parque-35]
+nome = "Parque 35"
+municipio = "Guaíba"
+bbox = "-30.11837,-51.34683,-30.099,-51.31727"
+celula_km = 0.5
+
+[passo-fundo]
+nome = "Passo Fundo"
+municipio = "Guaíba"
+bbox = "-30.17101,-51.36297,-30.14329,-51.32305"
+celula_km = 0.5
+
+[pedras-brancas]
+nome = "Pedras Brancas"
+municipio = "Guaíba"
+bbox = "-30.17568,-51.41494,-30.15953,-51.38659"
+celula_km = 0.5
+
+[guaiba-santa-rita]
+nome = "Santa Rita"
+municipio = "Guaíba"
+bbox = "-30.10112,-51.3433,-30.0865,-51.30633"
+celula_km = 0.5
+
+[bom-jardim]
+nome = "Bom Jardim"
+municipio = "Ivoti"
+bbox = "-29.62139,-51.1712,-29.61025,-51.1638"
+celula_km = 0.5
+
+[bom-pastor]
+nome = "Bom Pastor"
+municipio = "Ivoti"
+bbox = "-29.60497,-51.1888,-29.59661,-51.16895"
+celula_km = 0.5
+
+[brasilia]
+nome = "Brasília"
+municipio = "Ivoti"
+bbox = "-29.60391,-51.16425,-29.59764,-51.16148"
+celula_km = 0.5
+
+[ivoti-centro]
+nome = "Centro"
+municipio = "Ivoti"
+bbox = "-29.59895,-51.1636,-29.58949,-51.15709"
+celula_km = 0.5
+
+[ivoti-cidade-nova]
+nome = "Cidade Nova"
+municipio = "Ivoti"
+bbox = "-29.62806,-51.16616,-29.61873,-51.13243"
+celula_km = 0.5
+
+[colina-verde]
+nome = "Colina Verde"
+municipio = "Ivoti"
+bbox = "-29.62015,-51.15973,-29.60963,-51.14619"
+celula_km = 0.5
+
+[colonia-japonesa]
+nome = "Colônia Japonesa"
+municipio = "Ivoti"
+bbox = "-29.59879,-51.14238,-29.593,-51.12525"
+celula_km = 0.5
+
+[concordia]
+nome = "Concórdia"
+municipio = "Ivoti"
+bbox = "-29.61087,-51.16303,-29.59705,-51.14849"
+celula_km = 0.5
+
+[ivoti-farroupilha]
+nome = "Farroupilha"
+municipio = "Ivoti"
+bbox = "-29.59787,-51.17023,-29.58876,-51.16211"
+celula_km = 0.5
+
+[feitoria-nova]
+nome = "Feitoria Nova"
+municipio = "Ivoti"
+bbox = "-29.59229,-51.16405,-29.57897,-51.15308"
+celula_km = 0.5
+
+[ivoti-harmonia]
+nome = "Harmonia"
+municipio = "Ivoti"
+bbox = "-29.6107,-51.17025,-29.60265,-51.16257"
+celula_km = 0.5
+
+[jardim-buhler]
+nome = "Jardim Buhler"
+municipio = "Ivoti"
+bbox = "-29.61433,-51.18436,-29.60664,-51.16953"
+celula_km = 0.5
+
+[jardim-panoramico]
+nome = "Jardim Panorâmico"
+municipio = "Ivoti"
+bbox = "-29.62089,-51.19369,-29.61266,-51.16928"
+celula_km = 0.5
+
+[jardim-do-alto]
+nome = "Jardim do Alto"
+municipio = "Ivoti"
+bbox = "-29.60367,-51.16032,-29.59689,-51.14763"
+celula_km = 0.5
+
+[morada-do-sol]
+nome = "Morada do Sol"
+municipio = "Ivoti"
+bbox = "-29.61064,-51.19125,-29.60032,-51.16908"
+celula_km = 0.5
+
+[palmares]
+nome = "Palmares"
+municipio = "Ivoti"
+bbox = "-29.59831,-51.15904,-29.5932,-51.14729"
+celula_km = 0.5
+
+[ivoti-sete-de-setembro]
+nome = "Sete de Setembro"
+municipio = "Ivoti"
+bbox = "-29.61524,-51.16448,-29.60638,-51.15796"
+celula_km = 0.5
+
+[ivoti-sao-jose]
+nome = "São José"
+municipio = "Ivoti"
+bbox = "-29.5906,-51.16807,-29.58714,-51.16003"
+celula_km = 0.5
+
+[ivoti-uniao]
+nome = "União"
+municipio = "Ivoti"
+bbox = "-29.62175,-51.13954,-29.6141,-51.13138"
+celula_km = 0.5
+
+[vinte-e-cinco-de-julho]
+nome = "Vinte e Cinco de Julho"
+municipio = "Ivoti"
+bbox = "-29.60345,-51.17072,-29.59709,-51.1627"
+celula_km = 0.5
+
+[vista-alegre]
+nome = "Vista Alegre"
+municipio = "Ivoti"
+bbox = "-29.62203,-51.16544,-29.61455,-51.15912"
+celula_km = 0.5
+
+[aeroclube]
+nome = "Aeroclube"
+municipio = "Montenegro"
+bbox = "-29.72661,-51.49818,-29.70974,-51.48291"
+celula_km = 0.5
+
+[montenegro-bela-vista]
+nome = "Bela Vista"
+municipio = "Montenegro"
+bbox = "-29.69589,-51.47589,-29.68167,-51.46197"
+celula_km = 0.5
+
+[centenario]
+nome = "Centenário"
+municipio = "Montenegro"
+bbox = "-29.67843,-51.46296,-29.66893,-51.45376"
+celula_km = 0.5
+
+[montenegro-centro]
+nome = "Centro"
+municipio = "Montenegro"
+bbox = "-29.69638,-51.4681,-29.67589,-51.45463"
+celula_km = 0.5
+
+[cinco-de-maio]
+nome = "Cinco de Maio"
+municipio = "Montenegro"
+bbox = "-29.69519,-51.48584,-29.67313,-51.47427"
+celula_km = 0.5
+
+[estacao]
+nome = "Estação"
+municipio = "Montenegro"
+bbox = "-29.71365,-51.51829,-29.68895,-51.49792"
+celula_km = 0.5
+
+[faxinal]
+nome = "Faxinal"
+municipio = "Montenegro"
+bbox = "-29.6697,-51.46503,-29.64616,-51.45288"
+celula_km = 0.5
+
+[ferroviario]
+nome = "Ferroviário"
+municipio = "Montenegro"
+bbox = "-29.69065,-51.45786,-29.68047,-51.44777"
+celula_km = 0.5
+
+[germano-henke]
+nome = "Germano Henke"
+municipio = "Montenegro"
+bbox = "-29.73781,-51.50167,-29.71245,-51.48297"
+celula_km = 0.5
+
+[imigracao]
+nome = "Imigração"
+municipio = "Montenegro"
+bbox = "-29.67006,-51.45861,-29.64882,-51.44059"
+celula_km = 0.5
+
+[montenegro-industrial]
+nome = "Industrial"
+municipio = "Montenegro"
+bbox = "-29.70109,-51.46936,-29.69191,-51.45942"
+celula_km = 0.5
+
+[municipal]
+nome = "Municipal"
+municipio = "Montenegro"
+bbox = "-29.70178,-51.47463,-29.69489,-51.46433"
+celula_km = 0.5
+
+[montenegro-olaria]
+nome = "Olaria"
+municipio = "Montenegro"
+bbox = "-29.69908,-51.45052,-29.66799,-51.42318"
+celula_km = 0.5
+
+[panorama]
+nome = "Panorama"
+municipio = "Montenegro"
+bbox = "-29.67589,-51.47395,-29.66406,-51.46296"
+celula_km = 0.5
+
+[passo-do-manduca]
+nome = "Passo do Manduca"
+municipio = "Montenegro"
+bbox = "-29.70587,-51.45953,-29.68733,-51.4382"
+celula_km = 0.5
+
+[porto-dos-pereiras]
+nome = "Porto dos Pereiras"
+municipio = "Montenegro"
+bbox = "-29.67014,-51.45156,-29.65911,-51.42562"
+celula_km = 0.5
+
+[progresso]
+nome = "Progresso"
+municipio = "Montenegro"
+bbox = "-29.68238,-51.45786,-29.67488,-51.44942"
+celula_km = 0.5
+
+[rui-barbosa]
+nome = "Rui Barbosa"
+municipio = "Montenegro"
+bbox = "-29.68246,-51.46669,-29.66933,-51.45723"
+celula_km = 0.5
+
+[montenegro-santa-rita]
+nome = "Santa Rita"
+municipio = "Montenegro"
+bbox = "-29.70304,-51.50516,-29.68551,-51.49114"
+celula_km = 0.5
+
+[montenegro-santo-antonio]
+nome = "Santo Antônio"
+municipio = "Montenegro"
+bbox = "-29.6859,-51.47748,-29.6707,-51.46669"
+celula_km = 0.5
+
+[senai]
+nome = "Senai"
+municipio = "Montenegro"
+bbox = "-29.69961,-51.49426,-29.67938,-51.48048"
+celula_km = 0.5
+
+[montenegro-sao-joao]
+nome = "São João"
+municipio = "Montenegro"
+bbox = "-29.68047,-51.45476,-29.66794,-51.43556"
+celula_km = 0.5
+
+[sao-paulo]
+nome = "São Paulo"
+municipio = "Montenegro"
+bbox = "-29.71324,-51.50197,-29.69787,-51.48505"
+celula_km = 0.5
+
+[tanac]
+nome = "Tanac"
+municipio = "Montenegro"
+bbox = "-29.71507,-51.47596,-29.69852,-51.4568"
+celula_km = 0.5
+
+[timbauva]
+nome = "Timbaúva"
+municipio = "Montenegro"
+bbox = "-29.71049,-51.48681,-29.69367,-51.47002"
+celula_km = 0.5
+
+[zootecnia]
+nome = "Zootecnia"
+municipio = "Montenegro"
+bbox = "-29.73245,-51.48636,-29.7075,-51.44753"
+celula_km = 0.5
+
+[alpes-do-vale]
+nome = "Alpes do Vale"
+municipio = "Novo Hamburgo"
+bbox = "-29.66239,-51.14474,-29.6391,-51.11445"
+celula_km = 0.5
+
+[boa-saude]
+nome = "Boa Saúde"
+municipio = "Novo Hamburgo"
+bbox = "-29.695,-51.17879,-29.6697,-51.15579"
+celula_km = 0.5
+
+[novo-hamburgo-boa-vista]
+nome = "Boa Vista"
+municipio = "Novo Hamburgo"
+bbox = "-29.70247,-51.12738,-29.68841,-51.11705"
+celula_km = 0.5
+
+[canudos]
+nome = "Canudos"
+municipio = "Novo Hamburgo"
+bbox = "-29.73127,-51.11705,-29.67438,-51.07575"
+celula_km = 0.6
+
+[novo-hamburgo-centro]
+nome = "Centro"
+municipio = "Novo Hamburgo"
+bbox = "-29.69083,-51.13433,-29.67756,-51.11647"
+celula_km = 0.5
+
+[novo-hamburgo-diehl]
+nome = "Diehl"
+municipio = "Novo Hamburgo"
+bbox = "-29.65667,-51.11679,-29.64012,-51.10175"
+celula_km = 0.5
+
+[guarani]
+nome = "Guarani"
+municipio = "Novo Hamburgo"
+bbox = "-29.68148,-51.13242,-29.6615,-51.11957"
+celula_km = 0.5
+
+[ideal]
+nome = "Ideal"
+municipio = "Novo Hamburgo"
+bbox = "-29.71326,-51.14764,-29.69083,-51.13285"
+celula_km = 0.5
+
+[novo-hamburgo-industrial]
+nome = "Industrial"
+municipio = "Novo Hamburgo"
+bbox = "-29.72419,-51.13823,-29.71209,-51.12878"
+celula_km = 0.5
+
+[novo-hamburgo-liberdade]
+nome = "Liberdade"
+municipio = "Novo Hamburgo"
+bbox = "-29.73144,-51.14789,-29.71206,-51.13362"
+celula_km = 0.5
+
+[lomba-grande]
+nome = "Lomba Grande"
+municipio = "Novo Hamburgo"
+bbox = "-29.77584,-51.08913,-29.70809,-51.00883"
+celula_km = 1.0
+
+[maua]
+nome = "Mauá"
+municipio = "Novo Hamburgo"
+bbox = "-29.69478,-51.12185,-29.67848,-51.10945"
+celula_km = 0.5
+
+[novo-hamburgo-operario]
+nome = "Operário"
+municipio = "Novo Hamburgo"
+bbox = "-29.67859,-51.14422,-29.65762,-51.12796"
+celula_km = 0.5
+
+[ouro-branco]
+nome = "Ouro Branco"
+municipio = "Novo Hamburgo"
+bbox = "-29.71253,-51.135,-29.69997,-51.12332"
+celula_km = 0.5
+
+[novo-hamburgo-petropolis]
+nome = "Petrópolis"
+municipio = "Novo Hamburgo"
+bbox = "-29.67984,-51.16249,-29.66895,-51.14816"
+celula_km = 0.5
+
+[novo-hamburgo-primavera]
+nome = "Primavera"
+municipio = "Novo Hamburgo"
+bbox = "-29.71555,-51.16024,-29.68009,-51.1418"
+celula_km = 0.5
+
+[patria-nova]
+nome = "Pátria Nova"
+municipio = "Novo Hamburgo"
+bbox = "-29.70389,-51.13519,-29.69023,-51.12673"
+celula_km = 0.5
+
+[rincao]
+nome = "Rincão"
+municipio = "Novo Hamburgo"
+bbox = "-29.68246,-51.15596,-29.66905,-51.13779"
+celula_km = 0.5
+
+[novo-hamburgo-rio-branco]
+nome = "Rio Branco"
+municipio = "Novo Hamburgo"
+bbox = "-29.69165,-51.14326,-29.67774,-51.13247"
+celula_km = 0.5
+
+[rondonia]
+nome = "Rondônia"
+municipio = "Novo Hamburgo"
+bbox = "-29.71835,-51.1301,-29.69478,-51.10975"
+celula_km = 0.5
+
+[roselandia]
+nome = "Roselândia"
+municipio = "Novo Hamburgo"
+bbox = "-29.65347,-51.14469,-29.63771,-51.12291"
+celula_km = 0.5
+
+[santo-afonso]
+nome = "Santo Afonso"
+municipio = "Novo Hamburgo"
+bbox = "-29.74346,-51.14101,-29.71305,-51.08354"
+celula_km = 0.6
+
+[novo-hamburgo-sao-jorge]
+nome = "São Jorge"
+municipio = "Novo Hamburgo"
+bbox = "-29.67634,-51.10741,-29.64117,-51.08855"
+celula_km = 0.5
+
+[novo-hamburgo-sao-jose]
+nome = "São José"
+municipio = "Novo Hamburgo"
+bbox = "-29.6684,-51.11759,-29.65272,-51.10275"
+celula_km = 0.5
+
+[novo-hamburgo-vila-nova]
+nome = "Vila Nova"
+municipio = "Novo Hamburgo"
+bbox = "-29.67756,-51.1258,-29.66078,-51.11075"
+celula_km = 0.5
+
+[novo-hamburgo-vila-rosa]
+nome = "Vila Rosa"
+municipio = "Novo Hamburgo"
+bbox = "-29.68359,-51.13895,-29.67792,-51.13047"
+celula_km = 0.5
+
+[aberta-dos-morros]
+nome = "Aberta dos Morros"
+municipio = "Porto Alegre"
+bbox = "-30.17164,-51.21071,-30.14542,-51.19031"
+celula_km = 0.5
+
+[agronomia]
+nome = "Agronomia"
+municipio = "Porto Alegre"
+bbox = "-30.09265,-51.15697,-30.05088,-51.1091"
+celula_km = 0.6
+
+[anchieta]
+nome = "Anchieta"
+municipio = "Porto Alegre"
+bbox = "-29.98039,-51.1794,-29.96708,-51.16726"
+celula_km = 0.5
+
+[arquipelago]
+nome = "Arquipélago"
+municipio = "Porto Alegre"
+bbox = "-30.06493,-51.29982,-29.9308,-51.20238"
+celula_km = 1.5
+
+[auxiliadora]
+nome = "Auxiliadora"
+municipio = "Porto Alegre"
+bbox = "-30.02479,-51.19763,-30.01737,-51.18364"
+celula_km = 0.5
+
+[azenha]
+nome = "Azenha"
+municipio = "Porto Alegre"
+bbox = "-30.06121,-51.22097,-30.04118,-51.20831"
+celula_km = 0.5
+
+[porto-alegre-bela-vista]
+nome = "Bela Vista"
+municipio = "Porto Alegre"
+bbox = "-30.0389,-51.19595,-30.02732,-51.1809"
+celula_km = 0.5
+
+[belem-novo]
+nome = "Belém Novo"
+municipio = "Porto Alegre"
+bbox = "-30.23945,-51.19991,-30.18281,-51.15319"
+celula_km = 0.7
+
+[belem-velho]
+nome = "Belém Velho"
+municipio = "Porto Alegre"
+bbox = "-30.13373,-51.194,-30.09667,-51.14734"
+celula_km = 0.6
+
+[porto-alegre-boa-vista]
+nome = "Boa Vista"
+municipio = "Porto Alegre"
+bbox = "-30.02948,-51.18454,-30.01844,-51.1634"
+celula_km = 0.5
+
+[boa-vista-do-sul]
+nome = "Boa Vista do Sul"
+municipio = "Porto Alegre"
+bbox = "-30.26945,-51.17019,-30.19876,-51.10115"
+celula_km = 0.9
+
+[porto-alegre-bom-fim]
+nome = "Bom Fim"
+municipio = "Porto Alegre"
+bbox = "-30.03697,-51.22067,-30.03023,-51.20827"
+celula_km = 0.5
+
+[bom-jesus]
+nome = "Bom Jesus"
+municipio = "Porto Alegre"
+bbox = "-30.05209,-51.17231,-30.03967,-51.14956"
+celula_km = 0.5
+
+[camaqua]
+nome = "Camaquã"
+municipio = "Porto Alegre"
+bbox = "-30.11624,-51.24712,-30.09813,-51.23141"
+celula_km = 0.5
+
+[campo-novo]
+nome = "Campo Novo"
+municipio = "Porto Alegre"
+bbox = "-30.14766,-51.21454,-30.12745,-51.18684"
+celula_km = 0.5
+
+[cascata]
+nome = "Cascata"
+municipio = "Porto Alegre"
+bbox = "-30.1017,-51.19288,-30.07951,-51.15222"
+celula_km = 0.5
+
+[cavalhada]
+nome = "Cavalhada"
+municipio = "Porto Alegre"
+bbox = "-30.13228,-51.23769,-30.09224,-51.21222"
+celula_km = 0.5
+
+[centro-historico]
+nome = "Centro Histórico"
+municipio = "Porto Alegre"
+bbox = "-30.03871,-51.24248,-30.02083,-51.21774"
+celula_km = 0.5
+
+[chapeu-do-sol]
+nome = "Chapéu do Sol"
+municipio = "Porto Alegre"
+bbox = "-30.18923,-51.18064,-30.16204,-51.14034"
+celula_km = 0.5
+
+[chacara-das-pedras]
+nome = "Chácara das Pedras"
+municipio = "Porto Alegre"
+bbox = "-30.04096,-51.16933,-30.02801,-51.15803"
+celula_km = 0.5
+
+[cidade-baixa]
+nome = "Cidade Baixa"
+municipio = "Porto Alegre"
+bbox = "-30.04393,-51.22855,-30.03475,-51.21637"
+celula_km = 0.5
+
+[coronel-aparicio-borges]
+nome = "Coronel Aparício Borges"
+municipio = "Porto Alegre"
+bbox = "-30.08756,-51.19298,-30.06442,-51.16369"
+celula_km = 0.5
+
+[costa-e-silva]
+nome = "Costa e Silva"
+municipio = "Porto Alegre"
+bbox = "-30.01554,-51.12858,-30.00056,-51.10983"
+celula_km = 0.5
+
+[cristal]
+nome = "Cristal"
+municipio = "Porto Alegre"
+bbox = "-30.10105,-51.25228,-30.07344,-51.22601"
+celula_km = 0.5
+
+[cristo-redentor]
+nome = "Cristo Redentor"
+municipio = "Porto Alegre"
+bbox = "-30.01807,-51.16354,-30.0041,-51.15003"
+celula_km = 0.5
+
+[espirito-santo]
+nome = "Espírito Santo"
+municipio = "Porto Alegre"
+bbox = "-30.15503,-51.22573,-30.14228,-51.20452"
+celula_km = 0.5
+
+[extrema]
+nome = "Extrema"
+municipio = "Porto Alegre"
+bbox = "-30.2319,-51.09199,-30.18517,-51.01885"
+celula_km = 0.8
+
+[farrapos]
+nome = "Farrapos"
+municipio = "Porto Alegre"
+bbox = "-29.99213,-51.20485,-29.96895,-51.18913"
+celula_km = 0.5
+
+[porto-alegre-farroupilha]
+nome = "Farroupilha"
+municipio = "Porto Alegre"
+bbox = "-30.04118,-51.22174,-30.03233,-51.20903"
+celula_km = 0.5
+
+[porto-alegre-floresta]
+nome = "Floresta"
+municipio = "Porto Alegre"
+bbox = "-30.02794,-51.21988,-30.01045,-51.19675"
+celula_km = 0.5
+
+[gloria]
+nome = "Glória"
+municipio = "Porto Alegre"
+bbox = "-30.09423,-51.20741,-30.06893,-51.18454"
+celula_km = 0.5
+
+[guaruja]
+nome = "Guarujá"
+municipio = "Porto Alegre"
+bbox = "-30.16385,-51.2276,-30.15216,-51.20651"
+celula_km = 0.5
+
+[higienopolis]
+nome = "Higienópolis"
+municipio = "Porto Alegre"
+bbox = "-30.022,-51.19198,-30.0109,-51.17808"
+celula_km = 0.5
+
+[humaita]
+nome = "Humaitá"
+municipio = "Porto Alegre"
+bbox = "-29.99744,-51.19964,-29.96795,-51.17658"
+celula_km = 0.5
+
+[hipica]
+nome = "Hípica"
+municipio = "Porto Alegre"
+bbox = "-30.17242,-51.19844,-30.13551,-51.15823"
+celula_km = 0.5
+
+[independencia]
+nome = "Independência"
+municipio = "Porto Alegre"
+bbox = "-30.03054,-51.21959,-30.0239,-51.20848"
+celula_km = 0.5
+
+[ipanema]
+nome = "Ipanema"
+municipio = "Porto Alegre"
+bbox = "-30.14691,-51.24077,-30.12416,-51.20615"
+celula_km = 0.5
+
+[jardim-botanico]
+nome = "Jardim Botânico"
+municipio = "Porto Alegre"
+bbox = "-30.05905,-51.19534,-30.04656,-51.16913"
+celula_km = 0.5
+
+[jardim-carvalho]
+nome = "Jardim Carvalho"
+municipio = "Porto Alegre"
+bbox = "-30.06855,-51.1596,-30.04168,-51.13609"
+celula_km = 0.5
+
+[jardim-europa]
+nome = "Jardim Europa"
+municipio = "Porto Alegre"
+bbox = "-30.03048,-51.16435,-30.02033,-51.15277"
+celula_km = 0.5
+
+[jardim-floresta]
+nome = "Jardim Floresta"
+municipio = "Porto Alegre"
+bbox = "-30.00487,-51.16398,-29.99676,-51.15484"
+celula_km = 0.5
+
+[jardim-isabel]
+nome = "Jardim Isabel"
+municipio = "Porto Alegre"
+bbox = "-30.13129,-51.2425,-30.12216,-51.22923"
+celula_km = 0.5
+
+[jardim-itu]
+nome = "Jardim Itu"
+municipio = "Porto Alegre"
+bbox = "-30.03091,-51.14638,-30.00967,-51.13075"
+celula_km = 0.5
+
+[jardim-leopoldina]
+nome = "Jardim Leopoldina"
+municipio = "Porto Alegre"
+bbox = "-30.02663,-51.12011,-30.01499,-51.10692"
+celula_km = 0.5
+
+[jardim-lindoia]
+nome = "Jardim Lindóia"
+municipio = "Porto Alegre"
+bbox = "-30.0105,-51.15524,-29.99796,-51.14725"
+celula_km = 0.5
+
+[jardim-sabara]
+nome = "Jardim Sabará"
+municipio = "Porto Alegre"
+bbox = "-30.044,-51.14984,-30.0273,-51.13358"
+celula_km = 0.5
+
+[jardim-sao-pedro]
+nome = "Jardim São Pedro"
+municipio = "Porto Alegre"
+bbox = "-30.01171,-51.17196,-29.99664,-51.16167"
+celula_km = 0.5
+
+[jardim-do-salso]
+nome = "Jardim do Salso"
+municipio = "Porto Alegre"
+bbox = "-30.05589,-51.17279,-30.04597,-51.15933"
+celula_km = 0.5
+
+[lageado]
+nome = "Lageado"
+municipio = "Porto Alegre"
+bbox = "-30.21323,-51.16285,-30.16197,-51.08331"
+celula_km = 0.9
+
+[lami]
+nome = "Lami"
+municipio = "Porto Alegre"
+bbox = "-30.26044,-51.11973,-30.20844,-51.0521"
+celula_km = 0.8
+
+[lomba-do-pinheiro]
+nome = "Lomba do Pinheiro"
+municipio = "Porto Alegre"
+bbox = "-30.17976,-51.15397,-30.07502,-51.07224"
+celula_km = 1.2
+
+[medianeira]
+nome = "Medianeira"
+municipio = "Porto Alegre"
+bbox = "-30.07413,-51.21915,-30.058,-51.20189"
+celula_km = 0.5
+
+[menino-deus]
+nome = "Menino Deus"
+municipio = "Porto Alegre"
+bbox = "-30.06707,-51.2316,-30.04313,-51.21677"
+celula_km = 0.5
+
+[moinhos-de-vento]
+nome = "Moinhos de Vento"
+municipio = "Porto Alegre"
+bbox = "-30.029,-51.21041,-30.01792,-51.196"
+celula_km = 0.5
+
+[montserrat]
+nome = "Montserrat"
+municipio = "Porto Alegre"
+bbox = "-30.03125,-51.19659,-30.02375,-51.18186"
+celula_km = 0.5
+
+[morro-santana]
+nome = "Morro Santana"
+municipio = "Porto Alegre"
+bbox = "-30.05544,-51.13956,-30.02996,-51.10716"
+celula_km = 0.5
+
+[mario-quintana]
+nome = "Mário Quintana"
+municipio = "Porto Alegre"
+bbox = "-30.05049,-51.12235,-30.02016,-51.08429"
+celula_km = 0.5
+
+[navegantes]
+nome = "Navegantes"
+municipio = "Porto Alegre"
+bbox = "-30.00743,-51.20932,-29.98807,-51.1898"
+celula_km = 0.5
+
+[nonoai]
+nome = "Nonoai"
+municipio = "Porto Alegre"
+bbox = "-30.10473,-51.23177,-30.07676,-51.20246"
+celula_km = 0.5
+
+[parque-santa-fe]
+nome = "Parque Santa Fé"
+municipio = "Porto Alegre"
+bbox = "-30.01633,-51.11232,-30.00169,-51.09857"
+celula_km = 0.5
+
+[partenon]
+nome = "Partenon"
+municipio = "Porto Alegre"
+bbox = "-30.07727,-51.20465,-30.04843,-51.14875"
+celula_km = 0.5
+
+[passo-da-areia]
+nome = "Passo da Areia"
+municipio = "Porto Alegre"
+bbox = "-30.02187,-51.18183,-30.0074,-51.16081"
+celula_km = 0.5
+
+[passo-das-pedras]
+nome = "Passo das Pedras"
+municipio = "Porto Alegre"
+bbox = "-30.03236,-51.13463,-30.01125,-51.11913"
+celula_km = 0.5
+
+[pedra-redonda]
+nome = "Pedra Redonda"
+municipio = "Porto Alegre"
+bbox = "-30.13229,-51.25963,-30.1213,-51.23823"
+celula_km = 0.5
+
+[porto-alegre-petropolis]
+nome = "Petrópolis"
+municipio = "Porto Alegre"
+bbox = "-30.05065,-51.19781,-30.02948,-51.17169"
+celula_km = 0.5
+
+[pitinga]
+nome = "Pitinga"
+municipio = "Porto Alegre"
+bbox = "-30.17565,-51.12747,-30.1334,-51.08882"
+celula_km = 0.5
+
+[ponta-grossa]
+nome = "Ponta Grossa"
+municipio = "Porto Alegre"
+bbox = "-30.19571,-51.24884,-30.16936,-51.17469"
+celula_km = 0.6
+
+[praia-de-belas]
+nome = "Praia de Belas"
+municipio = "Porto Alegre"
+bbox = "-30.07402,-51.24258,-30.03541,-51.22734"
+celula_km = 0.5
+
+[restinga]
+nome = "Restinga"
+municipio = "Porto Alegre"
+bbox = "-30.17598,-51.1763,-30.11762,-51.11415"
+celula_km = 0.8
+
+[porto-alegre-rio-branco]
+nome = "Rio Branco"
+municipio = "Porto Alegre"
+bbox = "-30.04028,-51.20851,-30.02825,-51.19574"
+celula_km = 0.5
+
+[rubem-berta]
+nome = "Rubem Berta"
+municipio = "Porto Alegre"
+bbox = "-30.02725,-51.10802,-29.99935,-51.0874"
+celula_km = 0.5
+
+[santa-cecilia]
+nome = "Santa Cecília"
+municipio = "Porto Alegre"
+bbox = "-30.04658,-51.20827,-30.03697,-51.19591"
+celula_km = 0.5
+
+[santa-maria-goretti]
+nome = "Santa Maria Goretti"
+municipio = "Porto Alegre"
+bbox = "-30.00864,-51.18267,-30.00283,-51.16763"
+celula_km = 0.5
+
+[santa-rosa-de-lima]
+nome = "Santa Rosa de Lima"
+municipio = "Porto Alegre"
+bbox = "-30.00493,-51.11523,-29.9782,-51.08775"
+celula_km = 0.5
+
+[porto-alegre-santa-tereza]
+nome = "Santa Tereza"
+municipio = "Porto Alegre"
+bbox = "-30.08669,-51.24149,-30.06072,-51.21302"
+celula_km = 0.5
+
+[santana]
+nome = "Santana"
+municipio = "Porto Alegre"
+bbox = "-30.0528,-51.21637,-30.03673,-51.19652"
+celula_km = 0.5
+
+[porto-alegre-santo-antonio]
+nome = "Santo Antônio"
+municipio = "Porto Alegre"
+bbox = "-30.0652,-51.21174,-30.05138,-51.19515"
+celula_km = 0.5
+
+[sarandi]
+nome = "Sarandi"
+municipio = "Porto Alegre"
+bbox = "-30.01162,-51.14306,-29.97759,-51.10716"
+celula_km = 0.5
+
+[serraria]
+nome = "Serraria"
+municipio = "Porto Alegre"
+bbox = "-30.1766,-51.23347,-30.15901,-51.20131"
+celula_km = 0.5
+
+[sao-caetano]
+nome = "São Caetano"
+municipio = "Porto Alegre"
+bbox = "-30.21119,-51.11687,-30.17687,-51.05347"
+celula_km = 0.6
+
+[sao-geraldo]
+nome = "São Geraldo"
+municipio = "Porto Alegre"
+bbox = "-30.01627,-51.21286,-30.00273,-51.19205"
+celula_km = 0.5
+
+[porto-alegre-sao-joao]
+nome = "São João"
+municipio = "Porto Alegre"
+bbox = "-30.01792,-51.19763,-29.99425,-51.18176"
+celula_km = 0.5
+
+[porto-alegre-sao-sebastiao]
+nome = "São Sebastião"
+municipio = "Porto Alegre"
+bbox = "-30.01055,-51.14903,-29.99782,-51.13793"
+celula_km = 0.5
+
+[setimo-ceu]
+nome = "Sétimo Céu"
+municipio = "Porto Alegre"
+bbox = "-30.12491,-51.2536,-30.11285,-51.23098"
+celula_km = 0.5
+
+[teresopolis]
+nome = "Teresópolis"
+municipio = "Porto Alegre"
+bbox = "-30.1031,-51.21535,-30.07007,-51.19082"
+celula_km = 0.5
+
+[tristeza]
+nome = "Tristeza"
+municipio = "Porto Alegre"
+bbox = "-30.12142,-51.28834,-30.09748,-51.2414"
+celula_km = 0.5
+
+[tres-figueiras]
+nome = "Três Figueiras"
+municipio = "Porto Alegre"
+bbox = "-30.04101,-51.1809,-30.02746,-51.16587"
+celula_km = 0.5
+
+[vila-assuncao]
+nome = "Vila Assunção"
+municipio = "Porto Alegre"
+bbox = "-30.10596,-51.26767,-30.09449,-51.24924"
+celula_km = 0.5
+
+[vila-conceicao]
+nome = "Vila Conceição"
+municipio = "Porto Alegre"
+bbox = "-30.12307,-51.26216,-30.11695,-51.25243"
+celula_km = 0.5
+
+[vila-ipiranga]
+nome = "Vila Ipiranga"
+municipio = "Porto Alegre"
+bbox = "-30.0274,-51.16149,-30.00983,-51.14235"
+celula_km = 0.5
+
+[vila-jardim]
+nome = "Vila Jardim"
+municipio = "Porto Alegre"
+bbox = "-30.04169,-51.15963,-30.02731,-51.14713"
+celula_km = 0.5
+
+[vila-joao-pessoa]
+nome = "Vila João Pessoa"
+municipio = "Porto Alegre"
+bbox = "-30.07819,-51.18087,-30.06168,-51.16917"
+celula_km = 0.5
+
+[porto-alegre-vila-nova]
+nome = "Vila Nova"
+municipio = "Porto Alegre"
+bbox = "-30.13808,-51.22692,-30.09667,-51.17402"
+celula_km = 0.6
+
+[vila-sao-jose]
+nome = "Vila São José"
+municipio = "Porto Alegre"
+bbox = "-30.09265,-51.17247,-30.06158,-51.15229"
+celula_km = 0.5
+
+[portao-centro]
+nome = "Centro"
+municipio = "Portão"
+bbox = "-29.70324,-51.25273,-29.67425,-51.22479"
+celula_km = 0.5
+
+[estacao-portao]
+nome = "Estação Portão"
+municipio = "Portão"
+bbox = "-29.72327,-51.28782,-29.66792,-51.23419"
+celula_km = 0.7
+
+[portao-velho]
+nome = "Portão Velho"
+municipio = "Portão"
+bbox = "-29.72722,-51.24035,-29.6793,-51.19241"
+celula_km = 0.6
+
+[rincao-do-cascalho]
+nome = "Rincão do Cascalho"
+municipio = "Portão"
+bbox = "-29.68819,-51.28809,-29.64206,-51.23846"
+celula_km = 0.6
+
+[sapiranga]
+nome = "Sapiranga"
+municipio = "Sapiranga"
+bbox = "-29.70644,-51.05585,-29.54133,-50.94157"
+celula_km = 1.8
+
+[sapucaia-do-sul-boa-vista]
+nome = "Boa Vista"
+municipio = "Sapucaia do Sul"
+bbox = "-29.86056,-51.13223,-29.84132,-51.10861"
+celula_km = 0.5
+
+[cohab]
+nome = "COHAB"
+municipio = "Sapucaia do Sul"
+bbox = "-29.81995,-51.16783,-29.80443,-51.15648"
+celula_km = 0.5
+
+[camboim]
+nome = "Camboim"
+municipio = "Sapucaia do Sul"
+bbox = "-29.83416,-51.14525,-29.82871,-51.13718"
+celula_km = 0.5
+
+[capao-da-cruz]
+nome = "Capão da Cruz"
+municipio = "Sapucaia do Sul"
+bbox = "-29.84414,-51.15891,-29.83091,-51.14393"
+celula_km = 0.5
+
+[carioca]
+nome = "Carioca"
+municipio = "Sapucaia do Sul"
+bbox = "-29.81645,-51.19795,-29.79764,-51.17679"
+celula_km = 0.5
+
+[sapucaia-do-sul-centro]
+nome = "Centro"
+municipio = "Sapucaia do Sul"
+bbox = "-29.83091,-51.15693,-29.8191,-51.14305"
+celula_km = 0.5
+
+[colonial]
+nome = "Colonial"
+municipio = "Sapucaia do Sul"
+bbox = "-29.81135,-51.17952,-29.8013,-51.16638"
+celula_km = 0.5
+
+[costa-do-morro]
+nome = "Costa do Morro"
+municipio = "Sapucaia do Sul"
+bbox = "-29.86849,-51.11821,-29.83369,-51.08642"
+celula_km = 0.5
+
+[sapucaia-do-sul-diehl]
+nome = "Diehl"
+municipio = "Sapucaia do Sul"
+bbox = "-29.82697,-51.17187,-29.82019,-51.15987"
+celula_km = 0.5
+
+[fortuna]
+nome = "Fortuna"
+municipio = "Sapucaia do Sul"
+bbox = "-29.82492,-51.19453,-29.80768,-51.17458"
+celula_km = 0.5
+
+[freitas]
+nome = "Freitas"
+municipio = "Sapucaia do Sul"
+bbox = "-29.8155,-51.15468,-29.80657,-51.14535"
+celula_km = 0.5
+
+[getulio-vargas]
+nome = "Getulio Vargas"
+municipio = "Sapucaia do Sul"
+bbox = "-29.83225,-51.17249,-29.82458,-51.16281"
+celula_km = 0.5
+
+[horto-florestal]
+nome = "Horto Florestal"
+municipio = "Sapucaia do Sul"
+bbox = "-29.81241,-51.16611,-29.7973,-51.14007"
+celula_km = 0.5
+
+[sapucaia-do-sul-ipiranga]
+nome = "Ipiranga"
+municipio = "Sapucaia do Sul"
+bbox = "-29.84629,-51.13035,-29.83537,-51.11582"
+celula_km = 0.5
+
+[jardim]
+nome = "Jardim"
+municipio = "Sapucaia do Sul"
+bbox = "-29.82917,-51.14719,-29.81979,-51.13964"
+celula_km = 0.5
+
+[kurashiki]
+nome = "Kurashiki"
+municipio = "Sapucaia do Sul"
+bbox = "-29.81942,-51.1695,-29.81062,-51.16139"
+celula_km = 0.5
+
+[lomba-da-palmeira]
+nome = "Lomba da Palmeira"
+municipio = "Sapucaia do Sul"
+bbox = "-29.83679,-51.13449,-29.82118,-51.11451"
+celula_km = 0.5
+
+[nova-sapucaia]
+nome = "Nova Sapucaia"
+municipio = "Sapucaia do Sul"
+bbox = "-29.8507,-51.14578,-29.83239,-51.12912"
+celula_km = 0.5
+
+[paraiso]
+nome = "Paraiso"
+municipio = "Sapucaia do Sul"
+bbox = "-29.83309,-51.15225,-29.82789,-51.14422"
+celula_km = 0.5
+
+[pasqualini]
+nome = "Pasqualini"
+municipio = "Sapucaia do Sul"
+bbox = "-29.84189,-51.13894,-29.82845,-51.12782"
+celula_km = 0.5
+
+[passo-sapucaia]
+nome = "Passo Sapucaia"
+municipio = "Sapucaia do Sul"
+bbox = "-29.86567,-51.12209,-29.85368,-51.10334"
+celula_km = 0.5
+
+[sapucaia-do-sul-piratini]
+nome = "Piratini"
+municipio = "Sapucaia do Sul"
+bbox = "-29.82092,-51.15954,-29.81177,-51.14845"
+celula_km = 0.5
+
+[primor]
+nome = "Primor"
+municipio = "Sapucaia do Sul"
+bbox = "-29.83583,-51.16565,-29.82825,-51.15225"
+celula_km = 0.5
+
+[santa-catarina]
+nome = "Santa Catarina"
+municipio = "Sapucaia do Sul"
+bbox = "-29.82804,-51.16142,-29.81942,-51.15311"
+celula_km = 0.5
+
+[sete]
+nome = "Sete"
+municipio = "Sapucaia do Sul"
+bbox = "-29.82929,-51.14052,-29.82337,-51.12984"
+celula_km = 0.5
+
+[silva]
+nome = "Silva"
+municipio = "Sapucaia do Sul"
+bbox = "-29.83131,-51.16647,-29.82317,-51.15715"
+celula_km = 0.5
+
+[sapucaia-do-sul-sao-jorge]
+nome = "São Jorge"
+municipio = "Sapucaia do Sul"
+bbox = "-29.82173,-51.18514,-29.8089,-51.16814"
+celula_km = 0.5
+
+[sapucaia-do-sul-sao-jose]
+nome = "São José"
+municipio = "Sapucaia do Sul"
+bbox = "-29.82078,-51.15031,-29.79922,-51.13472"
+celula_km = 0.5
+
+[sapucaia-do-sul-tres-portos]
+nome = "Três Portos"
+municipio = "Sapucaia do Sul"
+bbox = "-29.83292,-51.18301,-29.82048,-51.16434"
+celula_km = 0.5
+
+[vacchi]
+nome = "Vacchi"
+municipio = "Sapucaia do Sul"
+bbox = "-29.82462,-51.17187,-29.81658,-51.16139"
+celula_km = 0.5
+
+[vargas]
+nome = "Vargas"
+municipio = "Sapucaia do Sul"
+bbox = "-29.8257,-51.14474,-29.79934,-51.11321"
+celula_km = 0.5
+
+[walderes]
+nome = "Walderes"
+municipio = "Sapucaia do Sul"
+bbox = "-29.85223,-51.14948,-29.84336,-51.13195"
+celula_km = 0.5
+
+[zoologico]
+nome = "Zoológico"
+municipio = "Sapucaia do Sul"
+bbox = "-29.80455,-51.19649,-29.77596,-51.16498"
+celula_km = 0.5
+
+[arroio-da-manteiga]
+nome = "Arroio da Manteiga"
+municipio = "São Leopoldo"
+bbox = "-29.74985,-51.21003,-29.70378,-51.16002"
+celula_km = 0.6
+
+[sao-leopoldo-boa-vista]
+nome = "Boa Vista"
+municipio = "São Leopoldo"
+bbox = "-29.7246,-51.19726,-29.67197,-51.16498"
+celula_km = 0.6
+
+[campestre]
+nome = "Campestre"
+municipio = "São Leopoldo"
+bbox = "-29.79083,-51.11835,-29.76503,-51.08214"
+celula_km = 0.5
+
+[campina]
+nome = "Campina"
+municipio = "São Leopoldo"
+bbox = "-29.75914,-51.17004,-29.73934,-51.15086"
+celula_km = 0.5
+
+[sao-leopoldo-centro]
+nome = "Centro"
+municipio = "São Leopoldo"
+bbox = "-29.77946,-51.15411,-29.75642,-51.13996"
+celula_km = 0.5
+
+[cristo-rei]
+nome = "Cristo Rei"
+municipio = "São Leopoldo"
+bbox = "-29.7999,-51.16381,-29.77703,-51.14327"
+celula_km = 0.5
+
+[duque-de-caxias]
+nome = "Duque de Caxias"
+municipio = "São Leopoldo"
+bbox = "-29.80173,-51.14873,-29.78705,-51.1222"
+celula_km = 0.5
+
+[fazenda-sao-borja]
+nome = "Fazenda São Borja"
+municipio = "São Leopoldo"
+bbox = "-29.80699,-51.12866,-29.77539,-51.09075"
+celula_km = 0.5
+
+[feitoria]
+nome = "Feitoria"
+municipio = "São Leopoldo"
+bbox = "-29.76993,-51.11722,-29.73537,-51.0839"
+celula_km = 0.5
+
+[fiao]
+nome = "Fião"
+municipio = "São Leopoldo"
+bbox = "-29.77867,-51.15559,-29.7716,-51.1477"
+celula_km = 0.5
+
+[jardim-america]
+nome = "Jardim América"
+municipio = "São Leopoldo"
+bbox = "-29.78842,-51.1366,-29.7735,-51.12176"
+celula_km = 0.5
+
+[morro-do-espelho]
+nome = "Morro do Espelho"
+municipio = "São Leopoldo"
+bbox = "-29.78397,-51.14387,-29.76929,-51.13458"
+celula_km = 0.5
+
+[padre-reus]
+nome = "Padre Reus"
+municipio = "São Leopoldo"
+bbox = "-29.78873,-51.14779,-29.77867,-51.14037"
+celula_km = 0.5
+
+[pinheiros]
+nome = "Pinheiros"
+municipio = "São Leopoldo"
+bbox = "-29.76676,-51.13378,-29.75812,-51.11373"
+celula_km = 0.5
+
+[sao-leopoldo-rio-branco]
+nome = "Rio Branco"
+municipio = "São Leopoldo"
+bbox = "-29.77852,-51.13644,-29.76617,-51.12189"
+celula_km = 0.5
+
+[rio-dos-sinos]
+nome = "Rio dos Sinos"
+municipio = "São Leopoldo"
+bbox = "-29.7597,-51.15199,-29.74459,-51.14211"
+celula_km = 0.5
+
+[sao-leopoldo-santa-tereza]
+nome = "Santa Tereza"
+municipio = "São Leopoldo"
+bbox = "-29.79471,-51.14167,-29.78353,-51.12775"
+celula_km = 0.5
+
+[santo-andre]
+nome = "Santo André"
+municipio = "São Leopoldo"
+bbox = "-29.77945,-51.1261,-29.76463,-51.10987"
+celula_km = 0.5
+
+[santos-dumont]
+nome = "Santos Dumont"
+municipio = "São Leopoldo"
+bbox = "-29.75552,-51.15086,-29.71555,-51.12974"
+celula_km = 0.5
+
+[scharlau]
+nome = "Scharlau"
+municipio = "São Leopoldo"
+bbox = "-29.74459,-51.16815,-29.69232,-51.14789"
+celula_km = 0.5
+
+[sao-leopoldo-sao-jose]
+nome = "São José"
+municipio = "São Leopoldo"
+bbox = "-29.77025,-51.14192,-29.75726,-51.12632"
+celula_km = 0.5
+
+[sao-joao-batista]
+nome = "São João Batista"
+municipio = "São Leopoldo"
+bbox = "-29.7999,-51.16829,-29.78786,-51.15963"
+celula_km = 0.5
+
+[sao-leopoldo-sao-miguel]
+nome = "São Miguel"
+municipio = "São Leopoldo"
+bbox = "-29.77272,-51.1695,-29.75638,-51.15199"
+celula_km = 0.5
+
+[vicentina]
+nome = "Vicentina"
+municipio = "São Leopoldo"
+bbox = "-29.79064,-51.1794,-29.76491,-51.15411"
+celula_km = 0.5
+
+[augusta]
+nome = "Augusta"
+municipio = "Viamão"
+bbox = "-30.06885,-51.08915,-30.04562,-51.05789"
+celula_km = 0.5
+
+[branquinha]
+nome = "Branquinha"
+municipio = "Viamão"
+bbox = "-30.1734,-51.08561,-30.1251,-51.03068"
+celula_km = 0.7
+
+[cecilia]
+nome = "Cecília"
+municipio = "Viamão"
+bbox = "-30.08794,-51.10484,-30.05499,-51.08189"
+celula_km = 0.5
+
+[viamao-centro]
+nome = "Centro"
+municipio = "Viamão"
+bbox = "-30.08835,-51.03788,-30.07496,-51.01707"
+celula_km = 0.5
+
+[viamao-cocao]
+nome = "Cocão"
+municipio = "Viamão"
+bbox = "-30.07935,-51.07476,-30.00021,-51.01439"
+celula_km = 0.9
+
+[elsa]
+nome = "Elsa"
+municipio = "Viamão"
+bbox = "-30.04567,-51.03878,-30.00185,-50.99415"
+celula_km = 0.6
+
+[esmeralda]
+nome = "Esmeralda"
+municipio = "Viamão"
+bbox = "-30.09474,-51.0917,-30.06826,-51.07144"
+celula_km = 0.5
+
+[viamao-estancia-grande]
+nome = "Estância Grande"
+municipio = "Viamão"
+bbox = "-30.04246,-51.0297,-29.99497,-50.97494"
+celula_km = 0.7
+
+[fiuza]
+nome = "Fiúza"
+municipio = "Viamão"
+bbox = "-30.14688,-51.0461,-30.08737,-50.95259"
+celula_km = 1.0
+
+[viamao-industrial]
+nome = "Industrial"
+municipio = "Viamão"
+bbox = "-30.00395,-51.03753,-29.95681,-50.94851"
+celula_km = 0.9
+
+[itapua]
+nome = "Itapuã"
+municipio = "Viamão"
+bbox = "-30.29245,-51.06928,-30.22968,-50.99933"
+celula_km = 0.9
+
+[jari]
+nome = "Jari"
+municipio = "Viamão"
+bbox = "-30.05681,-51.09972,-30.04668,-51.08536"
+celula_km = 0.5
+
+[krahe]
+nome = "Krahe"
+municipio = "Viamão"
+bbox = "-30.10175,-51.04811,-30.07959,-51.02861"
+celula_km = 0.5
+
+[martinica]
+nome = "Martinica"
+municipio = "Viamão"
+bbox = "-30.13199,-51.07765,-30.10048,-51.05451"
+celula_km = 0.5
+
+[parque-saint-hilaire]
+nome = "Parque Saint Hilaire"
+municipio = "Viamão"
+bbox = "-30.13,-51.11764,-30.07876,-51.07594"
+celula_km = 0.6
+
+[passo-do-vigario]
+nome = "Passo do Vigário"
+municipio = "Viamão"
+bbox = "-30.10704,-51.02362,-30.0713,-50.9472"
+celula_km = 0.7
+
+[querencia]
+nome = "Querência"
+municipio = "Viamão"
+bbox = "-30.09251,-51.05844,-30.07608,-51.0375"
+celula_km = 0.5
+
+[santa-isabel]
+nome = "Santa Isabel"
+municipio = "Viamão"
+bbox = "-30.08088,-51.12074,-30.04853,-51.09772"
+celula_km = 0.5
+
+[santo-onofre]
+nome = "Santo Onofre"
+municipio = "Viamão"
+bbox = "-30.14009,-51.07465,-30.08734,-51.0269"
+celula_km = 0.7
+
+[sao-lucas]
+nome = "São Lucas"
+municipio = "Viamão"
+bbox = "-30.0932,-51.07667,-30.05988,-51.04443"
+celula_km = 0.5
+
+[sao-tome]
+nome = "São Tomé"
+municipio = "Viamão"
+bbox = "-30.14311,-51.09779,-30.11154,-51.06443"
+celula_km = 0.5
+
+[taruma]
+nome = "Tarumã"
+municipio = "Viamão"
+bbox = "-30.08182,-51.03633,-30.04007,-50.99246"
+celula_km = 0.6
+
+[viamopolis]
+nome = "Viamópolis"
+municipio = "Viamão"
+bbox = "-30.10845,-51.09685,-30.08546,-51.06913"
+celula_km = 0.5
+
+[aguas-claras]
+nome = "Águas Claras"
+municipio = "Viamão"
+bbox = "-30.18685,-50.92181,-30.10721,-50.79618"
+celula_km = 1.3

@@ -42,7 +42,7 @@ def test_validar_recusa_sem_sair_e_campo_errado():
     ("Pizzaria", {"maps"}, "pizzaria"), ("Hamburgueria artesanal", {"maps"}, "hamburgueria"),
     ("Confeitaria e doces", {"maps"}, "padaria"), ("Bar e petiscaria", {"maps"}, "bar"),
     ("Cafeteria", {"maps"}, "lanchonete"), ("Restaurante italiano", {"maps"}, "restaurante"),
-    ("Pizzaria", {"grupo"}, "grupo"), (None, {"grupo", "maps"}, "restaurante"),
+    ("Pizzaria", {"grupo"}, "grupo"), ("Pizzaria", {"grupo", "cnpj"}, "grupo"), (None, {"maps"}, "restaurante"),
 ])
 def test_arquivo_por_categoria(categoria, fontes, arquivo):
     assert mensagens.arquivo_d0(categoria, fontes) == arquivo

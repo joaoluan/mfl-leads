@@ -36,8 +36,8 @@ def variantes(arquivo: str) -> list[str]:
 
 
 def arquivo_d0(categoria: str | None, fontes: set[str]) -> str:
-    """Contato que só veio do grupo recebe o texto do grupo, mesmo com categoria conhecida."""
-    if fontes == {"grupo"}:
+    """Quem está no grupo recebe o texto do grupo, mesmo depois de ganhar CNPJ ou Maps."""
+    if "grupo" in fontes:
         return "grupo"
     limpo = normalizar(categoria or "")
     return next((nome for nome, padrao in CATEGORIAS if re.search(padrao, limpo)), "restaurante")

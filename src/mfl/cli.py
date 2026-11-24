@@ -5,14 +5,14 @@ import logging
 import os
 import subprocess
 import time
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import structlog
 import typer
 from dotenv import load_dotenv
 
-from mfl import cnpj_baixar, cnpj_etl, cnpj_icp, db, evolution, export, log, seed, ui, webhook, whatsapp
+from mfl import bairros, cnpj_baixar, cnpj_etl, cnpj_icp, db, maps, resolve, evolution, export, log, seed, ui, webhook, whatsapp
 from mfl.fone import de_jid, para_e164
 
 app = typer.Typer(no_args_is_help=True)
@@ -157,3 +157,54 @@ def cmd_cnpj_icp() -> None:
     log.configurar("cnpj")
     linhas = cnpj_icp.consultar(db.RAIZ / "data" / "parquet", cnpj_icp.recorte(), cnpj_icp.termos_franquia())
     cnpj_icp.ingerir(db.conectar(), linhas, "https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9")
+
+
+@app.command("bairros-gerar")
+def cmd_bairros_gerar() -> None:
+    """Gera cfg/bairros.toml a partir do OpenStreetMap (uma vez)."""
+    log.configurar("maps")
+    logger.info("bairros_gerados", total=bairros.gerar())
+
+
+def _maps_bairro(chave: str, info: dict) -> dict:
+    con = db.conectar()
+    pasta = db.RAIZ / "data" / "maps" / date.today().isoformat()
+    saida = maps.rodar(info, pasta / f"{chave}.json", db.RAIZ / "logs" / "maps" / f"{chave}.log")
+    contagem = maps.ingerir(con, saida, info, cnpj_icp.recorte()["municipios"], cnpj_icp.termos_franquia())
+    con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"maps:{chave}", date.today().isoformat(), db.agora()))
+    con.commit()
+    return contagem
+
+
+@app.command("maps")
+def cmd_maps(bairro: str = typer.Argument(..., help="chave em cfg/bairros.toml, ex.: moinhos-de-vento")) -> None:
+    """Raspa um bairro no Google Maps e ingere (place_id único)."""
+    log.configurar("maps")
+    todos = bairros.carregar()
+    if bairro not in todos:
+        raise typer.BadParameter(f"{bairro!r} não está em cfg/bairros.toml")
+    _maps_bairro(bairro, todos[bairro])
+
+
+@app.command("maps-fila")
+def cmd_maps_fila(limite: int = typer.Option(5, help="Quantos bairros nesta execução"),
+                  cidade: str | None = typer.Option(None, help="Só esta cidade (nome como no bairros.toml)")) -> None:
+    """Raspa os bairros nunca raspados ou raspados há mais de 60 dias (Porto Alegre e base primeiro)."""
+    log.configurar("maps")
+    con = db.conectar()
+    limite_data = (date.today() - timedelta(days=60)).isoformat()
+    feitos = {r[0][5:]: r[1] for r in con.execute("SELECT chave, valor FROM estado WHERE chave LIKE 'maps:%'")}
+    ordem = {"Porto Alegre": 0, "Novo Hamburgo": 1}
+    pendentes = sorted(((k, v) for k, v in bairros.carregar().items()
+                        if (cidade is None or v["municipio"] == cidade) and feitos.get(k, "") <= limite_data),
+                       key=lambda kv: (ordem.get(kv[1]["municipio"], 2), kv[1]["municipio"], kv[0]))
+    for chave, info in pendentes[:limite]:
+        _maps_bairro(chave, info)
+    logger.info("maps_fila", feitos=min(limite, len(pendentes)), restantes=max(0, len(pendentes) - limite))
+
+
+@app.command("resolver")
+def cmd_resolver() -> None:
+    """Junta contato do grupo com o CNPJ de mesmo telefone (quando o telefone não é de contador)."""
+    log.configurar("resolve")
+    logger.info("grupo_cnpj_fundidos", total=resolve.resolver_grupo_cnpj(db.conectar()))

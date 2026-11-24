@@ -43,6 +43,7 @@ input, select { font:inherit; padding:5px 8px; background:var(--cartao); color:v
 <nav>
   <a href="/" class="{{ 'ativo' if request.path == '/' }}">Fila</a>
   <a href="/respostas" class="{{ 'ativo' if request.path.startswith('/respostas') }}">Respostas{% if pendentes %} ({{ pendentes }}){% endif %}</a>
+  {% if revisoes %}<a href="/revisao" class="{{ 'ativo' if request.path.startswith('/revisao') }}">Revisão ({{ revisoes }})</a>{% endif %}
   <a href="/painel" class="{{ 'ativo' if request.path.startswith('/painel') }}">Painel</a>
   <a href="/config" class="{{ 'ativo' if request.path.startswith('/config') }}">Config</a>
 </nav>
