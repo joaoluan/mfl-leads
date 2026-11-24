@@ -133,6 +133,7 @@ def test_coleta_dispara_so_acoes_conhecidas(tmp_path, monkeypatch):
     disparos = []
     monkeypatch.setattr(controle, "disparar", lambda job, *args: disparos.append((job, *args)))
     monkeypatch.setattr(controle, "_proximas", lambda: {})
+    monkeypatch.setattr(ops, "RAIZ", tmp_path)  # trava em pasta de teste, não a do sistema rodando
     con = db.conectar(tmp_path / "t.db")
     cliente = ui.criar_app(tmp_path / "t.db").test_client()
     assert "Raspar os próximos de Porto Alegre" in cliente.get("/coleta").get_data(as_text=True)
@@ -144,6 +145,6 @@ def test_coleta_dispara_so_acoes_conhecidas(tmp_path, monkeypatch):
     assert cliente.post("/coleta/rodar", data={"acao": "rm"}).status_code == 400
     with ops.job(con, "ig"):  # rodando: não dispara de novo e a tela mostra
         assert "aviso=rodando" in cliente.post("/coleta/rodar", data={"acao": "ig"}).headers["Location"]
-        assert "Rodando agora" in cliente.get("/coleta").get_data(as_text=True)
+        assert "Rodando desde" in cliente.get("/coleta").get_data(as_text=True)
     assert len(disparos) == 2
     assert con.execute("SELECT valor FROM estado WHERE chave='job:ig'").fetchone()[0] == "ok"
