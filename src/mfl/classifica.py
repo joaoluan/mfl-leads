@@ -6,8 +6,7 @@ import unicodedata
 # Opt-out é automático, então só casa pedido explícito. Ordem importa: o primeiro que casar vence.
 REGRAS: list[tuple[str, re.Pattern[str]]] = [
     ("opt_out", re.compile(
-        r"^(sair|pare|parar|stop|remover|cancelar|descadastrar)$"
-        r"|\b(nao (me )?mand\w* mais|pare de mandar|para de mandar|me (tira|remove|exclui)\w*|descadastr\w*)\b"
+        r"\b(nao (me )?mand\w* mais|pare de mandar|para de mandar|me (tira|remove|exclui)\w*|descadastr\w*)\b"
     )),
     ("nao", re.compile(r"\b(nao (tenho interesse|quero|preciso|obrigad\w*)|sem interesse|dispenso)\b")),
     ("ja_tenho", re.compile(
@@ -16,7 +15,7 @@ REGRAS: list[tuple[str, re.Pattern[str]]] = [
     )),
     ("preco", re.compile(r"\b(quanto (custa|e|sai|fica)|valor\w*|preco\w*|mensalidade|planos?)\b")),
     ("interesse", re.compile(
-        r"\b(tenho interesse|quero|como funciona|me explica|pode ser|bora|vamos|testar|teste|manda|sim)\b"
+        r"\b(tenho interesse|quero|como funciona|me explica|pode ser|bora|vamos|testar|teste|manda|sim|claro)\b"
     )),
 ]
 
@@ -26,7 +25,15 @@ def normalizar(texto: str) -> str:
     return " ".join(re.sub(r"[^\w\s]", " ", sem_acento.lower()).split())
 
 
+SAIR_SOZINHO = re.compile(r"^(sair|pare|parar|stop|remover|cancelar|descadastrar)$")
+
+
 def classificar(texto: str) -> str | None:
-    """None = sem palpite; fica para o operador classificar."""
+    """None = sem palpite; fica para o operador classificar.
+
+    "SAIR" sozinho em qualquer linha conta ("Bom dia!\nSAIR").
+    """
+    if any(SAIR_SOZINHO.match(normalizar(linha)) for linha in (texto or "").splitlines()):
+        return "opt_out"
     limpo = normalizar(texto or "")
     return next((rotulo for rotulo, padrao in REGRAS if padrao.search(limpo)), None)

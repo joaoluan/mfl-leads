@@ -5,6 +5,7 @@ Razão social fica de fora: em MEI ela traz nome e CPF da pessoa (LGPD).
 """
 
 import csv
+import io
 import shutil
 import zipfile
 from pathlib import Path
@@ -34,12 +35,12 @@ class LayoutMudou(RuntimeError):
 
 def _ler_csv(caminho: Path, tabela: str) -> str:
     colunas = ", ".join(f"'{c}': 'VARCHAR'" for c in LAYOUT[tabela])
-    return (f"read_csv('{caminho}', delim=';', quote='\"', escape='\"', header=false, encoding='latin-1',"
+    return (f"read_csv('{caminho}', delim=';', quote='\"', escape='\"', header=false, encoding='utf-8',"
             f" all_varchar=true, columns={{{colunas}}})")
 
 
 def validar_layout(caminho: Path, tabela: str) -> None:
-    with caminho.open(encoding="latin-1", newline="") as f:
+    with caminho.open(encoding="utf-8", newline="") as f:
         primeira = next(csv.reader(f, delimiter=";", quotechar='"'), None)
     esperado = len(LAYOUT[tabela])
     if primeira is None or len(primeira) != esperado:
@@ -48,9 +49,14 @@ def validar_layout(caminho: Path, tabela: str) -> None:
 
 
 def _extrair(zip_: Path, tmp: Path) -> Path:
+    """Extrai já em UTF-8: o latin-1 do DuckDB recusa bytes de controle que a Receita deixa nos arquivos,
+    e o decodificador do Python aceita qualquer byte."""
     with zipfile.ZipFile(zip_) as z:
         (membro,) = z.namelist()  # cada zip da Receita tem um CSV
-        return Path(z.extract(membro, tmp))
+        destino = tmp / f"{zip_.stem}.csv"
+        with z.open(membro) as origem, destino.open("w", encoding="utf-8", newline="") as saida:
+            shutil.copyfileobj(io.TextIOWrapper(origem, encoding="latin-1", newline=""), saida, 1 << 20)
+        return destino
 
 
 def _copiar(con: duckdb.DuckDBPyConnection, select: str, saida: Path) -> int:
