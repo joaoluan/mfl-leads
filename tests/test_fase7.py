@@ -103,3 +103,11 @@ def test_whatsapp_fixo_do_maps_e_apto(tmp_path):
     assert maps.ingerir(con, arquivo, bairro, ["PORTO ALEGRE"], [])["aptos"] == 1
     assert tuple(con.execute("SELECT tel1, status FROM entity").fetchone()) == ("+555130130000", "novo")
     assert con.execute("SELECT resultado FROM validacao").fetchone()[0] == "whatsapp"
+
+
+def test_shortcode_longo_ou_estranho_nao_derruba_a_rodada():
+    assert ig.data_do_post(RECENTE + "x" * 28) == HOJE  # post privado: os 11 primeiros são o id
+    assert ig.data_do_post("~~~") is None
+    assert ig.data_do_post("_" * 11) is None  # decodifica, mas cai fora de qualquer data plausível
+    dados = ig.analisar(pagina(grade=[f"/casa/p/{'_' * 40}/", f"/casa/p/{RECENTE}/"]))
+    assert dados["ultimo_post"] == HOJE.isoformat()

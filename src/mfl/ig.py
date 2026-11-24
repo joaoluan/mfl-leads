@@ -60,12 +60,22 @@ def handle(texto: str | None) -> str | None:
     return achado.group(1).lower().rstrip(".") if achado else None
 
 
-def data_do_post(shortcode: str) -> date:
-    """O shortcode é o id da mídia em base64; os bits altos são milissegundos desde a época do Instagram."""
+def data_do_post(shortcode: str) -> date | None:
+    """O shortcode é o id da mídia em base64; os bits altos são milissegundos desde a época do Instagram.
+
+    Post de conta privada e alguns reels têm shortcode mais longo: o id são os 11 primeiros caracteres.
+    Código que não decodifica numa data plausível vira None, em vez de derrubar a rodada.
+    """
     n = 0
-    for ch in shortcode:
+    for ch in shortcode[:11]:
+        if ch not in ALFABETO:
+            return None
         n = n * 64 + ALFABETO.index(ch)
-    return datetime.fromtimestamp(((n >> 23) + 1314220021721) / 1000, FUSO).date()
+    try:
+        dia = datetime.fromtimestamp(((n >> 23) + 1314220021721) / 1000, FUSO).date()
+    except (OverflowError, OSError, ValueError):
+        return None
+    return dia if date(2010, 1, 1) <= dia <= date.today() + timedelta(days=1) else None
 
 
 def _destino(link: str) -> str:
@@ -94,7 +104,7 @@ def analisar(pagina: dict) -> dict:
     bio = meta.split(" on Instagram: ", 1)[1].strip().strip('"') if " on Instagram: " in meta else ""
     contagens = re.match(r"([\d.,]+\s*[KkMm]?)\s+Followers?,\s*([\d.,]+\s*[KkMm]?)\s+Following,\s*([\d.,]+\s*[KkMm]?)\s+Posts?", meta)
     links = sorted({_destino(l) for l in pagina.get("links") or []})
-    datas = [data_do_post(h.rstrip("/").rsplit("/", 1)[1]) for h in pagina.get("grade") or []]
+    datas = [d for h in pagina.get("grade") or [] if (d := data_do_post(h.rstrip("/").rsplit("/", 1)[1]))]
     texto = " ".join([bio, pagina.get("cabecalho") or "", *links])
     tel = telefone_em(texto)
     email = next((e.lower() for e in EMAIL.findall(texto) if not e.lower().endswith((".png", ".jpg"))), None)
