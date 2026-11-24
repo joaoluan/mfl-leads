@@ -1,26 +1,116 @@
 {% extends "base.html" %}
-{% block titulo %}Config{% endblock %}
+{% block titulo %}{{ titulo }}{% endblock %}
 {% block corpo %}
+<style>
+.ajustes { display:grid; grid-template-columns:210px minmax(0, 1fr); gap:28px; align-items:start; }
+.ajustes aside { position:sticky; top:72px; }
+.ajustes aside h3 { font-size:13px; font-weight:650; color:var(--suave); margin:16px 0 4px; }
+.ajustes aside h3:first-child { margin-top:0; }
+.ajustes aside a { display:block; padding:5px 10px; border-radius:6px; text-decoration:none; color:var(--suave); }
+.ajustes aside a:hover { background:var(--realce); color:var(--tinta); }
+.ajustes aside a[aria-current] { background:var(--realce); color:var(--tinta); font-weight:650; }
+.campo-linha { display:grid; grid-template-columns:minmax(0, 1fr) 190px; gap:6px 20px; padding:14px 0; border-bottom:1px solid var(--linha); align-items:center; }
+.campo-linha > label, .campo-linha > .rotulo { font-weight:600; }
+.campo-linha .suave { grid-column:1; margin:0; }
+.campo-linha .entrada { grid-row:1 / span 2; grid-column:2; display:flex; align-items:center; gap:6px; }
+.campo-linha.largo { grid-template-columns:1fr; }
+.campo-linha.largo .entrada { grid-row:auto; grid-column:1; }
+.entrada input[type=number] { width:100%; text-align:right; font-variant-numeric:tabular-nums; }
+.entrada input[type=text], .entrada textarea { width:100%; }
+.entrada textarea { min-height:0; font:inherit; }
+.unidade { color:var(--suave); font-size:13px; white-space:nowrap; min-width:46px; }
+.erro-campo { grid-column:1 / -1; color:var(--ruim-texto); font-size:13px; font-weight:600; margin:0; }
+[aria-invalid=true] { border-color:var(--ruim-texto); box-shadow:0 0 0 1px var(--ruim-texto); }
+.marcas { display:flex; flex-wrap:wrap; gap:8px; }
+.marcas label { display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border:1px solid var(--linha); border-radius:7px; cursor:pointer; }
+.marcas label:has(input:checked) { background:var(--bom); color:var(--bom-texto); border-color:transparent; }
+details.avancado { margin-top:24px; } details.avancado summary { cursor:pointer; font-weight:650; padding:6px 0; }
+.rodape-form { position:sticky; bottom:0; background:var(--papel); padding:12px 0; border-top:1px solid var(--linha); margin-top:16px; }
+@media (max-width:760px) { .ajustes { grid-template-columns:1fr; } .ajustes aside { position:static; }
+  .campo-linha { grid-template-columns:1fr; } .campo-linha .entrada { grid-row:auto; grid-column:1; } }
+</style>
+
 <h1>Textos e regras</h1>
-<form method="get" class="acoes">
-  <select name="arquivo" onchange="this.form.submit()" aria-label="Arquivo">
-    {% for o in opcoes %}<option {{ 'selected' if o == arquivo }}>{{ o }}</option>{% endfor %}
-  </select>
-</form>
-{% if salvo %}<div class="faixa">Salvo.</div>{% endif %}
-{% for e in erros %}<div class="faixa erro">{{ e }}</div>{% endfor %}
-<p class="suave">Mensagens: variantes separadas por uma linha só com <code>---</code>. Campos: {nome}, {bairro}, {sinal}, {horario}. Toda variante de abordagem precisa ter SAIR.</p>
-<form method="post" id="editor">
-  <input type="hidden" name="arquivo" value="{{ arquivo }}">
-  <textarea name="conteudo" aria-label="Conteúdo de {{ arquivo }}">{{ conteudo }}</textarea>
-  <div class="acoes"><button class="primario">Salvar {{ arquivo }}</button></div>
-</form>
+<p class="sub">As regras mudam como a fila escolhe e pontua os leads. Os textos são as mensagens que você manda.</p>
+<div class="ajustes">
+  <aside aria-label="Escolher o que editar">
+    {% for grupo, itens in menu %}<h3>{{ grupo }}</h3>
+      {% for a, t in itens %}<a href="/config?arquivo={{ a }}" {{ 'aria-current=page' if a == arquivo }}>{{ t }}</a>{% endfor %}
+    {% endfor %}
+  </aside>
+
+  <section aria-labelledby="titulo-arquivo">
+  <h2 id="titulo-arquivo" style="margin-top:0">{{ titulo }}</h2>
+  {% if salvo %}<div class="faixa ok" role="status">Salvo.{% if arquivo == "icp.toml" %} A pontuação de todos os leads foi recalculada e a fila já usa os valores novos.{% endif %}</div>{% endif %}
+
+  {% if campos %}
+  {% macro campo(c) %}
+    {% set v = valores[c.chave] %}{% set erro = erros.get(c.chave) %}{% set id = c.chave | replace(".", "-") %}
+    <div class="campo-linha{{ ' largo' if c.tipo in ('linhas', 'categorias', 'faixas') }}">
+      {% if c.tipo == "categorias" %}<span class="rotulo" id="{{ id }}">{{ c.rotulo }}</span>{% else %}<label for="{{ id }}">{{ c.rotulo }}</label>{% endif %}
+      {% if c.ajuda %}<p class="suave" id="{{ id }}-ajuda">{{ c.ajuda }}</p>{% endif %}
+      <div class="entrada">
+      {% if c.tipo == "categorias" %}
+        <div class="marcas" role="group" aria-labelledby="{{ id }}">{% for k, nome in tipos_casa.items() %}
+          <label><input type="checkbox" name="{{ c.chave }}" value="{{ k }}" {{ 'checked' if k in v }}>{{ nome }}</label>{% endfor %}</div>
+      {% elif c.tipo == "linhas" %}
+        <textarea id="{{ id }}" name="{{ c.chave }}" rows="{{ [3, (v.count('\n') + 2)] | max if v is string else 3 }}" aria-describedby="{{ id }}-ajuda" {{ 'aria-invalid=true' if erro }} spellcheck="false">{{ v }}</textarea>
+      {% elif c.tipo == "faixas" %}
+        <input type="text" id="{{ id }}" name="{{ c.chave }}" value="{{ v }}" placeholder="09:00-11:00, 14:30-17:30" aria-describedby="{{ id }}-ajuda" {{ 'aria-invalid=true' if erro }} autocomplete="off" spellcheck="false">
+      {% else %}
+        <input type="number" id="{{ id }}" name="{{ c.chave }}" value="{{ v }}" inputmode="{{ 'decimal' if c.tipo == 'pct' else 'numeric' }}"
+               step="{{ '0.1' if c.tipo == 'pct' else '1' }}" {% if c.tipo in ('inteiro', 'pct') %}min="0"{% endif %}{% if c.tipo == 'pct' %} max="100"{% endif %}
+               aria-describedby="{{ id }}-ajuda" {{ 'aria-invalid=true' if erro }}>
+        <span class="unidade">{{ {"pct": "%", "pontos": "pontos"}.get(c.tipo, "") }}</span>
+      {% endif %}
+      </div>
+      {% if erro %}<p class="erro-campo">{{ erro }}</p>{% endif %}
+    </div>
+  {% endmacro %}
+
+  {% if erros %}<div class="faixa erro" role="alert">Corrija {{ erros | length }} campo(s) marcado(s) abaixo. Nada foi salvo.</div>{% endif %}
+  <form method="post" id="editor" novalidate>
+    <input type="hidden" name="arquivo" value="{{ arquivo }}">
+    {% set pesos = campos | selectattr("tipo", "equalto", "pontos") | list %}
+    {% for c in campos if not c.avancado and c.tipo != "pontos" and c.chave != "score.categorias_clientes" and c.chave != "score.municipios_perto" %}{{ campo(c) }}{% endfor %}
+    {% if pesos %}
+    <h2>Pontos por sinal</h2>
+    <p class="sub">Cada sinal encontrado soma (ou tira) estes pontos. Use número negativo para sinais que afastam o lead.</p>
+    {% for c in pesos %}{{ campo(c) }}{% endfor %}
+    <h2>Quem ganha “Categoria de cliente” e “Perto da base”</h2>
+    {% for c in campos if c.chave in ("score.categorias_clientes", "score.municipios_perto") %}{{ campo(c) }}{% endfor %}
+    {% endif %}
+    {% set avancados = campos | selectattr("avancado") | list %}
+    {% if avancados %}
+    <details class="avancado"{{ ' open' if erros and avancados | selectattr("chave", "in", erros) | list }}>
+      <summary>Avançado: recorte da coleta</summary>
+      <p class="suave">Mexa só se quiser buscar em outras cidades ou outros tipos de negócio. Vale a partir da próxima coleta.</p>
+      {% for c in avancados %}{{ campo(c) }}{% endfor %}
+    </details>
+    {% endif %}
+    <div class="rodape-form"><button class="primario">Salvar {{ titulo | lower }}</button></div>
+  </form>
+
+  {% else %}
+  {% for e in erros_texto %}<div class="faixa erro">{{ e }}</div>{% endfor %}
+  <p class="suave">Escreva duas ou três versões do texto e separe cada uma por uma linha só com <code>---</code>. A fila alterna entre elas.
+    Campos que o sistema preenche: <code>{nome}</code>, <code>{bairro}</code>, <code>{horario}</code>.
+    {% if arquivo not in ("interesse", "preco", "ja_tenho") %}Toda versão precisa dizer como sair (“responde SAIR”).{% endif %}</p>
+  <form method="post" id="editor">
+    <input type="hidden" name="arquivo" value="{{ arquivo }}">
+    <textarea name="conteudo" aria-label="Texto: {{ titulo }}" spellcheck="true">{{ conteudo }}</textarea>
+    <div class="rodape-form"><button class="primario">Salvar texto</button></div>
+  </form>
+  {% endif %}
+  </section>
+</div>
 <script>
-// Trocar de arquivo ou sair da página com edição não salva pede confirmação.
+// Edição não salva pede confirmação ao sair; o primeiro campo com erro recebe o foco.
 let sujo = false;
 const editor = document.getElementById("editor");
 editor.addEventListener("input", () => { sujo = true; });
 editor.addEventListener("submit", () => { sujo = false; });
 addEventListener("beforeunload", e => { if (sujo) e.preventDefault(); });
+document.querySelector("[aria-invalid=true]")?.focus();
 </script>
 {% endblock %}

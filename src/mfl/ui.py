@@ -3,13 +3,12 @@
 import json
 import re
 import sqlite3
-import tomllib
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
 
-from mfl import bairros, cadencia, db, mensagens, resolve, score, whatsapp
+from mfl import ajustes, bairros, cadencia, db, mensagens, resolve, score, whatsapp
 from mfl.db import FUSO, agora
 from mfl.fone import legivel
 
@@ -41,7 +40,13 @@ def _quando(iso: str | None) -> str:
         return datetime.fromisoformat(iso).strftime("%d/%m %H:%M") if iso else ""
     except ValueError:
         return iso or ""
-EDITAVEIS = {"tetos.toml": cadencia.TETOS, "icp.toml": db.RAIZ / "cfg" / "icp.toml"}
+TIPOS_CASA = {"pizzaria": "Pizzaria", "hamburgueria": "Hamburgueria", "churrascaria": "Churrascaria", "japones": "Japonês",
+              "padaria": "Padaria e doceria", "bar": "Bar", "lanchonete": "Lanchonete e café", "restaurante": "Restaurante e marmita"}
+MENU_TEXTOS = [
+    ("1ª mensagem", [*TIPOS_CASA.items(), ("concorrente", "Quem usa concorrente"), ("ifood", "Quem vende no iFood")]),
+    ("Lembretes", [("d3", "3º dia sem resposta"), ("d7", "7º dia sem resposta")]),
+    ("Respostas prontas", [("interesse", "Quando tem interesse"), ("preco", "Quando pergunta preço"), ("ja_tenho", "Quando já tem sistema")]),
+]
 
 
 def criar_app(caminho_db: Path | None = None) -> Flask:
@@ -247,27 +252,37 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
 
     @app.route("/config", methods=["GET", "POST"])
     def config() -> str:
-        erros: list[str] = []
+        """Regras (.toml) viram formulário com explicação por campo; textos (.md) seguem no editor."""
         arquivo = request.values.get("arquivo", "tetos.toml")
-        caminho = EDITAVEIS.get(arquivo) or (
-            mensagens.PASTA / f"{arquivo}.md" if arquivo in mensagens.arquivos() else None)
-        if caminho is None:
+        existentes = set(mensagens.arquivos())
+        menu = [("Regras", [(a, t) for a, (t, _, _) in ajustes.ARQUIVOS.items()]),
+                *[(grupo, [(a, t) for a, t in itens if a in existentes]) for grupo, itens in MENU_TEXTOS]]
+        comum = {"arquivo": arquivo, "menu": menu, "salvo": request.args.get("salvo")}
+        if arquivo in ajustes.ARQUIVOS:
+            erros: dict[str, str] = {}
+            if request.method == "POST":
+                erros = ajustes.aplicar(arquivo, request.form, list(TIPOS_CASA))
+                if not erros:
+                    if arquivo == "icp.toml":
+                        score.recalcular(con(), hoje())  # a fila já mostra a pontuação nova
+                    return redirect(url_for("config", arquivo=arquivo, salvo=1))
+            titulo, campos, dados = ajustes.ler(arquivo)
+            valores = {c.chave: (request.form.getlist(c.chave) if c.tipo == "categorias" else request.form.get(c.chave, ""))
+                       if erros else ajustes.valor_na_tela(c, dados) for c in campos}
+            return render_template("config.html", titulo=titulo, campos=campos, valores=valores, erros=erros,
+                                   tipos_casa=TIPOS_CASA, **comum)
+        if arquivo not in existentes:
             abort(404)
-        conteudo = caminho.read_text(encoding="utf-8")
+        caminho = mensagens.PASTA / f"{arquivo}.md"
+        conteudo, erros_texto = caminho.read_text(encoding="utf-8"), []
         if request.method == "POST":
             conteudo = request.form["conteudo"].replace("\r\n", "\n")
-            if arquivo.endswith(".toml"):
-                try:
-                    tomllib.loads(conteudo)
-                except tomllib.TOMLDecodeError as erro:
-                    erros.append(f"TOML inválido: {erro}")
-            else:
-                erros = mensagens.validar(arquivo, conteudo)
-            if not erros:
+            erros_texto = mensagens.validar(arquivo, conteudo)
+            if not erros_texto:
                 caminho.write_text(conteudo.rstrip("\n") + "\n", encoding="utf-8")
                 return redirect(url_for("config", arquivo=arquivo, salvo=1))
-        return render_template("config.html", arquivo=arquivo, conteudo=conteudo, erros=erros,
-                               opcoes=[*EDITAVEIS, *mensagens.arquivos()], salvo=request.args.get("salvo"))
+        titulo = {a: t for _, itens in menu for a, t in itens}.get(arquivo, arquivo)
+        return render_template("config.html", titulo=titulo, conteudo=conteudo, erros_texto=erros_texto, **comum)
 
     return app
 
