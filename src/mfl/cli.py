@@ -242,8 +242,8 @@ def cmd_diario() -> None:
 
 
 @app.command("maps-noturno")
-def cmd_maps_noturno(limite: int = typer.Option(6, help="Bairros por noite (~8 min cada)")) -> None:
-    """Timer: próximos bairros pendentes do Maps (374 bairros / 6 por noite ~ 60 dias)."""
+def cmd_maps_noturno(limite: int = typer.Option(12, help="Bairros por noite (~8 min cada)")) -> None:
+    """Timer: próximos bairros pendentes do Maps (374 bairros / 12 por noite ~ 31 dias)."""
     cmd_maps_fila(limite=limite, cidade=None)
 
 

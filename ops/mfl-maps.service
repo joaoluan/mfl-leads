@@ -1,5 +1,5 @@
 [Unit]
-Description=mfl-leads: Maps, 6 bairros por noite
+Description=mfl-leads: Maps, 12 bairros por noite
 After=network-online.target
 
 [Service]
