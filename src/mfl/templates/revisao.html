@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Revisão{% endblock %}
+{% block corpo %}
+<h1>É o mesmo lugar?</h1>
+<p class="suave">Pares com semelhança média (CEP e nome parecidos). "Mesmo lugar" junta os dois num lead só.</p>
+{% for p, a, b in itens %}
+<div class="cartao">
+  <div class="suave">semelhança {{ "%.0f" | format(p.score * 100) }}%</div>
+  <table>
+    <tr><th></th><th>Novo</th><th>Já existia</th></tr>
+    {% for campo in ["fantasia", "nome", "categoria", "endereco", "bairro", "cep", "tel1", "tel2", "cnpj", "site"] %}
+    {% if a[campo] or b[campo] %}<tr><th>{{ campo }}</th><td>{{ a[campo] or "" }}</td><td>{{ b[campo] or "" }}</td></tr>{% endif %}
+    {% endfor %}
+  </table>
+  <div class="acoes">
+    <form method="post" action="/revisao/{{ p.id }}"><input type="hidden" name="decisao" value="mesmo"><button class="primario">Mesmo lugar</button></form>
+    <form method="post" action="/revisao/{{ p.id }}"><input type="hidden" name="decisao" value="diferente"><button>Lugares diferentes</button></form>
+  </div>
+</div>
+{% else %}<p class="suave">Nada para revisar.</p>{% endfor %}
+{% endblock %}

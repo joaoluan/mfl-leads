@@ -104,7 +104,8 @@ def test_migracao_em_banco_v1(tmp_path):
     antigo.executescript(db.SCHEMA.read_text())
     antigo.close()
     novo = db.conectar(caminho)
-    assert novo.execute("PRAGMA user_version").fetchone()[0] == 2
+    ultima = max(int(p.name[:3]) for p in db.MIGRACOES.glob("*.sql"))
+    assert novo.execute("PRAGMA user_version").fetchone()[0] == ultima
     assert "wa_msg_id" in {r[1] for r in novo.execute("PRAGMA table_info(touch)")}
     db.conectar(caminho)  # reabrir não reaplica
 

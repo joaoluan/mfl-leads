@@ -1,0 +1,11 @@
+restaurante
+pizzaria
+lanchonete
+hamburgueria
+padaria
+confeitaria
+bar
+cafeteria
+marmitaria
+churrascaria
+sushi
