@@ -35,12 +35,27 @@ JS_DETALHES = """(() => {
       if (r['@type'] === 'Restaurant' && r.name && r.address?.streetAddress &&
           (r.url || r['@id'])?.split('?')[0] === location.origin + location.pathname) {
         return {endereco:r.address.streetAddress, cep:r.address.postalCode || null,
-                municipio:r.address.addressLocality || null, uf:r.address.addressRegion || null};
+                municipio:r.address.addressLocality || null, uf:r.address.addressRegion || null,
+                cnpj:r.taxID || null};
       }
     }
   }
   return null;
 })()"""
+JS_SOBRE = """(() => {
+  const painel = document.querySelector('.merchant-details-about');
+  if (!painel) return null;
+  const texto = painel.innerText || painel.textContent || '';
+  const endereco = texto.match(/(?:^|\\n)\\s*Endere[cç]o\\s*\\n([\\s\\S]*?)(?=\\n\\s*(?:Outras informa[cç][oõ]es|CNPJ|O iFood é gratuito)|$)/i);
+  const cnpj = texto.match(/\\bCNPJ\\s*:?\\s*(\\d{2}\\.?\\d{3}\\.?\\d{3}\\/?\\d{4}-?\\d{2})\\b/i);
+  const bloqueado = performance.getEntriesByType('resource').some(r =>
+    r.responseStatus === 403 && /merchant-info|catalog/.test(r.name));
+  return {endereco_bloco:endereco?.[1]?.trim() || null, cnpj:cnpj?.[1] || null, bloqueado};
+})()"""
+
+
+class DetalhesBloqueados(RuntimeError):
+    """Página abriu, mas o iFood negou os dados da loja ao navegador."""
 
 
 class Loja(BaseModel):
@@ -51,6 +66,42 @@ class Loja(BaseModel):
     categoria: str | None = None
     endereco: str | None = None
     cep: str | None = None
+    bairro: str | None = None
+    cnpj: str | None = None
+
+
+def cnpj_valido(bruto: str | None) -> str | None:
+    """Dígitos verificadores evitam vincular empresas por erro de leitura."""
+    if not isinstance(bruto, str):
+        return None
+    numero = re.sub(r"[.\-/\s]", "", bruto or "")
+    if not re.fullmatch(r"\d{14}", numero) or len(set(numero)) == 1:
+        return None
+    for tamanho, pesos in ((12, (5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2)),
+                           (13, (6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2))):
+        resto = sum(int(d) * p for d, p in zip(numero[:tamanho], pesos)) % 11
+        if int(numero[tamanho]) != (0 if resto < 2 else 11 - resto):
+            return None
+    return numero
+
+
+def detalhes_do_painel(painel: dict | None) -> dict:
+    """Interpreta apenas o painel Sobre; endereço de entrega e rodapé ficam fora."""
+    if not painel:
+        return {}
+    linhas = [l.strip() for l in (painel.get("endereco_bloco") or "").splitlines() if l.strip()]
+    dados = {"cnpj": painel.get("cnpj")}
+    if linhas:
+        dados["endereco"] = linhas[0]
+        bairro = re.split(r"\s+[-–]\s+", linhas[0], maxsplit=1)
+        if len(bairro) == 2:
+            dados["bairro"] = bairro[1]
+        for linha in linhas[1:]:
+            if cep := re.search(r"\bCEP\s*:?\s*(\d{5}-?\d{3})\b", linha, re.I):
+                dados["cep"] = cep.group(1)
+            elif cidade := re.fullmatch(r"(.+?)\s*[-–]\s*([A-Z]{2})", linha):
+                dados["municipio"], dados["uf"] = cidade.groups()
+    return {k: v for k, v in dados.items() if v}
 
 
 def id_da_url(endereco: str) -> str | None:
@@ -85,7 +136,7 @@ def analisar(item: dict, municipios: list[str]) -> Loja | None:
     cep = re.sub(r"\D", "", detalhe.get("cep") or "")
     return Loja(id=identificador, url=f"https://www.ifood.com.br{url.path}", nome=item["nome"].strip(),
                 municipio=cidade, categoria=item.get("categoria"), endereco=detalhe.get("endereco"),
-                cep=cep if len(cep) == 8 else None)
+                cep=cep if len(cep) == 8 else None, bairro=detalhe.get("bairro"), cnpj=cnpj_valido(detalhe.get("cnpj")))
 
 
 def ponto_de_entrega(con: sqlite3.Connection, bairro: dict) -> str | None:
@@ -131,6 +182,21 @@ def _esperar(aba: str, expressao: str):
     raise RuntimeError("iFood não carregou a etapa esperada. Confira o endereço ou tente mais tarde.")
 
 
+def ler_detalhes(aba: str, loja: Loja, municipios: list[str]) -> Loja:
+    """Abre Sobre mesmo com JSON-LD: o CNPJ fica no painel visível da loja."""
+    _js(aba, f"(() => {{location.href={json.dumps(loja.url)};return true;}})()")
+    _esperar(aba, f"location.pathname==={json.dumps(urlsplit(loja.url).path)} && !!document.querySelector('.merchant-details__button')")
+    estruturados = _js(aba, JS_DETALHES) or {}
+    _js(aba, "(() => {document.querySelector('.merchant-details__button').click();return true;})()")
+    _esperar(aba, "!!document.querySelector('.merchant-details-about')")
+    sobre = _js(aba, JS_SOBRE) or {}
+    painel = detalhes_do_painel(sobre)
+    if sobre.get("bloqueado") and not (painel or estruturados):
+        raise DetalhesBloqueados("iFood bloqueou os detalhes das lojas (403); lista preservada.")
+    completa = analisar({**loja.model_dump(mode="json"), "detalhes": {**estruturados, **painel}}, municipios)
+    return completa or loja
+
+
 def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[str]) -> list[Loja]:
     """Segue as telas públicas do site. Bloqueio nunca vira coleta vazia bem-sucedida."""
     aba = _abrir()
@@ -164,18 +230,14 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
             time.sleep(2)
         escolhidas = list(lojas.values())[:limite]
         for loja in escolhidas:
-            _js(aba, f"(() => {{location.href={json.dumps(loja.url)};return true;}})()")
-            _esperar(aba, f"location.pathname==={json.dumps(urlsplit(loja.url).path)} && "
-                     "!!document.querySelector('script[type=\"application/ld+json\"]') && "
-                     "[...document.querySelectorAll('button')].some(b=>b.innerText==='Ver mais')")
-            detalhe = _js(aba, JS_DETALHES)
-            if detalhe:
-                completa = analisar({**loja.model_dump(mode="json"), "detalhes": detalhe}, municipios)
-                if completa:
-                    lojas[str(loja.id)] = completa
-            else:
+            try:
+                completa = ler_detalhes(aba, loja, municipios)
+            except DetalhesBloqueados:
+                log.warning("ifood_detalhes_bloqueados", motivo="O iFood retornou 403 para os dados da loja; lista preservada")
+                break
+            lojas[str(loja.id)] = completa
+            if not completa.endereco:
                 log.warning("ifood_sem_endereco", motivo="Detalhes indisponíveis; lojas seguem sem vínculo automático")
-                break  # não insiste nos detalhes bloqueados, preserva o que a lista mostrou
             time.sleep(2)
         return [lojas[str(l.id)] for l in escolhidas]
     finally:
@@ -187,41 +249,79 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
 
 def ingerir(con: sqlite3.Connection, lojas: list[Loja], franquias: list[str]) -> dict[str, int]:
     """Idempotência pelo UUID da loja, endereço para vínculo, nome apenas para revisão."""
-    total = {"novos": 0, "vinculados": 0, "revisao": 0, "repetidos": 0, "descartados": 0}
+    total = {"novos": 0, "vinculados": 0, "revisao": 0, "repetidos": 0, "descartados": 0, "atualizados": 0}
     padrao = re.compile(r"\b(" + "|".join(re.escape(t) for t in franquias) + r")\b") if franquias else None
     compartilhados = resolve.telefones_compartilhados(con)
     momento = agora()
     gravados = 0
     with con:
         for loja in lojas:
-            if con.execute("SELECT 1 FROM source_record WHERE source='ifood' AND source_key=?", (str(loja.id),)).fetchone():
-                total["repetidos"] += 1
-                continue
+            existente = con.execute("SELECT entity_id,raw_json FROM source_record WHERE source='ifood' AND source_key=?",
+                                    (str(loja.id),)).fetchone()
             if padrao and padrao.search(normalizar(loja.nome)):
                 total["descartados"] += 1
                 continue
             dados = {"_fonte": "ifood", "nome": loja.nome, "fantasia": loja.nome, "municipio": loja.municipio,
-                     "categoria": loja.categoria, "endereco": loja.endereco, "cep": loja.cep, "uf": "RS"}
-            candidato, nota = resolve.melhor_candidato(con, dados, compartilhados)
+                     "categoria": loja.categoria, "endereco": loja.endereco, "cep": loja.cep, "bairro": loja.bairro,
+                     "cnpj": loja.cnpj, "uf": "RS"}
+            candidato, nota = resolve.melhor_candidato(con, dados, compartilhados, existente["entity_id"] if existente else None)
             if candidato is not None and (candidato["opt_out"] or candidato["status"] == "opt_out"):
                 total["descartados"] += 1
                 continue
-            if candidato is not None and nota >= resolve.VINCULA:
+            if existente:
+                eid = existente["entity_id"]
+                atual = con.execute("SELECT * FROM entity WHERE entity_id=?", (eid,)).fetchone()
+                if atual["opt_out"] or atual["status"] == "opt_out":
+                    total["descartados"] += 1
+                    continue
+                if loja.cnpj and atual["cnpj"] and loja.cnpj != atual["cnpj"]:
+                    log.warning("ifood_cnpj_divergente", source_key=str(loja.id))
+                    if candidato is not None and nota >= resolve.REVISA:
+                        if not con.execute("SELECT 1 FROM revisao WHERE a=? AND b=? AND decidido=0",
+                                           (eid, candidato["entity_id"])).fetchone():
+                            con.execute("INSERT INTO revisao(a,b,score) VALUES (?,?,?)", (eid, candidato["entity_id"], nota))
+                        total["revisao"] += 1
+                    else:
+                        total["descartados"] += 1
+                    continue
+                if candidato is not None and nota >= resolve.VINCULA:
+                    conversou = con.execute("SELECT 1 FROM touch WHERE entity_id=? UNION ALL SELECT 1 FROM reply WHERE entity_id=?",
+                                             (eid, eid)).fetchone()
+                    if atual["status"] in ("enriquecimento", "novo", "qualificado", "na_fila") and not conversou:
+                        resolve.fundir(con, candidato["entity_id"], eid)
+                        eid = candidato["entity_id"]
+                    else:
+                        if not con.execute("SELECT 1 FROM revisao WHERE a=? AND b=? AND decidido=0",
+                                           (eid, candidato["entity_id"])).fetchone():
+                            con.execute("INSERT INTO revisao(a,b,score) VALUES (?,?,?)", (eid, candidato["entity_id"], nota))
+                        total["revisao"] += 1
+                        dados["cnpj"] = None  # o CNPJ já pertence ao outro lead, aguarda revisão da conversa
+                resolve.preencher(con, eid, dados)
+                anterior = json.loads(existente["raw_json"])
+                novos = loja.model_dump(mode="json")
+                for campo, valor in anterior.items():
+                    if campo in novos and novos[campo] is None and valor is not None:
+                        novos[campo] = valor
+                total["atualizados" if novos != anterior else "repetidos"] += 1
+            elif candidato is not None and nota >= resolve.VINCULA:
                 eid = candidato["entity_id"]
                 resolve.preencher(con, eid, dados)
                 total["vinculados"] += 1
             else:
                 eid = str(uuid.uuid4())
-                con.execute("INSERT INTO entity (entity_id,nome,fantasia,categoria,municipio,uf,endereco,cep,status,criado_em,atualizado_em)"
-                            " VALUES (?,?,?,?,?,'RS',?,?,'enriquecimento',?,?)",
-                            (eid, loja.nome, loja.nome, loja.categoria, loja.municipio, loja.endereco, loja.cep, momento, momento))
+                con.execute("INSERT INTO entity (entity_id,nome,fantasia,categoria,municipio,uf,endereco,cep,bairro,cnpj,status,criado_em,atualizado_em)"
+                            " VALUES (?,?,?,?,?,'RS',?,?,?,?,'enriquecimento',?,?)",
+                            (eid, loja.nome, loja.nome, loja.categoria, loja.municipio, loja.endereco, loja.cep,
+                             loja.bairro, loja.cnpj, momento, momento))
                 total["novos"] += 1
                 if candidato is not None and nota >= resolve.REVISA:
                     con.execute("INSERT INTO revisao (a,b,score) VALUES (?,?,?)", (eid, candidato["entity_id"], nota))
                     total["revisao"] += 1
-            raw = json.dumps(loja.model_dump(mode="json"), ensure_ascii=False, sort_keys=True)
+            raw = json.dumps(novos if existente else loja.model_dump(mode="json"), ensure_ascii=False, sort_keys=True)
             con.execute("INSERT INTO source_record (source,source_key,entity_id,raw_json,url,captured_at,hash,match_score)"
-                        " VALUES ('ifood',?,?,?,?,?,?,?)",
+                        " VALUES ('ifood',?,?,?,?,?,?,?) ON CONFLICT(source,source_key) DO UPDATE SET"
+                        " entity_id=excluded.entity_id,raw_json=excluded.raw_json,url=excluded.url,"
+                        " captured_at=excluded.captured_at,hash=excluded.hash,match_score=coalesce(excluded.match_score,source_record.match_score)",
                         (str(loja.id), eid, raw, loja.url, momento, hashlib.sha256(raw.encode()).hexdigest(), nota or None))
             gravados += 1
             if gravados % LOTE == 0:
@@ -236,5 +336,11 @@ def rodar(con: sqlite3.Connection, endereco: str, limite: int = 30) -> dict[str,
         raise ValueError("Informe um endereço com até 300 caracteres e limite entre 1 e 100 lojas.")
     from mfl.score import config
     municipios = config()["recorte"]["municipios"]
-    conhecidos = {r[0] for r in con.execute("SELECT source_key FROM source_record WHERE source='ifood'")}
+    conhecidos = set()
+    for registro in con.execute("SELECT source_key,raw_json,captured_at FROM source_record WHERE source='ifood'"):
+        dados = json.loads(registro["raw_json"])
+        completo = all(dados.get(c) for c in ("endereco", "cep", "cnpj"))
+        # Registros antigos sem o campo CNPJ voltam agora; tentativas novas, no máximo uma por dia.
+        if completo or ("cnpj" in dados and registro["captured_at"][:10] == agora()[:10]):
+            conhecidos.add(registro["source_key"])
     return ingerir(con, coletar(endereco, limite, conhecidos, municipios), cnpj_icp.termos_franquia())

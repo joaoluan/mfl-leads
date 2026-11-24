@@ -27,7 +27,7 @@ ROTINAS = {  # job -> (nome na tela, timer do systemd, o que faz)
     "ifood": ("iFood", "mfl-maps.timer",
               "Na mesma rodada do Maps, descobre lojas que entregam perto de um endereço comercial já coletado no bairro. "
               "Cria leads novos e completa os existentes. O Maps busca as descobertas sem telefone. "
-              "Nome parecido vai para Revisão; o link exato da loja permite vincular automaticamente."),
+              "Abre Ver mais para ler endereço e CNPJ. Nome parecido vai para Revisão; CNPJ ou link exato confirmam o vínculo."),
     "diario": ("Rotina diária", "mfl-diario.timer",
                "Atualiza a cadência (quem passou de 3 ou 7 dias sem resposta vira lembrete; depois do D7, frio), "
                "recalcula o score de todos e faz o backup."),
@@ -37,6 +37,7 @@ ROTINAS = {  # job -> (nome na tela, timer do systemd, o que faz)
 }
 EVENTOS = {"maps_ingerido": "Bairro raspado", "maps_bairro_falhou": "Bairro falhou", "maps_fila": "Lote do Maps terminou",
            "ifood_ingerido": "Lojas do iFood importadas", "ifood_sem_endereco": "iFood não mostrou endereço das lojas",
+           "ifood_detalhes_bloqueados": "iFood bloqueou endereço e CNPJ (403)", "ifood_cnpj_divergente": "CNPJ divergente: conferir vínculo",
            "ifood_sem_ponto": "Bairro sem ponto de entrega: iFood pendente", "ifood_bairro_falhou": "Coleta do iFood falhou",
            "ifood_maps_completado": "Descobertas do iFood buscadas no Maps", "ifood_maps_falhou": "Busca das lojas no Maps falhou",
            "ig_rodado": "Perfis do Instagram visitados", "ig_checkpoint": "Instagram pediu verificação",

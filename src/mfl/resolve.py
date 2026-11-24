@@ -46,6 +46,8 @@ def telefones_compartilhados(con: sqlite3.Connection) -> set[str]:
 
 
 def pontuar(a: dict, b: sqlite3.Row | dict, compartilhados: set[str]) -> float:
+    if a.get("cnpj") and (cnpj_b := dict(b).get("cnpj")) and a["cnpj"] != cnpj_b:
+        return 0.0
     tels_a = {t for t in (a.get("tel1"), a.get("tel2")) if t and t not in compartilhados}
     tels_b = {t for t in (b["tel1"], b["tel2"]) if t and t not in compartilhados}
     if tels_a & tels_b:
@@ -67,6 +69,11 @@ def pontuar(a: dict, b: sqlite3.Row | dict, compartilhados: set[str]) -> float:
 def melhor_candidato(con: sqlite3.Connection, novo: dict, compartilhados: set[str],
                      ignorar: str | None = None) -> tuple[sqlite3.Row | None, float]:
     """Bloqueio por CEP5 ou telefone (spec) antes de comparar nomes."""
+    if novo.get("cnpj"):
+        empresa = con.execute("SELECT * FROM entity WHERE cnpj=? AND entity_id IS NOT ?",
+                              (novo["cnpj"], ignorar)).fetchone()
+        if empresa is not None:
+            return empresa, 1.0
     ids_ifood = novo.get("_ifood_ids") or []
     if ids_ifood:
         lojas = con.execute(

@@ -85,7 +85,8 @@ tr[aria-current] td { background:var(--realce); }
 <h2 id="ifood">iFood</h2>
 <p class="suave">A coleta automática usa um endereço comercial do bairro já vindo de Maps ou CNPJ. Sem endereço válido, fica pendente.
   Para coletar outro ponto manualmente, informe rua, número e cidade abaixo. A lista varia conforme esse endereço.
-  A coleta pula lojas já importadas e franquias. Casas sem telefone ficam em enriquecimento até o Maps ou Instagram completar.
+  A coleta abre “Ver mais” para ler endereço e CNPJ. Pula lojas completas e franquias; volta às incompletas sem duplicar.
+  Casas sem telefone ficam em enriquecimento até o Maps ou Instagram completar.
   Se faltar endereço da loja, confira os possíveis duplicados em Revisão. Verificação ou bloqueio interrompe a coleta.</p>
 <form method="post" action="/coleta/rodar" class="linha-acao">
   <input type="hidden" name="acao" value="ifood">

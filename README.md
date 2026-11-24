@@ -45,7 +45,9 @@ Também pelo terminal, com o camofox-browser em `127.0.0.1:9377`:
 
     uv run mfl ifood "Rua, número, cidade - RS" --limite 30
 
-Coleta até 30 lojas novas (limite ajustável de 1 a 100), pula as já importadas e marca `vende_ifood`.
+Visita até 30 lojas novas ou incompletas (limite ajustável de 1 a 100) e marca `vende_ifood`.
+Abre “Ver mais” para ler endereço, bairro, CEP e CNPJ no painel Sobre. Repetir a coleta completa as lojas antigas sem duplicar;
+leituras parciais preservam os dados já conhecidos. Lojas completas são puladas e incompletas têm no máximo uma tentativa por dia.
 Veja o resultado em **Leads → Veio de → iFood**. Sem telefone, a casa aguarda Maps/Instagram.
 Nome parecido sem endereço suficiente vai para **Revisão**. Um link do Maps com o UUID exato da loja no iFood confirma o vínculo,
 mesmo se o iFood esconder o endereço. Buscas sem resultado suficiente voltam após 7 dias; falhas de execução, no dia seguinte.

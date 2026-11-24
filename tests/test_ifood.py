@@ -39,7 +39,7 @@ def test_ingestao_idempotente_score_fila_e_revisao(tmp_path):
     existente = criar_lead(con, "Cantina Teste Azul", "+5551999990001", municipio="Porto Alegre",
                           cep="90000001", endereco="Rua Fictícia, 10")
     resultado = ifood.ingerir(con, [loja(), loja(2, nome="Cozinha Teste Verde"), loja(3, nome="Rede Falsa")], ["rede falsa"])
-    assert resultado == {"novos": 2, "vinculados": 0, "revisao": 1, "repetidos": 0, "descartados": 1}
+    assert resultado == {"novos": 2, "vinculados": 0, "revisao": 1, "repetidos": 0, "descartados": 1, "atualizados": 0}
     assert con.execute("SELECT count(*) FROM entity WHERE status='enriquecimento' AND tel1 IS NULL").fetchone()[0] == 2
     assert tuple(con.execute("SELECT b,score FROM revisao").fetchone()) == (existente, resolve.REVISA)
     assert ifood.ingerir(con, [loja()], [])["repetidos"] == 1
@@ -155,3 +155,124 @@ def test_falha_no_lote_nao_deixa_entidade_sem_fonte(tmp_path):
         ifood.ingerir(con, [loja()], [])
     assert con.execute("SELECT count(*) FROM entity").fetchone()[0] == 0
     assert con.execute("SELECT count(*) FROM source_record").fetchone()[0] == 0
+
+
+# Ordem 0000 não identifica estabelecimento real; dígitos verificadores sintéticos.
+CNPJ_TESTE = "98765432000007"
+
+
+def test_painel_sobre_extrai_endereco_bairro_cep_e_cnpj():
+    dados = ifood.detalhes_do_painel({
+        "endereco_bloco": "Rua Fictícia, 123 - Bairro Teste\nPorto Alegre - RS\nCEP: 90000-001",
+        "cnpj": "98.765.432/0000-07",
+    })
+    l = loja(detalhes=dados)
+    assert (l.endereco, l.bairro, l.cep, l.cnpj) == ("Rua Fictícia, 123 - Bairro Teste", "Bairro Teste", "90000001", CNPJ_TESTE)
+    assert ifood.cnpj_valido("98.765.432/0000-08") is None
+    assert ifood.cnpj_valido("11.111.111/1111-11") is None
+    assert ifood.cnpj_valido(123) is None
+    assert loja(detalhes={**dados, "municipio": "Canoas"}).cnpj is None
+
+
+def test_leitor_abre_ver_mais_antes_de_ler_cnpj(monkeypatch):
+    chamadas = []
+    def js(aba, expressao):
+        chamadas.append(expressao)
+        if expressao == ifood.JS_DETALHES:
+            return {"endereco": "Rua Fictícia, 10", "cep": "90000001"}
+        if expressao == ifood.JS_SOBRE:
+            return {"endereco_bloco": "Rua Fictícia, 123 - Bairro Teste\nPorto Alegre - RS\nCEP: 90000-001", "cnpj": CNPJ_TESTE}
+        return True
+    monkeypatch.setattr(ifood, "_js", js)
+    monkeypatch.setattr(ifood, "_esperar", lambda *args: True)
+    l = ifood.ler_detalhes("aba", loja(), ["Porto Alegre"])
+    assert l.cnpj == CNPJ_TESTE and l.endereco == "Rua Fictícia, 123 - Bairro Teste"
+    assert next(i for i,e in enumerate(chamadas) if '.click()' in e) < chamadas.index(ifood.JS_SOBRE)
+
+
+def test_cnpj_vincula_receita_mesmo_com_nome_diferente(tmp_path):
+    con = db.conectar(tmp_path / "t.db")
+    eid = criar_lead(con, "Nome Antigo Fictício", None, cnpj=CNPJ_TESTE, status="enriquecimento", municipio="Porto Alegre")
+    assert ifood.ingerir(con, [loja(detalhes={"cnpj": CNPJ_TESTE, "endereco": "Rua Fictícia, 10"})], [])["vinculados"] == 1
+    assert con.execute("SELECT count(*) FROM entity").fetchone()[0] == 1
+    assert con.execute("SELECT entity_id FROM source_record WHERE source='ifood'").fetchone()[0] == eid
+    assert con.execute("SELECT endereco FROM entity WHERE entity_id=?", (eid,)).fetchone()[0] == "Rua Fictícia, 10"
+
+
+def test_loja_antiga_completa_sem_duplicar_e_sem_apagar_dados(tmp_path):
+    con = db.conectar(tmp_path / "t.db")
+    ifood.ingerir(con, [loja()], [])
+    eid = con.execute("SELECT entity_id FROM entity").fetchone()[0]
+    completa = loja(detalhes={"endereco": "Rua Fictícia, 10 - Centro", "cep": "90000001", "bairro": "Centro", "cnpj": CNPJ_TESTE})
+    assert ifood.ingerir(con, [completa], [])["atualizados"] == 1
+    assert tuple(con.execute("SELECT endereco,cep,bairro,cnpj FROM entity WHERE entity_id=?", (eid,)).fetchone()) == (
+        "Rua Fictícia, 10 - Centro", "90000001", "Centro", CNPJ_TESTE)
+    ifood.ingerir(con, [loja()], [])  # próxima leitura parcial não apaga os detalhes já coletados
+    raw = json.loads(con.execute("SELECT raw_json FROM source_record").fetchone()[0])
+    assert raw["cnpj"] == CNPJ_TESTE and raw["endereco"] == completa.endereco
+    assert con.execute("SELECT count(*) FROM entity").fetchone()[0] == 1
+    assert con.execute("SELECT count(*) FROM source_record").fetchone()[0] == 1
+
+
+def test_backfill_funde_descoberta_provisoria_com_dono_do_cnpj(tmp_path):
+    con = db.conectar(tmp_path / "t.db")
+    eid = criar_lead(con, "Nome Antigo Fictício", None, cnpj=CNPJ_TESTE, municipio="Porto Alegre", status="enriquecimento")
+    ifood.ingerir(con, [loja()], [])
+    assert con.execute("SELECT count(*) FROM entity").fetchone()[0] == 2
+    assert ifood.ingerir(con, [loja(detalhes={"cnpj": CNPJ_TESTE})], [])["atualizados"] == 1
+    assert con.execute("SELECT count(*) FROM entity").fetchone()[0] == 1
+    assert con.execute("SELECT entity_id FROM source_record WHERE source='ifood'").fetchone()[0] == eid
+    assert con.execute("SELECT cnpj FROM entity").fetchone()[0] == CNPJ_TESTE
+
+
+def test_backfill_preserva_conversa_e_manda_conflito_de_cnpj_para_revisao(tmp_path):
+    con = db.conectar(tmp_path / "t.db")
+    dono = criar_lead(con, "Nome Antigo Fictício", None, cnpj=CNPJ_TESTE, municipio="Porto Alegre", status="enriquecimento")
+    ifood.ingerir(con, [loja()], [])
+    eid = con.execute("SELECT entity_id FROM source_record WHERE source='ifood'").fetchone()[0]
+    con.execute("INSERT INTO touch(entity_id,texto,enviado_em) VALUES (?,'texto fictício',?)", (eid, db.agora()))
+    con.commit()
+    assert ifood.ingerir(con, [loja(detalhes={"cnpj": CNPJ_TESTE})], [])["revisao"] == 1
+    assert con.execute("SELECT count(*) FROM entity").fetchone()[0] == 2
+    assert con.execute("SELECT entity_id FROM touch").fetchone()[0] == eid
+    assert tuple(con.execute("SELECT a,b FROM revisao WHERE decidido=0").fetchone()) == (eid, dono)
+    assert con.execute("SELECT cnpj FROM entity WHERE entity_id=?", (eid,)).fetchone()[0] is None
+
+
+def test_recoleta_incompletos_antigos_uma_vez_por_dia(tmp_path, monkeypatch):
+    con = db.conectar(tmp_path / "t.db")
+    ifood.ingerir(con, [loja()], [])
+    raw = json.loads(con.execute("SELECT raw_json FROM source_record").fetchone()[0])
+    raw.pop("cnpj")  # formato anterior à correção
+    con.execute("UPDATE source_record SET raw_json=?", (json.dumps(raw),))
+    con.commit()
+    conhecidos = []
+    def coletar(endereco, limite, ignorados, municipios):
+        conhecidos.append(ignorados)
+        return [loja()]
+    monkeypatch.setattr(ifood, "coletar", coletar)
+    ifood.rodar(con, "Rua Fictícia, 10, Porto Alegre", 1)
+    ifood.rodar(con, "Rua Fictícia, 10, Porto Alegre", 1)
+    assert conhecidos == [set(), {str(loja().id)}]
+
+
+@pytest.mark.parametrize("bloqueado", [False, True])
+def test_lote_segue_sem_detalhes_mas_respeita_bloqueio(monkeypatch, bloqueado):
+    monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
+    monkeypatch.setattr(ifood, "api", lambda *a: {})
+    monkeypatch.setattr(ifood, "_js", lambda aba, js: [item(), item(2, nome="Cozinha Teste Verde")] if js == ifood.JS_LISTA else True)
+    visitadas = []
+    def detalhes(aba, l, municipios):
+        visitadas.append(l.id)
+        if len(visitadas) == 1:
+            if bloqueado:
+                raise ifood.DetalhesBloqueados("403")
+            return l
+        return loja(2, nome="Cozinha Teste Verde", detalhes={"cnpj": CNPJ_TESTE})
+    monkeypatch.setattr(ifood, "ler_detalhes", detalhes)
+    lojas = ifood.coletar("Rua Fictícia, 10, Porto Alegre", 2, set(), ["Porto Alegre"])
+    assert len(lojas) == 2
+    assert len(visitadas) == (1 if bloqueado else 2)
+    assert lojas[1].cnpj == (None if bloqueado else CNPJ_TESTE)
