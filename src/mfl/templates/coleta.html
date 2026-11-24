@@ -21,7 +21,8 @@ tr[aria-current] td { background:var(--realce); }
 {% if ig_checkpoint %}<div class="faixa erro">O Instagram pediu login ou verificação: a coleta de perfis está parada. Rode <code>baixar-insta --login</code> e depois <code>mfl ig --retomar</code>.</div>{% endif %}
 
 <h2>Rotinas</h2>
-<p class="suave">Maps, Instagram, CNPJ e rotina diária rodam de madrugada. O iFood roda pelo endereço escolhido abaixo.
+<p class="suave">Maps e iFood rodam juntos na rodada das 01h30, bairro por bairro. Instagram completa os perfis às 04h,
+  e score e backup rodam às 05h. O CNPJ atualiza a base mensal às 00h30.
   As coletas manuais rodam em segundo plano: pode fechar a página.</p>
 <table>
   <tr><th>Rotina</th><th>Situação</th><th>Última vez</th><th>Próxima automática</th><th></th></tr>
@@ -42,9 +43,10 @@ tr[aria-current] td { background:var(--realce); }
 <form method="post" action="/coleta/rodar" class="linha-acao"><input type="hidden" name="acao" value="score"><input type="hidden" name="cidade" value="{{ cidade }}">
   <button>Recalcular score agora</button><span class="suave">Leva poucos segundos. Use depois de mudar a pontuação ou marcar clientes.</span></form>
 
-<h2 id="maps">Google Maps</h2>
+<h2 id="maps">Maps + iFood por bairro</h2>
 <p class="suave" style="max-width:80ch">O Maps é de onde vem quase todo telefone. Cada bairro é dividido em quadradinhos, e em cada um o raspador
-  busca comida no Google Maps (uns 8 minutos por bairro). Lugar novo vira lead; lugar que já existe (mesmo telefone,
+  busca comida no Google Maps. Depois, um endereço comercial já coletado no bairro serve de ponto de entrega para raspar o iFood.
+  O iFood também cria leads novos, e o Maps busca pelo nome e cidade os que ficaram sem telefone. Lugar novo vira lead; lugar que já existe (mesmo telefone,
   ou nome e endereço parecidos com o CNPJ) só é completado. Raspar de novo um bairro já feito só acrescenta lugares
   que apareceram no Maps depois da última vez; os que já estavam são pulados (não duplicam nem são atualizados). O resultado aparece aqui quando o bairro termina.</p>
 <div class="duas">
@@ -64,13 +66,14 @@ tr[aria-current] td { background:var(--realce); }
       <input type="hidden" name="acao" value="maps_cidade"><input type="hidden" name="cidade" value="{{ cidade }}">
       <label class="campo">Bairros<input type="number" name="limite" value="3" min="1" max="20"></label>
       <button class="primario">Raspar os próximos de {{ cidade }}</button>
-      <span class="suave">Pega os bairros nunca raspados (ou raspados há mais de 60 dias), um depois do outro. Uns 8 minutos cada.</span>
+      <span class="suave">Pega bairros pendentes de Maps ou iFood. Cada fonte tem seu controle: Maps volta em 45–120 dias; iFood, em 60 dias.</span>
     </form>
     {% if bairros_cidade %}<div class="lista-bairros"><table>
-      <tr><th>Bairro</th><th>Última raspagem</th><th></th></tr>
+      <tr><th>Bairro</th><th>Último Maps</th><th>Último iFood</th><th></th></tr>
       {% for b in bairros_cidade %}<tr>
         <td>{{ b.nome }}</td>
         <td>{% if b.feito %}{{ b.feito[8:10] }}/{{ b.feito[5:7] }}/{{ b.feito[:4] }}{% else %}<span class="suave">nunca</span>{% endif %}</td>
+        <td>{% if b.ifood_feito %}{{ b.ifood_feito[8:10] }}/{{ b.ifood_feito[5:7] }}/{{ b.ifood_feito[:4] }}{% else %}<span class="suave">pendente</span>{% endif %}</td>
         <td><form method="post" action="/coleta/rodar"><input type="hidden" name="acao" value="maps_bairro">
           <input type="hidden" name="bairro" value="{{ b.chave }}"><input type="hidden" name="cidade" value="{{ cidade }}">
           <button>Raspar agora</button></form></td>
@@ -80,7 +83,8 @@ tr[aria-current] td { background:var(--realce); }
 </div>
 
 <h2 id="ifood">iFood</h2>
-<p class="suave">Informe um ponto de entrega comercial com rua, número e cidade. A lista varia conforme esse endereço.
+<p class="suave">A coleta automática usa um endereço comercial do bairro já vindo de Maps ou CNPJ. Sem endereço válido, fica pendente.
+  Para coletar outro ponto manualmente, informe rua, número e cidade abaixo. A lista varia conforme esse endereço.
   A coleta pula lojas já importadas e franquias. Casas sem telefone ficam em enriquecimento até o Maps ou Instagram completar.
   Se faltar endereço da loja, confira os possíveis duplicados em Revisão. Verificação ou bloqueio interrompe a coleta.</p>
 <form method="post" action="/coleta/rodar" class="linha-acao">

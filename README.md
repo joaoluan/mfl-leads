@@ -33,6 +33,13 @@ Telas: fila do dia, ficha (/lead/<id>), respostas, painel e config (tetos, pesos
 
 ## iFood
 
+Maps e iFood rodam juntos no timer das **01h30** (`mfl maps-noturno`): até 12 bairros,
+sem iniciar etapa nova depois das 04h.
+Por bairro, o Maps faz a coleta geral; o iFood usa um endereço comercial já coletado no bairro para descobrir outras lojas;
+o Maps busca pelo nome/cidade até 30 descobertas sem telefone. Instagram roda às 04h e score/backup às 05h.
+Cada fonte tem sua data de visita: o iFood também roda nos bairros onde o Maps já está em dia e revisita após 60 dias.
+Sem endereço comercial válido, o bairro fica pendente no iFood, com aviso no log.
+
 Em **Coleta → iFood**, informe rua, número e cidade de um ponto de entrega comercial e clique em **Coletar iFood**.
 Também pelo terminal, com o camofox-browser em `127.0.0.1:9377`:
 
@@ -40,5 +47,6 @@ Também pelo terminal, com o camofox-browser em `127.0.0.1:9377`:
 
 Coleta até 30 lojas novas (limite ajustável de 1 a 100), pula as já importadas e marca `vende_ifood`.
 Veja o resultado em **Leads → Veio de → iFood**. Sem telefone, a casa aguarda Maps/Instagram.
-Nome parecido sem endereço suficiente vai para **Revisão**; não vincula sozinho.
-O iFood pode bloquear detalhes ou a coleta: o log e a situação aparecem em Coleta. Não há agendamento automático.
+Nome parecido sem endereço suficiente vai para **Revisão**. Um link do Maps com o UUID exato da loja no iFood confirma o vínculo,
+mesmo se o iFood esconder o endereço. Buscas sem resultado suficiente voltam após 7 dias; falhas de execução, no dia seguinte.
+O iFood pode bloquear detalhes ou a coleta: o log e a situação aparecem em Coleta. Uma fonte com erro não impede a outra de coletar.

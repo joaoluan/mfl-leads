@@ -1,5 +1,5 @@
 [Unit]
-Description=mfl-leads: Maps, 6 bairros por noite (agenda)
+Description=mfl-leads: Maps e iFood por bairro (agenda)
 
 [Timer]
 OnCalendar=*-*-* 01:30

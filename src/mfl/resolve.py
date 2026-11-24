@@ -67,6 +67,14 @@ def pontuar(a: dict, b: sqlite3.Row | dict, compartilhados: set[str]) -> float:
 def melhor_candidato(con: sqlite3.Connection, novo: dict, compartilhados: set[str],
                      ignorar: str | None = None) -> tuple[sqlite3.Row | None, float]:
     """Bloqueio por CEP5 ou telefone (spec) antes de comparar nomes."""
+    ids_ifood = novo.get("_ifood_ids") or []
+    if ids_ifood:
+        lojas = con.execute(
+            f"SELECT DISTINCT e.* FROM entity e JOIN source_record s ON s.entity_id=e.entity_id"
+            f" WHERE s.source='ifood' AND s.source_key IN ({','.join('?' * len(ids_ifood))}) AND e.entity_id IS NOT ?",
+            (*ids_ifood, ignorar)).fetchall()
+        if len(lojas) == 1:
+            return lojas[0], 1.0
     cep5 = (novo.get("cep") or "")[:5]
     tels = [t for t in (novo.get("tel1"), novo.get("tel2")) if t] or [""]
     marcas = ",".join("?" * len(tels))

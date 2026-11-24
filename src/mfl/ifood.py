@@ -53,20 +53,29 @@ class Loja(BaseModel):
     cep: str | None = None
 
 
+def id_da_url(endereco: str) -> str | None:
+    """Só um link de loja no domínio do iFood prova identidade entre fontes."""
+    try:
+        url = urlsplit(endereco)
+        partes = url.path.strip("/").split("/")
+        if url.scheme != "https" or url.netloc != "www.ifood.com.br" or len(partes) != 4 or partes[0] != "delivery":
+            return None
+        return str(uuid.UUID(partes[3]))
+    except ValueError:
+        return None
+
+
 def analisar(item: dict, municipios: list[str]) -> Loja | None:
     """A URL identifica loja e cidade. Nunca confia na cidade do ponto de entrega."""
-    url = urlsplit(item.get("url") or "")
-    partes = url.path.strip("/").split("/")
-    if url.scheme != "https" or url.netloc != "www.ifood.com.br" or len(partes) != 4 or partes[0] != "delivery":
+    identificador = id_da_url(item.get("url") or "")
+    if not identificador:
         return None
+    url = urlsplit(item["url"])
+    partes = url.path.strip("/").split("/")
     nomes = {normalizar(c): c for c in bairros.CIDADES}
     cidades = {f"{bairros.slug(m)}-rs": nomes.get(normalizar(m), m) for m in municipios}
     cidade = cidades.get(partes[1])
     if not cidade or not (item.get("nome") or "").strip():
-        return None
-    try:
-        identificador = uuid.UUID(partes[3])
-    except ValueError:
         return None
     # Detalhe de outra cidade/UF não pode produzir vínculo no endereço errado.
     detalhe = item.get("detalhes") or {}
@@ -77,6 +86,22 @@ def analisar(item: dict, municipios: list[str]) -> Loja | None:
     return Loja(id=identificador, url=f"https://www.ifood.com.br{url.path}", nome=item["nome"].strip(),
                 municipio=cidade, categoria=item.get("categoria"), endereco=detalhe.get("endereco"),
                 cep=cep if len(cep) == 8 else None)
+
+
+def ponto_de_entrega(con: sqlite3.Connection, bairro: dict) -> str | None:
+    """Usa endereço comercial já coletado no bairro, sem inventar rua ou número."""
+    cidade = bairro["municipio"]
+    linhas = con.execute(
+        "SELECT endereco,bairro FROM entity e WHERE endereco IS NOT NULL AND opt_out=0"
+        " AND status NOT IN ('descartado','opt_out') AND lower(municipio) IN (lower(?),lower(?))"
+        " AND EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id AND s.source IN ('maps','cnpj'))"
+        " ORDER BY EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id AND s.source='maps') DESC, entity_id",
+        (cidade, normalizar(cidade)))
+    for linha in linhas:
+        if normalizar(linha["bairro"] or "") in {normalizar(n) for n in bairro["nome"].split("/")} and (
+                re.search(r",\s*[1-9]\d*\b", linha["endereco"]) or re.search(r"\s[1-9]\d*$", linha["endereco"])):
+            return f"{linha['endereco']}, {cidade} - RS"
+    return None
 
 
 @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=1, max=8), reraise=True,
@@ -93,11 +118,15 @@ def _js(aba: str, expressao: str):
 def _esperar(aba: str, expressao: str):
     fim = time.monotonic() + ESPERA
     while time.monotonic() < fim:
-        if _js(aba, "!!document.querySelector('#px-captcha, iframe[src*=captcha]') || "
-               "/access denied|acesso negado/i.test(document.title)"):
-            raise RuntimeError("iFood pediu verificação ou bloqueou o acesso. Coleta interrompida.")
-        if resultado := _js(aba, expressao):
-            return resultado
+        try:
+            if _js(aba, "!!document.querySelector('#px-captcha, iframe[src*=captcha]') || "
+                   "/access denied|acesso negado/i.test(document.title)"):
+                raise RuntimeError("iFood pediu verificação ou bloqueou o acesso. Coleta interrompida.")
+            if resultado := _js(aba, expressao):
+                return resultado
+        except urllib.error.HTTPError as erro:
+            if erro.code != 409:  # navegação durante leitura: aguarda a página, sem repetir cliques
+                raise
         time.sleep(1)
     raise RuntimeError("iFood não carregou a etapa esperada. Confira o endereço ou tente mais tarde.")
 
