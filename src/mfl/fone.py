@@ -1,6 +1,11 @@
 """Telefone sempre em E.164: é a chave de dedupe entre fontes e do deep link."""
 
+import re
+
 import phonenumbers
+
+# Link de conversa com número: wa.me/<n>, wa.me/c/<n> (catálogo) e api.whatsapp.com/send?phone=<n>.
+WHATSAPP = re.compile(r"(?:wa\.me/(?:c/)?|whatsapp\.com/send/?\?(?:[^\s\"'<>]*?&)?phone=)\+?(\d[\d.]{9,15})")
 
 
 def para_e164(bruto: str) -> str | None:
@@ -25,3 +30,17 @@ def de_jid(jid: str) -> str | None:
     """Só JID de telefone vira número; LID (@lid) não é telefone e grupo não é pessoa."""
     usuario, _, dominio = (jid or "").partition("@")
     return para_e164("+" + usuario) if dominio == "s.whatsapp.net" and usuario.isdigit() else None
+
+
+def celular(e164: str | None) -> bool:
+    return bool(e164) and phonenumbers.number_type(phonenumbers.parse(e164)) == phonenumbers.PhoneNumberType.MOBILE
+
+
+def whatsapp_em(texto: str) -> str | None:
+    """Número de um link de WhatsApp: confirmado como WhatsApp mesmo sendo fixo (WhatsApp Business)."""
+    for bruto in WHATSAPP.findall(texto or ""):
+        digitos = bruto.replace(".", "")
+        tel = para_e164("+" + digitos if len(digitos) >= 12 else digitos)
+        if tel:
+            return tel
+    return None

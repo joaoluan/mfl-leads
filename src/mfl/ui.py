@@ -45,7 +45,9 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         estado = con().execute("SELECT valor FROM estado WHERE chave='evolution_conexao'").fetchone()
         pendentes = con().execute("SELECT count(*) FROM reply WHERE revisado=0").fetchone()[0]
         revisoes = con().execute("SELECT count(*) FROM revisao WHERE decidido=0").fetchone()[0]
-        return {"evolution_ok": estado is None or estado[0] == "open", "pendentes": pendentes, "revisoes": revisoes}
+        ig_checkpoint = con().execute("SELECT 1 FROM estado WHERE chave='ig_checkpoint'").fetchone() is not None
+        return {"evolution_ok": estado is None or estado[0] == "open", "pendentes": pendentes, "revisoes": revisoes,
+                "ig_checkpoint": ig_checkpoint}
 
     @app.get("/")
     def fila() -> str:

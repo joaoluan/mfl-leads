@@ -1,4 +1,4 @@
-.PHONY: seed export test etl icp maps resolve score
+.PHONY: seed export test etl icp maps resolve score ig
 
 seed:
 	@test -n "$(CSV)" || (echo "uso: make seed CSV=arquivo.csv" >&2; exit 2)
@@ -26,3 +26,7 @@ resolve:
 
 score:
 	uv run mfl score
+
+ig:
+	uv run mfl ig-handles
+	uv run mfl ig --limite $(or $(N),30)

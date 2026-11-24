@@ -12,7 +12,7 @@ import structlog
 import typer
 from dotenv import load_dotenv
 
-from mfl import bairros, cnpj_baixar, cnpj_etl, cnpj_icp, db, maps, resolve, score, evolution, export, log, seed, ui, webhook, whatsapp
+from mfl import bairros, cnpj_baixar, cnpj_etl, cnpj_icp, db, ig, maps, resolve, score, evolution, export, log, seed, ui, webhook, whatsapp
 from mfl.fone import de_jid, para_e164
 
 app = typer.Typer(no_args_is_help=True)
@@ -218,3 +218,23 @@ def cmd_score() -> None:
     """Recalcula score e sinais de todos os leads (pesos em cfg/icp.toml)."""
     log.configurar("score")
     score.recalcular(db.conectar(), date.today())
+
+
+@app.command("ig-handles")
+def cmd_ig_handles() -> None:
+    """Acha o @ do Instagram nos links do Maps e no site da casa."""
+    log.configurar("ig")
+    logger.info("ig_handles", novos=ig.extrair_handles(db.conectar()))
+
+
+@app.command("ig")
+def cmd_ig(limite: int = typer.Option(ig.POR_DIA, help="Perfis nesta execução (teto de 30 por dia)"),
+           retomar: bool = typer.Option(False, help="Limpa o checkpoint depois de resolver o login")) -> None:
+    """Visita perfis do Instagram pelo camofox (conta secundária) e recalcula o score."""
+    log.configurar("ig")
+    con = db.conectar()
+    if retomar:
+        con.execute("DELETE FROM estado WHERE chave='ig_checkpoint'")
+        con.commit()
+    if ig.rodar(con, date.today(), limite)["perfis"]:
+        score.recalcular(con, date.today())

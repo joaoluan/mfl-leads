@@ -13,6 +13,7 @@ from rapidfuzz import fuzz
 
 from mfl.classifica import normalizar
 from mfl.db import agora
+from mfl.fone import celular
 
 VINCULA, REVISA = 0.85, 0.55
 SUFIXOS = re.compile(r"\b(ltda|me|eireli|sa|mei|epp)\b")
@@ -87,10 +88,14 @@ def preencher(con: sqlite3.Connection, entity_id: str, dados: dict) -> None:
         mudancas["nome"] = dados["nome"]
     if dados.get("categoria") and dados.get("_fonte") == "maps":
         mudancas["categoria"] = dados["categoria"]  # categoria do Maps é mais específica que a descrição do CNAE
-    if dados.get("tel1"):
+    if dados.get("tel1") and dados["tel1"] != atual["tel1"]:
         if atual["tel1"] is None:
             mudancas["tel1"] = dados["tel1"]
-        elif atual["tel1"] != dados["tel1"] and atual["tel2"] is None:
+        elif dados.get("_celular") and not celular(atual["tel1"]):
+            mudancas["tel1"] = dados["tel1"]  # fixo não recebe WhatsApp: o celular novo assume
+            if atual["tel2"] is None:
+                mudancas["tel2"] = atual["tel1"]
+        elif atual["tel2"] is None:
             mudancas["tel2"] = dados["tel1"]  # o WhatsApp do dono (grupo) continua sendo o principal
     if atual["status"] == "enriquecimento" and dados.get("_celular") and (mudancas.get("tel1") or atual["tel1"]):
         mudancas["status"] = "novo"
