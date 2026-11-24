@@ -44,8 +44,8 @@ tr[aria-current] td { background:var(--realce); }
 <h2 id="maps">Google Maps</h2>
 <p class="suave" style="max-width:80ch">O Maps é de onde vem quase todo telefone. Cada bairro é dividido em quadradinhos, e em cada um o raspador
   busca comida no Google Maps (uns 8 minutos por bairro). Lugar novo vira lead; lugar que já existe (mesmo telefone,
-  ou nome e endereço parecidos com o CNPJ) só é completado. Raspar de novo um bairro já feito traz o que abriu depois
-  e atualiza nota e telefone; os repetidos não duplicam. O resultado aparece aqui quando o bairro termina.</p>
+  ou nome e endereço parecidos com o CNPJ) só é completado. Raspar de novo um bairro já feito só acrescenta lugares
+  que apareceram no Maps depois da última vez; os que já estavam são pulados (não duplicam nem são atualizados). O resultado aparece aqui quando o bairro termina.</p>
 <div class="duas">
   <section aria-label="Cidades">
     <table>
