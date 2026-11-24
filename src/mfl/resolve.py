@@ -12,7 +12,7 @@ import sqlite3
 from rapidfuzz import fuzz
 
 from mfl.classifica import normalizar
-from mfl.db import agora
+from mfl.db import agora, bloqueado
 from mfl.fone import celular
 
 VINCULA, REVISA = 0.85, 0.55
@@ -20,7 +20,7 @@ SUFIXOS = re.compile(r"\b(ltda|me|eireli|sa|mei|epp)\b")
 # Palavras de tipo de casa não identificam ninguém: "Pizzaria Nova" e "Pizzaria Bella" não são parecidas.
 GENERICAS = re.compile(r"\b(pizzaria|pizza|pizzas|restaurante|lanchonete|lancheria|lanches|bar|cafe|cafeteria|padaria"
                        r"|confeitaria|doceria|hamburgueria|burger|churrascaria|sushi|casa|do|da|de|dos|das|e|o|a)\b")
-PROVISORIO = re.compile(r"^(CNPJ |Marcado como )")
+PROVISORIO = re.compile(r"^(CNPJ |Marcado como |Contato \()")
 # Campos que a fonte nova preenche quando o lead sobrevivente não tem.
 PREENCHE = ["cnpj", "place_id", "ig_username", "fantasia", "cnae", "categoria", "uf", "municipio", "bairro", "cep",
             "endereco", "tel2", "email", "site", "nota", "avaliacoes"]
@@ -82,6 +82,8 @@ def melhor_candidato(con: sqlite3.Connection, novo: dict, compartilhados: set[st
 def preencher(con: sqlite3.Connection, entity_id: str, dados: dict) -> None:
     """Completa o lead sobrevivente sem apagar o que ele já tem; nome provisório (CNPJ/marcado) é trocado."""
     atual = con.execute("SELECT * FROM entity WHERE entity_id=?", (entity_id,)).fetchone()
+    if dados.get("tel1") and bloqueado(con, dados["tel1"]):  # pediu SAIR: não volta por outra fonte
+        dados = {**dados, "tel1": None, "_celular": False}
     mudancas = {c: dados[c] for c in PREENCHE if dados.get(c) is not None and atual[c] is None}
     if dados.get("nome") and not PROVISORIO.match(dados["nome"]) and (
             atual["nome"] is None or PROVISORIO.match(atual["nome"])):

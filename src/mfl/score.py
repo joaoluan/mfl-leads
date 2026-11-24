@@ -9,6 +9,7 @@ import re
 import sqlite3
 import tomllib
 from collections import defaultdict
+from itertools import groupby
 from datetime import date, timedelta
 
 import structlog
@@ -101,20 +102,30 @@ def recalcular(con: sqlite3.Connection, hoje: date) -> dict[str, int]:
         arquivo_d0(r[0]) for r in con.execute("SELECT categoria FROM entity WHERE status='cliente'") if r[0]}
     termos = cnpj_icp.termos_franquia()
     franquias = re.compile(r"\b(" + "|".join(re.escape(t) for t in termos) + r")\b") if termos else None
-    fontes: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
-    for entity_id, fonte, raw in con.execute("SELECT entity_id, source, raw_json FROM source_record"):
-        fontes[entity_id][fonte].append(json.loads(raw))
-    contagem = {"leads": 0, "acima_do_corte": 0}
-    leads = con.execute("SELECT * FROM entity WHERE status NOT IN ('cliente','descartado','opt_out')").fetchall()
-    for n, lead in enumerate(leads, start=1):
-        achados = sinais(lead, fontes[lead["entity_id"]], perto, hoje, clientes, franquias)
-        total = sum(pesos.get(x, 0) for x in achados)
-        con.execute("UPDATE entity SET score=?, sinais=? WHERE entity_id=?", (total, json.dumps(achados), lead["entity_id"]))
-        contagem["leads"] += 1
-        contagem["acima_do_corte"] += total >= cfg["corte"]
-        if n % LOTE == 0:
-            con.commit()
-    con.commit()
+    ativos = {l["entity_id"]: l for l in con.execute(
+        "SELECT * FROM entity WHERE status NOT IN ('cliente','descartado','opt_out')")}
+    # Calcula tudo antes de gravar e lê as fontes um lead por vez: o JSON do Maps
+    # (~13 KB por lugar) não cabe todo em memória quando a região inteira estiver raspada.
+    novos: list[tuple[float, str, str]] = []
+
+    def pontuar(lead: sqlite3.Row, fontes: dict[str, list[dict]]) -> None:
+        achados = sinais(lead, fontes, perto, hoje, clientes, franquias)
+        novos.append((sum(pesos.get(x, 0) for x in achados), json.dumps(achados), lead["entity_id"]))
+
+    registros = con.execute("SELECT entity_id, source, raw_json FROM source_record ORDER BY entity_id")
+    for entity_id, grupo in groupby(registros, key=lambda r: r[0]):
+        lead = ativos.pop(entity_id, None)
+        if lead is not None:
+            fontes: dict[str, list[dict]] = defaultdict(list)
+            for _, fonte, raw in grupo:
+                fontes[fonte].append(json.loads(raw))
+            pontuar(lead, fontes)
+    for lead in ativos.values():  # sem nenhuma fonte (ex.: marcado à mão)
+        pontuar(lead, {})
+    for i in range(0, len(novos), LOTE):
+        con.executemany("UPDATE entity SET score=?, sinais=? WHERE entity_id=?", novos[i:i + LOTE])
+        con.commit()
+    contagem = {"leads": len(novos), "acima_do_corte": sum(total >= cfg["corte"] for total, _, _ in novos)}
     con.execute("INSERT OR REPLACE INTO estado VALUES ('score_recalculado', ?, ?)", (hoje.isoformat(), agora()))
     con.commit()
     log.info("score_recalculado", **contagem)
