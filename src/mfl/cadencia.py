@@ -35,7 +35,8 @@ def atualizar(con: sqlite3.Connection, hoje: date) -> None:
 
 
 def feitos(con: sqlite3.Connection, hoje: date) -> int:
-    return con.execute("SELECT count(DISTINCT entity_id) FROM touch WHERE substr(enviado_em,1,10)=?",
+    """Abordagens da fila no dia. Resposta a quem já conversa (sem template) não gasta o teto."""
+    return con.execute("SELECT count(DISTINCT entity_id) FROM touch WHERE template_id IS NOT NULL AND substr(enviado_em,1,10)=?",
                        (_dia(hoje),)).fetchone()[0]
 
 

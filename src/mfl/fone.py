@@ -32,6 +32,13 @@ def de_jid(jid: str) -> str | None:
     return para_e164("+" + usuario) if dominio == "s.whatsapp.net" and usuario.isdigit() else None
 
 
+def legivel(e164: str | None) -> str:
+    """+5551991202014 -> (51) 99120-2014, para a tela."""
+    if not e164:
+        return ""
+    return phonenumbers.format_number(phonenumbers.parse(e164), phonenumbers.PhoneNumberFormat.NATIONAL)
+
+
 def celular(e164: str | None) -> bool:
     return bool(e164) and phonenumbers.number_type(phonenumbers.parse(e164)) == phonenumbers.PhoneNumberType.MOBILE
 

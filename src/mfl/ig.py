@@ -95,7 +95,6 @@ def analisar(pagina: dict) -> dict:
     links = sorted({_destino(l) for l in pagina.get("links") or []})
     datas = [data_do_post(h.rstrip("/").rsplit("/", 1)[1]) for h in pagina.get("grade") or []]
     texto = " ".join([bio, pagina.get("cabecalho") or "", *links])
-    tel = None
     tel = telefone_em(texto)
     email = next((e.lower() for e in EMAIL.findall(texto) if not e.lower().endswith((".png", ".jpg"))), None)
     return {

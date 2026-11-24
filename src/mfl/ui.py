@@ -1,6 +1,7 @@
 """UI local (Flask, 127.0.0.1:8000): fila, ficha, respostas, painel e config. Sem login: só localhost."""
 
 import json
+import re
 import sqlite3
 import tomllib
 from datetime import date, datetime, time, timedelta
@@ -8,17 +9,52 @@ from pathlib import Path
 
 from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
 
-from mfl import cadencia, db, mensagens, resolve, whatsapp
+from mfl import bairros, cadencia, db, mensagens, resolve, score, whatsapp
 from mfl.db import FUSO, agora
+from mfl.fone import legivel
 
 STATUS_FICHA = ["respondeu", "trial", "cliente", "objecao", "frio", "na_fila", "descartado"]
 MOTIVOS_DESCARTE = ["sem_whatsapp", "nao_e_restaurante", "franquia", "outro"]
-CLASSES = {"interesse": "respondeu", "preco": "respondeu", "ja_tenho": "objecao", "nao": "frio", "opt_out": None}
+CLASSES = {"interesse": "respondeu", "preco": "respondeu", "ja_tenho": "objecao", "nao": "frio", "opt_out": None, "outro": None}
+# Classificar resposta só mexe no status de quem está em prospecção: cliente que diz "não" continua cliente.
+EM_CONVERSA = whatsapp.VIRA_RESPONDEU | {"respondeu", "objecao"}
+ROTULOS = {
+    "novo": "Novo", "na_fila": "Na fila", "qualificado": "Novo", "enriquecimento": "Sem WhatsApp ainda",
+    "enviado_d0": "1ª mensagem enviada", "d3": "Lembrete D3 enviado", "d7": "Lembrete D7 enviado",
+    "respondeu": "Respondeu", "objecao": "Já tem sistema", "frio": "Frio", "trial": "Trial", "cliente": "Cliente",
+    "opt_out": "Pediu SAIR", "descartado": "Descartado",
+    "d0": "1ª mensagem", "interesse": "Interesse", "preco": "Perguntou preço", "ja_tenho": "Já tem sistema",
+    "nao": "Não quer", "outro": "Outro (só li)",
+    "mesma_categoria_de_cliente": "Categoria de cliente", "raio": "Perto da base", "wa_me_na_bio": "WhatsApp no perfil",
+    "reclamacao_demora": "Reclamam de demora", "aberto_menos_12m": "Aberto há menos de 1 ano", "sem_site": "Sem site",
+    "aceita_encomenda": "Aceita encomenda", "vende_ifood": "Vende no iFood", "ig_ativo_30d": "Instagram ativo",
+    "unidade_unica": "Unidade única", "usa_concorrente": "Usa concorrente", "franquia": "Franquia",
+    "site_com_pedido_proprio": "Site com pedido próprio", "ig_inativo_6m": "Instagram parado",
+    "sem_whatsapp": "Sem WhatsApp", "nao_e_restaurante": "Não é restaurante",
+    "cnpj": "Receita (CNPJ)", "maps": "Google Maps", "instagram": "Instagram",
+}
+
+
+def _quando(iso: str | None) -> str:
+    try:
+        return datetime.fromisoformat(iso).strftime("%d/%m %H:%M") if iso else ""
+    except ValueError:
+        return iso or ""
 EDITAVEIS = {"tetos.toml": cadencia.TETOS, "icp.toml": db.RAIZ / "cfg" / "icp.toml"}
 
 
 def criar_app(caminho_db: Path | None = None) -> Flask:
     app = Flask(__name__)
+    app.jinja_env.filters.update(rotulo=lambda v: ROTULOS.get(v, str(v or "").replace("_", " ")),
+                                 quando=_quando, fone=legivel)
+
+    @app.before_request
+    def so_local() -> None:
+        """Sem login: recusa outro nome de host (DNS rebinding) e POST vindo de outro site (CSRF)."""
+        if request.host.rsplit(":", 1)[0] not in ("127.0.0.1", "localhost"):
+            abort(403)
+        if request.method == "POST" and request.headers.get("Sec-Fetch-Site", "same-origin") not in ("same-origin", "none"):
+            abort(403)
 
     def con() -> sqlite3.Connection:
         if "con" not in g:
@@ -61,7 +97,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
                             "sinais": json.loads(lead["sinais"] or "[]"),
                             "link": mensagens.link_whatsapp(lead["tel1"], texto)})
         return render_template("fila.html", cartoes=cartoes, feitos=feitos, teto=limite, motivo_teto=motivo,
-                               na_janela=cadencia.na_janela(cfg, datetime.now(FUSO)))
+                               na_janela=cadencia.na_janela(cfg, datetime.now(FUSO)), pesos=score.config()["pesos"])
 
     @app.post("/api/abrir/<entity_id>")
     def abrir(entity_id: str) -> tuple[str, int]:
@@ -105,6 +141,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
             " UNION ALL SELECT recebido_em, 'recebido', texto, coalesce(classificacao,'') FROM reply WHERE entity_id=?"
             " ORDER BY quando DESC", (entity_id, entity_id)).fetchall()
         return render_template("lead.html", lead=lead, origem=origem, linha=linha, texto=texto,
+                               sinais=json.loads(lead["sinais"] or "[]"), pesos=score.config()["pesos"],
                                template_id=template_id, link=mensagens.link_whatsapp(lead["tel1"], texto) if lead["tel1"] else None,
                                status_ficha=STATUS_FICHA, motivos=MOTIVOS_DESCARTE)
 
@@ -134,25 +171,53 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
 
     @app.get("/respostas")
     def respostas() -> str:
-        itens = con().execute(
-            "SELECT r.*, e.nome, e.fantasia, e.tel1, e.status FROM reply r JOIN entity e USING(entity_id)"
-            " WHERE r.revisado=0 ORDER BY r.recebido_em DESC").fetchall()
+        """Uma conversa por lead: todas as mensagens pendentes juntas, com a última que você mandou de contexto."""
+        conversas: dict[str, dict] = {}
+        for r in con().execute("SELECT r.*, e.nome, e.fantasia, e.tel1, e.status FROM reply r JOIN entity e USING(entity_id)"
+                               " WHERE r.revisado=0 ORDER BY r.recebido_em"):
+            conversas.setdefault(r["entity_id"], {"lead": r, "msgs": []})["msgs"].append(r)
+        for c in conversas.values():
+            c["ultima"] = c["msgs"][-1]
+            c["palpite"] = next((m["classificacao"] for m in reversed(c["msgs"]) if m["classificacao"]), None)
+            c["envio"] = con().execute("SELECT texto, enviado_em FROM touch WHERE entity_id=? AND enviado_em <= ?"
+                                       " ORDER BY enviado_em DESC LIMIT 1",
+                                       (c["lead"]["entity_id"], c["msgs"][0]["recebido_em"])).fetchone()
+        itens = sorted(conversas.values(), key=lambda c: c["ultima"]["recebido_em"], reverse=True)
         sugestoes = {a: mensagens.resposta_sugerida(a, hoje()) for a in ("interesse", "preco", "ja_tenho")}
         return render_template("respostas.html", itens=itens, classes=list(CLASSES), sugestoes=sugestoes)
 
     @app.post("/respostas/<int:reply_id>")
-    def classificar(reply_id: str):
+    def classificar(reply_id: int):
+        """Classifica a última mensagem e dá a conversa toda do lead como revisada."""
         classe = request.form["classificacao"]
-        resposta = con().execute("SELECT entity_id FROM reply WHERE id=?", (reply_id,)).fetchone()
+        resposta = con().execute("SELECT r.entity_id, e.status FROM reply r JOIN entity e USING(entity_id) WHERE r.id=?",
+                                 (reply_id,)).fetchone()
         if not resposta or classe not in CLASSES:
             abort(400)
-        con().execute("UPDATE reply SET classificacao=?, revisado=1 WHERE id=?", (classe, reply_id))
+        if classe != "outro":
+            con().execute("UPDATE reply SET classificacao=? WHERE id=?", (classe, reply_id))
+        con().execute("UPDATE reply SET revisado=1 WHERE entity_id=? AND revisado=0", (resposta["entity_id"],))
         if classe == "opt_out":
             whatsapp.marcar_opt_out(con(), resposta["entity_id"], "manual")
-        else:
+        elif CLASSES[classe] and resposta["status"] in EM_CONVERSA:
             whatsapp.mudar_status(con(), resposta["entity_id"], CLASSES[classe])
         con().commit()
         return redirect(url_for("respostas"))
+
+    @app.get("/busca")
+    def busca() -> str:
+        """Acha um lead por nome, @ do Instagram, telefone ou CNPJ."""
+        q = request.args.get("q", "").strip()
+        leads: list[sqlite3.Row] = []
+        if q:
+            termos, filtros = [f"%{q}%"] * 3, ["nome LIKE ?", "fantasia LIKE ?", "ig_username LIKE ?"]
+            digitos = re.sub(r"\D", "", q)
+            if len(digitos) >= 4:
+                termos += [f"%{digitos}%"] * 3
+                filtros += ["tel1 LIKE ?", "tel2 LIKE ?", "cnpj LIKE ?"]
+            leads = con().execute(f"SELECT * FROM entity WHERE {' OR '.join(filtros)}"
+                                  " ORDER BY status IN ('enriquecimento','descartado'), score DESC LIMIT 50", termos).fetchall()
+        return render_template("busca.html", q=q, leads=leads)
 
     @app.get("/revisao")
     def revisao() -> str:
@@ -175,7 +240,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
     def painel() -> str:
         jobs = con().execute("SELECT substr(chave, 5) AS nome, valor, atualizado_em FROM estado"
                              " WHERE chave LIKE 'job:%' ORDER BY chave").fetchall()
-        return render_template("painel.html", jobs=jobs, **_metricas(con(), cadencia.config(), hoje()))
+        return render_template("painel.html", jobs=jobs, esteira=_esteira(con()), **_metricas(con(), cadencia.config(), hoje()))
 
     @app.route("/config", methods=["GET", "POST"])
     def config() -> str:
@@ -220,19 +285,36 @@ def _metricas(con: sqlite3.Connection, cfg: dict, hoje: date) -> dict:
     por_dia = [cadencia.bloqueio(con, fim - timedelta(days=i + 1), fim - timedelta(days=i)) for i in range(1, 4)]
     alerta = all(envios and taxa > cfg["alerta_bloqueio"] for taxa, envios in por_dia)
     return {
-        "hoje_n": contar("SELECT count(DISTINCT entity_id) FROM touch WHERE substr(enviado_em,1,10)=?", hoje.isoformat()),
-        "semana_n": contar("SELECT count(DISTINCT entity_id) FROM touch WHERE substr(enviado_em,1,10)>=?",
+        "hoje_n": cadencia.feitos(con, hoje),
+        "semana_n": contar("SELECT count(DISTINCT entity_id) FROM touch WHERE template_id IS NOT NULL AND substr(enviado_em,1,10)>=?",
                            inicio_semana.isoformat()),
         "taxa_resposta": responderam_30 / enviados_30 if enviados_30 else 0.0,
         "enviados_30": enviados_30, "taxa_bloqueio": taxa_7, "envios_7": envios_7, "alerta_bloqueio": alerta,
         "status": dict(con.execute("SELECT status, count(*) FROM entity GROUP BY status").fetchall()),
         "tabelas": {nome: _funil(con, desde, expr, junta) for nome, expr, junta in [
-            ("Por fonte", "s.source", "JOIN source_record s ON s.entity_id = t.entity_id"),
+            ("Por fonte", "coalesce(s.source, 'sem fonte')", "LEFT JOIN source_record s ON s.entity_id = t.entity_id"),
             ("Por variante de texto", "coalesce(t0.template_id, 'sem registro')",
              "JOIN touch t0 ON t0.entity_id = t.entity_id AND t0.enviado_em = t.primeiro"),
             ("Por categoria", "coalesce(e.categoria, 'sem categoria')", ""),
             ("Por bairro", "coalesce(e.bairro, 'sem bairro')", ""),
         ]},
+    }
+
+
+def _esteira(con: sqlite3.Connection) -> dict:
+    """Andamento da coleta: o quanto da região já foi raspado e quantos leads estão prontos."""
+    def contar(sql: str, *args: object) -> int:
+        return con.execute(sql, args).fetchone()[0] or 0
+
+    return {
+        "bairros_feitos": contar("SELECT count(*) FROM estado WHERE chave LIKE 'maps:%'"),
+        "bairros_total": len(bairros.carregar()),
+        "lugares_maps": contar("SELECT count(*) FROM source_record WHERE source='maps'"),
+        "perfis_ig": contar("SELECT count(*) FROM source_record WHERE source='instagram'"),
+        "handles_ig": contar("SELECT count(*) FROM entity WHERE ig_username IS NOT NULL"),
+        "prontos": contar("SELECT count(*) FROM entity WHERE status IN ('novo','qualificado','na_fila') AND tel1 IS NOT NULL"
+                          " AND opt_out=0 AND score >= ?", score.config()["corte"]),
+        "enriquecimento": contar("SELECT count(*) FROM entity WHERE status='enriquecimento'"),
     }
 
 
