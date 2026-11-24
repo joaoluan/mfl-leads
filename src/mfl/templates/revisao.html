@@ -13,7 +13,7 @@
     {% endfor %}
   </table>
   <div class="acoes">
-    <form method="post" action="/revisao/{{ p.id }}" data-confirmar="Juntar os dois num lead só? Não dá para separar depois."><input type="hidden" name="decisao" value="mesmo"><button class="primario">Mesmo lugar</button></form>
+    <form method="post" action="/revisao/{{ p.id }}"><input type="hidden" name="decisao" value="mesmo"><button class="primario">Mesmo lugar</button></form>
     <form method="post" action="/revisao/{{ p.id }}"><input type="hidden" name="decisao" value="diferente"><button>Lugares diferentes</button></form>
   </div>
 </div>
