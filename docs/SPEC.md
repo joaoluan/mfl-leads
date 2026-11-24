@@ -102,6 +102,15 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - Corte (40) vale só para leads novos; follow-ups seguem. Quem usa concorrente recebe `cfg/mensagens/concorrente.md`; quem está no grupo continua com o texto do grupo.
 - shortcut: raio por município, não por distância (CNPJ não tem coordenada); trocar por distância quando houver lat/lon de clientes.
 
+### Instagram (fase 7)
+- `mfl ig-handles`: @ dos links do Maps (site, pedido online); se não houver, da página inicial do site da casa, só se o @ lembrar o nome da casa e o site não for de plataforma (rodapé de agência/Partiu Pedido).
+- `mfl ig --limite N` (`make ig`): perfis pelo camofox (`127.0.0.1:9377`) na sessão `baixar-insta` (conta secundária já logada; `MFL_CAMOFOX_USER` troca). Só páginas de perfil, sem API. Teto de 30 por dia, pausa de 4 a 9 s, uma aba por vez, fecha a aba e mantém a sessão.
+- Grava o mínimo (LGPD): bio, links externos, seguidores, posts, data do último post (tirada do shortcode, sem abrir posts), telefone, e-mail, data de coleta. Sem HTML bruto. Revisita após 60 dias.
+- Telefone: wa.me (inclusive `wa.me/c/`) e api.whatsapp.com, depois celular escrito na bio; se não houver, abre até 2 links externos (Linktree etc.) com GET simples. Número de link de WhatsApp é apto mesmo fixo (WhatsApp Business), também no Maps.
+- Login/verificação pedido = checkpoint: grava `estado.ig_checkpoint`, para o lote, faixa vermelha na UI. Resolver com `baixar-insta --login` e `mfl ig --retomar`.
+- Sinais: wa_me_na_bio, ig_ativo_30d (post nos últimos 30 dias), ig_inativo_6m (último post há mais de 180 dias ou nenhum), usa_concorrente (link de plataforma).
+- shortcut: telefone que só aparece no botão "Contato" (exige clique) e links encurtados (wa.link, contate.me) não são lidos.
+
 ### Fases (parar em cada uma, um PR por fase)
 1. Esqueleto, schema, seed por CSV, export.
 2. Evolution: envios e respostas, participantes do grupo, palavra-chave, opt-out.

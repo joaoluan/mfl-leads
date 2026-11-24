@@ -14,13 +14,12 @@ import time
 import uuid
 from pathlib import Path
 
-import phonenumbers
 import structlog
 
 from mfl import resolve
 from mfl.classifica import normalizar
 from mfl.db import LOTE, RAIZ, agora
-from mfl.fone import para_e164
+from mfl.fone import celular as e_celular, para_e164, whatsapp_em
 
 log = structlog.get_logger()
 BINARIO = RAIZ / "bin" / "google-maps-scraper"
@@ -89,16 +88,19 @@ def _email(lugar: dict) -> str | None:
 
 def _dados(lugar: dict, bairro: dict) -> dict:
     endereco = lugar.get("complete_address") or {}
-    tel = para_e164(lugar.get("phone") or "")
-    celular = bool(tel) and phonenumbers.number_type(phonenumbers.parse(tel)) == phonenumbers.PhoneNumberType.MOBILE
+    fone = para_e164(lugar.get("phone") or "")
+    links = " ".join([lugar.get("web_site") or "", *[o.get("link") or "" for o in lugar.get("order_online") or []]])
+    zap = whatsapp_em(links)
+    tel = zap or fone
+    celular = bool(zap) or e_celular(tel)  # "_celular" = apto para WhatsApp
     titulo = (lugar.get("title") or "").strip()
     return {
-        "_fonte": "maps", "_celular": celular, "place_id": lugar["place_id"], "nome": titulo, "fantasia": titulo,
+        "_fonte": "maps", "_celular": celular, "_whatsapp": bool(zap), "place_id": lugar["place_id"], "nome": titulo, "fantasia": titulo,
         "categoria": lugar.get("category") or None, "uf": "RS", "municipio": endereco.get("city") or bairro["municipio"],
         "bairro": endereco.get("borough") or bairro["nome"],
         "cep": re.sub(r"\D", "", endereco.get("postal_code") or "") or None,
         "endereco": re.sub(rf"^{re.escape(titulo)} - ", "", lugar.get("address") or "") or None,
-        "tel1": tel, "site": lugar.get("web_site") or None, "nota": lugar.get("review_rating"),
+        "tel1": tel, "tel2": fone if zap and fone != zap else None, "site": lugar.get("web_site") or None, "nota": lugar.get("review_rating"),
         "avaliacoes": lugar.get("review_count"),
     }
 
@@ -148,7 +150,8 @@ def ingerir(con: sqlite3.Connection, arquivo: Path, bairro: dict, municipios: li
                 contagem["revisao"] += 1
         if dados["tel1"]:
             con.execute("INSERT OR REPLACE INTO validacao VALUES (?,?,?)",
-                        (dados["tel1"], "celular" if dados["_celular"] else "fixo", momento))
+                        (dados["tel1"], "whatsapp" if dados["_whatsapp"] else
+                         "celular" if dados["_celular"] else "fixo", momento))
         contagem["aptos"] += dados["_celular"] and not motivo
         raw = json.dumps(lugar, ensure_ascii=False, sort_keys=True)
         con.execute(

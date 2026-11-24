@@ -20,11 +20,11 @@ from mfl.mensagens import arquivo_d0
 
 log = structlog.get_logger()
 CONCORRENTE = re.compile(r"leadsfood|cardapioweb|cardapio\.?web|anota\.?ai|goomer|saipos|menudino|consumer\.com|"
-                         r"deliverydireto|instadelivery|neemo|aiqfome|pedefacil|ola\.click|delivery\.?much")
+                         r"deliverydireto|instadelivery|neemo|aiqfome|pedefacil|ola\.click|delivery\.?much|partiupedido")
 SOCIAL = re.compile(r"instagram\.com|facebook\.com|linktr\.ee|wa\.me|whatsapp\.com|wa\.link|contate\.me|bio\.site")
 WHATSAPP = re.compile(r"wa\.me|whatsapp\.com|wa\.link|contate\.me")
 DEMORA = re.compile(r"\b(demor\w*|atras\w*|esper(ei|amos|ando) (muito|mais|quase|\d)|lent[oa]|nunca chegou|chegou fri[oa])\b")
-ENCOMENDA = re.compile(r"\b(encomenda\w*|confeitaria|doceria|bolos?|tortas?|salgados?|docinhos?|panificadora)\b")
+ENCOMENDA = re.compile(r"\b(confeitaria|doceria|bolos?|tortas?|salgados?|docinhos?|panificadora)\b")  # categoria/nome
 
 
 def config() -> dict:
@@ -69,8 +69,20 @@ def sinais(lead: sqlite3.Row | dict, fontes: dict[str, list[dict]], perto: set[s
         avaliacoes = " ".join(normalizar(r.get("Description") or "") for m in maps for r in m.get("user_reviews") or [])
         if DEMORA.search(avaliacoes):
             s.append("reclamacao_demora")
-        if ENCOMENDA.search(normalizar(f"{lead['categoria'] or ''} {lead['nome'] or ''} {avaliacoes}")):
+        if ENCOMENDA.search(normalizar(f"{lead['categoria'] or ''} {lead['nome'] or ''}")) or "encomenda" in avaliacoes:
             s.append("aceita_encomenda")
+    for perfil in fontes.get("instagram", []):
+        if perfil.get("indisponivel"):
+            continue
+        if perfil.get("whatsapp") and "wa_me_na_bio" not in s:
+            s.append("wa_me_na_bio")
+        if any(CONCORRENTE.search(l.lower()) for l in perfil.get("links") or []) and "usa_concorrente" not in s:
+            s.append("usa_concorrente")
+        ultimo = perfil.get("ultimo_post") or ""
+        if ultimo >= (hoje - timedelta(days=30)).isoformat():
+            s.append("ig_ativo_30d")
+        elif (ultimo and ultimo < (hoje - timedelta(days=180)).isoformat()) or perfil.get("posts") == 0:
+            s.append("ig_inativo_6m")
     if franquias and franquias.search(normalizar(lead["fantasia"] or lead["nome"] or "")):
         s.append("franquia")
     return s
