@@ -1,1 +1,1 @@
-Boa! Qual sistema vocês usam hoje? Se ele já resolve os pedidos, posso te mostrar só a parte que fizer sentido pra tua casa, como reservas pelo WhatsApp ou fidelidade por selos.
+Boa! Qual sistema vocês usam hoje e como fica o atendimento no WhatsApp? No MyFoodLink, o bot responde automaticamente às dúvidas de rotina, registra os contatos e avisa quando a equipe precisa assumir. As respostas que vocês revisam e aprovam podem ser usadas pelo bot nas próximas dúvidas parecidas. Também tem cardápio digital, reservas e fidelidade; te mostro o que fizer sentido pra tua casa.
