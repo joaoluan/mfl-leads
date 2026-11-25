@@ -157,15 +157,15 @@ def test_limite_ifood_da_tela_ate_coletor(tmp_path, monkeypatch, limite):
 
 def test_bloqueio_encerra_e_fecha_aba_sem_gravar(tmp_path, monkeypatch):
     con = db.conectar(tmp_path / "t.db")
+    fechadas = []
     monkeypatch.setattr(ifood, "_abrir", lambda: "aba-teste")
-    chamadas = []
-    def api(metodo, caminho, corpo=None):
-        chamadas.append((metodo, caminho))
-        return {"result": True}  # detector de checkpoint
-    monkeypatch.setattr(ifood, "api", api)
+    monkeypatch.setattr(ifood, "_fechar", lambda aba: fechadas.append(aba))
+    monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
+    monkeypatch.setattr(ifood, "_esperar",
+                        lambda aba, exp: (_ for _ in ()).throw(ifood.DetalhesBloqueados("iFood pediu verificação")))
     with pytest.raises(RuntimeError, match="verificação"):
         ifood.rodar(con, "Rua Fictícia, 10, Porto Alegre", 3)
-    assert chamadas[-1] == ("DELETE", "/tabs/aba-teste?userId=mfl-ifood")
+    assert fechadas == ["aba-teste"]
     assert con.execute("SELECT count(*) FROM source_record").fetchone()[0] == 0
 
 
@@ -188,35 +188,30 @@ def test_falha_no_lote_nao_deixa_entidade_sem_fonte(tmp_path):
 
 # Ordem 0000 não identifica estabelecimento real; dígitos verificadores sintéticos.
 CNPJ_TESTE = "98765432000007"
+# Resposta merchant-info/graphql fictícia, no mesmo formato que o iFood devolve.
+INFO = {"data": {"merchantExtra": {
+    "address": {"streetName": "Rua Fictícia", "streetNumber": "123", "district": "Bairro Teste",
+                "city": "PORTO ALEGRE", "state": "RS", "zipCode": "90000001"},
+    "documents": {"CNPJ": {"value": CNPJ_TESTE}},
+}}}
 
 
-def test_painel_sobre_extrai_endereco_bairro_cep_e_cnpj():
-    dados = ifood.detalhes_do_painel({
-        "endereco_bloco": "Rua Fictícia, 123 - Bairro Teste\nPorto Alegre - RS\nCEP: 90000-001",
-        "cnpj": "98.765.432/0000-07",
-    })
-    l = loja(detalhes=dados)
-    assert (l.endereco, l.bairro, l.cep, l.cnpj) == ("Rua Fictícia, 123 - Bairro Teste", "Bairro Teste", "90000001", CNPJ_TESTE)
+def test_merchant_info_extrai_endereco_bairro_cep_e_cnpj():
+    detalhe = ifood._ler_info(INFO)
+    assert detalhe == {"endereco": "Rua Fictícia 123", "bairro": "Bairro Teste", "cep": "90000001",
+                       "municipio": "PORTO ALEGRE", "uf": "RS", "cnpj": CNPJ_TESTE}
+    l = loja(detalhes=detalhe)
+    assert (l.endereco, l.bairro, l.cep, l.cnpj) == ("Rua Fictícia 123", "Bairro Teste", "90000001", CNPJ_TESTE)
     assert ifood.cnpj_valido("98.765.432/0000-08") is None
     assert ifood.cnpj_valido("11.111.111/1111-11") is None
     assert ifood.cnpj_valido(123) is None
-    assert loja(detalhes={**dados, "municipio": "Canoas"}).cnpj is None
+    assert loja(detalhes={**detalhe, "municipio": "Canoas"}).cnpj is None
 
 
-def test_leitor_abre_ver_mais_antes_de_ler_cnpj(monkeypatch):
-    chamadas = []
-    def js(aba, expressao):
-        chamadas.append(expressao)
-        if expressao == ifood.JS_DETALHES:
-            return {"endereco": "Rua Fictícia, 10", "cep": "90000001"}
-        if expressao == ifood.JS_SOBRE:
-            return {"endereco_bloco": "Rua Fictícia, 123 - Bairro Teste\nPorto Alegre - RS\nCEP: 90000-001", "cnpj": CNPJ_TESTE}
-        return True
-    monkeypatch.setattr(ifood, "_js", js)
-    monkeypatch.setattr(ifood, "_esperar", lambda *args: True)
+def test_ler_detalhes_usa_merchant_info(monkeypatch):
+    monkeypatch.setattr(ifood, "_ler_resposta_info", lambda aba, url: INFO)
     l = ifood.ler_detalhes("aba", loja(), ["Porto Alegre"])
-    assert l.cnpj == CNPJ_TESTE and l.endereco == "Rua Fictícia, 123 - Bairro Teste"
-    assert next(i for i,e in enumerate(chamadas) if '.click()' in e) < chamadas.index(ifood.JS_SOBRE)
+    assert l.cnpj == CNPJ_TESTE and l.endereco == "Rua Fictícia 123" and l.detalhes_em
 
 
 def test_cnpj_vincula_receita_mesmo_com_nome_diferente(tmp_path):
@@ -291,7 +286,7 @@ def test_lote_segue_sem_detalhes_mas_respeita_bloqueio(monkeypatch, bloqueado):
     monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
     monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
     monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
-    monkeypatch.setattr(ifood, "api", lambda *a: {})
+    monkeypatch.setattr(ifood, "_fechar", lambda aba: None)
     monkeypatch.setattr(ifood, "_js", lambda aba, js: [item(), item(2, nome="Cozinha Teste Verde")] if js == ifood.JS_LISTA else True)
     visitadas = []
     def detalhes(aba, l, municipios):
@@ -322,24 +317,14 @@ def test_leitura_parcial_nao_funde_cnpjs_distintos_pelo_endereco(tmp_path):
     assert tuple(con.execute("SELECT a,b FROM revisao WHERE decidido=0").fetchone()) == (primeiro, segundo)
 
 
-def test_painel_sem_dados_preserva_jsonld_apos_esperar(monkeypatch):
-    esperas = []
-    def esperar(aba, expressao):
-        esperas.append(expressao)
-        if "const s=" in expressao:
-            raise TimeoutError("dados não chegaram")
-        return True
-    def js(aba, expressao):
-        if expressao == ifood.JS_DETALHES:
-            return {"endereco": "Rua Fictícia, 10", "cep": "90000001"}
-        if expressao == ifood.JS_SOBRE:
-            return {}
-        return True
-    monkeypatch.setattr(ifood, "_esperar", esperar)
-    monkeypatch.setattr(ifood, "_js", js)
+def test_merchant_info_parcial_vale_e_ausencia_bloqueia(monkeypatch):
+    parcial = {"data": {"merchantExtra": {"address": {"streetName": "Rua Fictícia", "streetNumber": "10"}}}}
+    monkeypatch.setattr(ifood, "_ler_resposta_info", lambda aba, url: parcial)
     l = ifood.ler_detalhes("aba", loja(), ["Porto Alegre"])
-    assert l.endereco == "Rua Fictícia, 10" and l.cnpj is None
-    assert any("const s=" in e for e in esperas)
+    assert l.endereco == "Rua Fictícia 10" and l.cnpj is None
+    monkeypatch.setattr(ifood, "_ler_resposta_info", lambda aba, url: None)
+    with pytest.raises(ifood.DetalhesBloqueados):
+        ifood.ler_detalhes("aba", loja(), ["Porto Alegre"])
 
 
 @pytest.mark.parametrize("erro", [ifood.DetalhesBloqueados, TimeoutError])
@@ -349,7 +334,7 @@ def test_bloqueio_persiste_e_outros_processos_so_descobrem_novas(tmp_path, monke
     monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
     monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
     monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
-    monkeypatch.setattr(ifood, "api", lambda *a: {})
+    monkeypatch.setattr(ifood, "_fechar", lambda aba: None)
     monkeypatch.setattr(ifood, "_js", lambda aba, js: [item(n) for n in range(1,4)] if js == ifood.JS_LISTA else True)
     visitadas = []
     def bloquear(aba, l, municipios):
@@ -370,7 +355,7 @@ def test_lojas_novas_tem_prioridade_sobre_incompletas(monkeypatch):
     monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
     monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
     monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
-    monkeypatch.setattr(ifood, "api", lambda *a: {})
+    monkeypatch.setattr(ifood, "_fechar", lambda aba: None)
     monkeypatch.setattr(ifood, "_js", lambda aba, js: [item(n) for n in range(1,6)] if js == ifood.JS_LISTA else True)
     visitadas = []
     monkeypatch.setattr(ifood, "ler_detalhes", lambda aba, l, municipios: visitadas.append(l.id) or l)

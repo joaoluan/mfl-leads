@@ -1,5 +1,4 @@
 import json
-import urllib.error
 from datetime import date, timedelta
 
 import pytest
@@ -176,13 +175,8 @@ def test_coleta_mostra_data_ifood_e_timer_compartilhado(con, tmp_path, monkeypat
 
 
 def test_leitura_aguarda_navegacao_sem_repetir_acao(monkeypatch):
-    resultados = iter([urllib.error.HTTPError("local", 409, "navegando", None, None), False, "carregou"])
-    def js(*args):
-        resultado = next(resultados)
-        if isinstance(resultado, Exception):
-            raise resultado
-        return resultado
-    monkeypatch.setattr(ifood, "_js", js)
+    resultados = iter([False, False, "carregou"])
+    monkeypatch.setattr(ifood, "_js", lambda *args: next(resultados))
     monkeypatch.setattr(ifood.time, "sleep", lambda *_: None)
     assert ifood._esperar("aba", "somente leitura") == "carregou"
 
