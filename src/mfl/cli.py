@@ -148,8 +148,9 @@ def _maps_bairro(chave: str, info: dict) -> dict:
     try:
         saida = maps.rodar(info, pasta / f"{chave}.json", db.RAIZ / "logs" / "maps" / f"{chave}.log")
     except maps.Incompleto as parcial:
-        ingerir(parcial.saida)  # aproveita o que veio; o bairro segue pendente
-        raise
+        veio = ingerir(parcial.saida)  # aproveita o que veio; o bairro segue pendente
+        n = sum(veio[k] for k in ("novos", "vinculados", "repetidos", "descartados"))
+        raise RuntimeError(f"{parcial} ({n} lugares aproveitados, {veio['novos']} novos)") from parcial
     contagem = ingerir(saida)
     lugares = contagem["lugares"] = sum(contagem[k] for k in ("novos", "vinculados", "repetidos", "descartados"))
     con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"maps:{chave}", date.today().isoformat(), db.agora()))
@@ -214,14 +215,14 @@ def _maps_fila(con, limite: int, cidade: str | None, ate: str | None = None, ago
             vazios = vazios + 1 if _maps_bairro(chave, info)["lugares"] == 0 else 0
         except Exception as erro:  # um bairro com problema não para a noite; fica pendente para amanhã
             logger.error("maps_bairro_falhou", bairro=chave, erro=str(erro))
-            falhas.append(chave)
+            falhas.append(f"{info['nome']}: {erro}")
         if vazios >= 2:
             falhas.append("dois bairros seguidos sem nenhum lugar (o Google pode estar bloqueando); Maps interrompido")
             break
     score.recalcular(con, date.today())
     logger.info("maps_fila", feitos=feitos, restantes=len(pendentes) - feitos)
     if falhas:
-        raise RuntimeError(f"bairros com falha: {', '.join(falhas)}")
+        raise RuntimeError(f"{len(falhas)} problema(s) no Maps. " + " | ".join(falhas))
 
 
 @app.command("score")

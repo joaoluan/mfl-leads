@@ -35,8 +35,8 @@ EMAIL = re.compile(r"^[\w.+-]+@[\w-]+(\.[\w-]+)+$")
 class Incompleto(Exception):
     """Estourou o tempo: o que veio é ingerido, mas o bairro fica pendente para a próxima noite."""
 
-    def __init__(self, saida: Path):
-        super().__init__(f"tempo esgotado; {saida.name} parcial")
+    def __init__(self, saida: Path, minutos: int):
+        super().__init__(f"passou do limite de {minutos} min e foi interrompido; volta na próxima noite")
         self.saida = saida
 
 
@@ -84,9 +84,11 @@ def rodar(bairro: dict, saida: Path, log_arquivo: Path, consultas: Path | None =
                     registrar = log.error if consultas is None else log.warning
                     registrar("maps_timeout", bairro=bairro["nome"], segundos=timeout)
     if not saida.exists():
-        raise RuntimeError(f"Maps não gerou {saida.name}; veja {log_arquivo}")
+        linhas = [l for l in log_arquivo.read_text(errors="replace").splitlines() if l.strip()]
+        motivo = f"última linha do log: {linhas[-1][:150]}" if linhas else "log vazio"
+        raise RuntimeError(f"o raspador do Maps saiu sem gerar resultado ({motivo}); log em {log_arquivo.relative_to(RAIZ) if log_arquivo.is_relative_to(RAIZ) else log_arquivo}")
     if time.monotonic() - inicio > timeout:
-        raise Incompleto(saida)
+        raise Incompleto(saida, timeout // 60)
     return saida
 
 
