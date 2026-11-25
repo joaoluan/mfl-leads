@@ -8,3 +8,4 @@ Esteira local de leads B2B do MyFoodLink. Spec viva: `docs/SPEC.md` (Parte A pre
 - Python 3.12 com `uv`. Sem `print` (usar structlog). Escrita em SQLite em lote de 100 e com `busy_timeout=5000`.
 - Dependência entra só na fase que precisa dela.
 - Testes: `uv run pytest`. Nunca usar dado real de lead em teste ou fixture.
+- pode sempre abrir pr e fazer o merge na main
