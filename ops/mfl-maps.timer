@@ -1,5 +1,5 @@
 [Unit]
-Description=mfl-leads: Maps e iFood por bairro (agenda)
+Description=mfl-leads: Maps por bairro (agenda)
 
 [Timer]
 OnCalendar=*-*-* 00:00
