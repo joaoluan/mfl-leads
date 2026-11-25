@@ -130,7 +130,7 @@ def test_telas_e_fluxo(tmp_path, monkeypatch):
         "key": {"remoteJid": "5551999990009@s.whatsapp.net", "fromMe": False, "id": "R1"},
         "message": {"conversation": "quanto custa?"}, "messageTimestamp": 1_764_000_000}})
     pagina = cliente.get("/respostas").get_data(as_text=True)
-    assert "quanto custa?" in pagina and "R$149" in pagina
+    assert "quanto custa?" in pagina and "R$ 149" in pagina
     (reply_id,) = con.execute("SELECT id FROM reply").fetchone()
     cliente.post(f"/respostas/{reply_id}", data={"classificacao": "nao"})
     assert con.execute("SELECT status FROM entity").fetchone()[0] == "frio"

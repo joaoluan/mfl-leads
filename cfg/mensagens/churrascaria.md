@@ -1,17 +1,17 @@
-Opa, tudo bem? João aqui. Toquei restaurante 15 anos em POA e hoje crio sistema pra casas como a {nome}.
+Opa, aqui é o João. Vi a {nome}. Trabalhei 15 anos com gestão de restaurantes em Porto Alegre.
 {sinal}
-Churrascaria vive de mesa cheia no fim de semana, e reserva confirmada na mão, por áudio e mensagem solta, é por onde mais escapa mesa.
-O MyFoodLink recebe a reserva pelo WhatsApp e ainda traz o cliente de volta com fidelidade. Posso te mandar o Instagram do projeto?
-Se não for o momento, responde SAIR que eu não chamo mais.
+No MyFoodLink, a casa define as regras de reserva e o WhatsApp pode confirmar os horários disponíveis.
+Posso te mostrar como fica pra quem quer reservar?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi! João aqui, vi a {nome} aí no {bairro} e resolvi te chamar.
+Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Domingo, mesa de doze, três mensagens de reserva em lugares diferentes e nenhuma anotada no mesmo caderno. Quem já tocou salão conhece a cena.
-Fiz um sistema que organiza isso sozinho. Posso te mandar como ficou?
-Se preferir não receber, responde SAIR.
+Domingo com salão cheio já dá trabalho. No MyFoodLink, as reservas feitas pelo WhatsApp ficam numa agenda que a equipe pode consultar.
+Posso te mostrar essa agenda?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos tocando restaurante.
+Opa, aqui é o João, do MyFoodLink. Trabalhei 15 anos com restaurante em Porto Alegre.
 {sinal}
-Tô mostrando pra donos de churrascaria da região e queria a tua opinião: reserva, cardápio digital, fidelidade e delivery sem comissão, tudo pelo WhatsApp da casa.
-Posso te mandar o Instagram pra tu dar uma olhada?
-Se não quiser mais mensagens, responde SAIR.
+Pra casa que enche no fim de semana, dá pra organizar a fila de espera no QR Code e avisar pelo WhatsApp quando a mesa libera.
+Posso te mostrar como funciona?
+Se não quiser receber mais mensagens, responde SAIR.

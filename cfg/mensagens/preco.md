@@ -1,5 +1,4 @@
-Boa pergunta. São três planos, sem contrato mínimo e sem taxa de implantação:
-- Start, R$149/mês: atendimento e reservas no WhatsApp, cardápio digital e fidelidade
-- Pro, R$299/mês: tudo do Start mais delivery com pagamento online
-- Gestor, R$499/mês: PDV com salão, comanda, cozinha, estoque e financeiro
-Os primeiros 30 dias são por minha conta. Te mostro tudo em 15 minutos {horario}, pra tu ver qual plano faz sentido pra tua casa?
+O Start fica R$ 149 por mês e inclui atendimento e reservas no WhatsApp, cardápio digital e fidelidade.
+O Pro fica R$ 299 por mês e inclui também delivery, retirada e encomendas pelo site, com pagamento online.
+
+São 30 dias grátis pra testar, sem taxa de implantação e sem contrato mínimo. Tu tá procurando mais ajuda com o atendimento ou quer receber pedidos pelo site também?

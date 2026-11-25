@@ -1,17 +1,17 @@
-Opa, tudo bem? João aqui. Toquei restaurante 15 anos em POA e hoje crio sistema pra casas como a {nome}.
+Opa, aqui é o João. Vi a {nome}. Trabalhei 15 anos com restaurante em Porto Alegre e criei o MyFoodLink.
 {sinal}
-Encomenda de bolo e torta chega de todo jeito: áudio, foto, mensagem às dez da noite. E alguém precisa anotar sabor, tamanho e data sem errar.
-O MyFoodLink recebe a encomenda com cardápio digital e organiza tudo. Posso te mandar o Instagram do projeto?
-Se não quiser receber, responde SAIR.
+Pra quem trabalha com bolo e torta por encomenda, dá pra receber o pedido pelo site da casa, com cardápio e pagamento online.
+Posso te mostrar como o cliente encomenda?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi! João aqui, vi a {nome} aí no {bairro} e resolvi te chamar.
+Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Encomenda anotada em caderno e áudio perdido no WhatsApp é o jeito mais fácil de errar um bolo de aniversário. Já vi isso acontecer muito.
-Fiz um sistema que organiza essa parte. Posso te mandar como ficou?
-Se preferir não receber, responde SAIR.
+Quando o balcão tá cheio, o menu do WhatsApp pode mostrar o cardápio logo de cara. Se alguém quiser tirar uma dúvida, a equipe assume.
+Posso te mostrar como fica no MyFoodLink?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos tocando restaurante.
+Opa, tudo bem? João aqui, do MyFoodLink. Vim da gestão de restaurantes.
 {sinal}
-Tô mostrando pra donos de padaria e doceria da região e queria a tua opinião: encomendas e pedidos pelo WhatsApp, cardápio digital com foto e fidelidade pro cliente voltar.
-Posso te mandar o Instagram pra tu dar uma olhada?
-Se não quiser mais mensagens, responde SAIR.
+Pra quem tem cliente que passa toda semana no balcão, dá pra usar um cartão de selos no celular da pessoa.
+Posso te mostrar como funciona a fidelidade?
+Se não quiser receber mais mensagens, responde SAIR.
