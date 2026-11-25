@@ -1,17 +1,17 @@
-Opa, tudo bem? João aqui. Toquei restaurante 15 anos em POA e hoje crio sistema pra casas como a {nome}.
+Opa, tudo bem? Aqui é o João. Vi a {nome}. Trabalhei 15 anos na gestão de restaurantes em Porto Alegre.
 {sinal}
-Meio-dia, cozinha a mil e o WhatsApp apitando com "tem marmita hoje?". Todo dono de restaurante conhece essa cena.
-O MyFoodLink atende o WhatsApp da casa, manda o cardápio do dia e recebe pedido e marmita sem ninguém parar pra digitar. Posso te mandar o Instagram do projeto?
-Se não quiser receber, responde SAIR.
+No almoço, toda pergunta de cardápio tira alguém do que tá fazendo. No MyFoodLink, quem chama no WhatsApp já encontra o link do cardápio.
+Posso te mostrar como fica?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi! João aqui, vi a {nome} aí no {bairro} e resolvi te chamar.
+Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Aprendi em 15 anos de salão que a hora do almoço é quando o WhatsApp mais pede atenção e quando menos tem gente livre pra dar.
-Fiz um sistema que atende por ti nessa hora. Posso te mandar como ficou?
-Se preferir não receber, responde SAIR.
+Criei o MyFoodLink depois de 15 anos tocando restaurante. Se vocês recebem reservas pelo WhatsApp, dá pra confirmar nos horários que a casa libera e ver tudo numa agenda.
+Posso te mostrar como funciona?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos tocando restaurante.
+Opa, tudo bem? João aqui, do MyFoodLink. Vim da gestão de restaurantes.
 {sinal}
-Tô mostrando pra donos de restaurante da região e queria a tua opinião: atendimento e pedido pelo WhatsApp, cardápio digital, fidelidade e delivery sem comissão.
-Posso te mandar o Instagram pra tu dar uma olhada?
-Se não quiser mais mensagens, responde SAIR.
+Pra casa que vende marmita, dá pra oferecer pedido direto pelo site, com entrega ou retirada e pagamento online.
+Posso te mostrar como fica pro cliente?
+Se não quiser receber mais mensagens, responde SAIR.

@@ -1,17 +1,17 @@
-Opa, tudo bem? João aqui. 15 anos de restaurante em POA, hoje crio sistema pra casas como a {nome}.
+Opa, aqui é o João. Vi a {nome} e queria te mostrar o MyFoodLink. Trabalhei 15 anos com restaurante aqui em Porto Alegre.
 {sinal}
-Pedido de japonês tem mais detalhe que qualquer outro: combo, peça, troca, sem cebolinha, molho à parte. Cada detalhe digitado na mão é chance de erro.
-O MyFoodLink monta isso pelo WhatsApp com cardápio com foto, e o delivery é sem comissão. Posso te mandar o Instagram do projeto?
-Se não quiser receber, responde SAIR.
+Com o menu do WhatsApp, quem chama já consegue abrir o cardápio com fotos antes de perguntar pelos pratos.
+Posso te mostrar como fica?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi! João aqui, vi a {nome} aí no {bairro} e resolvi te chamar.
+Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Aprendi em 15 anos de restaurante que combo mal anotado vira pedido refeito, e refazer pedido de japonês pesa no bolso e na paciência do cliente.
-Montei um sistema que fecha o combo certo direto pelo WhatsApp. Posso te mandar como ficou?
-Se preferir não receber, responde SAIR.
+No MyFoodLink, o cliente pode escolher os itens no cardápio da casa, pedir delivery ou retirada pelo site e pagar online.
+Posso te mostrar esse caminho?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos tocando restaurante.
+Opa, tudo bem? João aqui, do MyFoodLink. Vim da gestão de restaurantes aqui em Porto Alegre.
 {sinal}
-Tô mostrando pra donos de restaurante japonês da região e queria a tua opinião: cardápio digital com foto, pedido pelo WhatsApp e pagamento online, sem taxa por pedido.
-Posso te mandar o Instagram pra tu dar uma olhada?
-Se não quiser mais mensagens, responde SAIR.
+Quando alguém chama pra perguntar o que tem no combinado, a equipe pode ter o link do cardápio já no menu do WhatsApp e assumir a conversa quando precisar.
+Posso te mostrar como fica?
+Se não quiser receber mais mensagens, responde SAIR.

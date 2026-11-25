@@ -1,17 +1,17 @@
-Opa, tudo bem? João aqui. 15 anos de restaurante em POA, hoje crio sistema pra casas como a {nome}.
+Opa, tudo bem? Aqui é o João. Vi a {nome} e lembrei do corre de atender no pico. Trabalhei 15 anos com restaurante em Porto Alegre.
 {sinal}
-Hamburgueria costuma ter o produto que o cliente adora e uma parte do lucro indo embora em comissão de app. Criei um jeito do cliente fiel pedir direto no WhatsApp da casa, sem comissão.
-Posso te mandar o Instagram do projeto pra tu ver como ficou?
-Se não quiser receber, responde SAIR.
+No MyFoodLink, quem chama no WhatsApp já encontra o cardápio e pode falar com a equipe se precisar.
+Posso te mostrar como fica?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi! João aqui, vi a {nome} aí no {bairro} e resolvi te chamar.
+Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Uma coisa que aprendi: cliente que pede no app é do app. O que pede direto no teu WhatsApp é teu, volta mais e não paga comissão.
-Fiz um sistema pra trazer esse pedido pra dentro da casa. Posso te mandar como funciona?
-Se preferir não receber, responde SAIR.
+Criei o MyFoodLink pra facilitar a rotina de quem toca restaurante. A hamburgueria pode receber pedido de delivery e retirada pelo próprio site.
+Posso te mostrar como o cliente faz o pedido?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos tocando restaurante.
+Opa, tudo bem? João aqui, do MyFoodLink. Passei 15 anos tocando restaurante.
 {sinal}
-Tô mostrando pra donos de hamburgueria da região e queria a opinião de quem vive isso: cardápio com foto, combo, pedido pelo WhatsApp e pagamento online, sem taxa por pedido.
-Posso te mandar o Instagram pra tu dar uma olhada?
-Se não quiser mais mensagens, responde SAIR.
+Uma ideia pra quem já compra hambúrguer direto da casa é ter um cartão de fidelidade por selos no celular.
+Posso te mostrar como o cliente ganha e usa os selos?
+Se não quiser receber mais mensagens, responde SAIR.

@@ -1,17 +1,17 @@
-Opa, tudo bem? João aqui. Toquei restaurante 15 anos em POA e hoje crio sistema pra casas como a {nome}.
+Opa, tudo bem? Aqui é o João. Trabalhei 15 anos na gestão de restaurantes em Porto Alegre e vi a {nome}.
 {sinal}
-Sexta à noite: forno cheio, telefone tocando e o WhatsApp acumulando pedido. Quem já viveu isso sabe que pizzaria não perde cliente por falta de pizza boa.
-Montei uma coisa pra essa hora. Posso te mandar o Instagram do projeto pra tu ver?
-Se não for o momento, responde SAIR que eu não chamo mais.
+Na sexta à noite, responder cardápio e prazo toma tempo de quem tá cuidando dos pedidos. No MyFoodLink, o WhatsApp já pode mostrar o cardápio pra quem chama.
+Posso te mostrar como funciona?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi! João aqui, vi a {nome} aí no {bairro} e resolvi te chamar.
+Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Aprendi uma coisa em 15 anos de restaurante: pizzaria não perde venda na cozinha, perde no WhatsApp, no minuto em que ninguém consegue responder.
-Fiz um sistema que cuida dessa parte e delivery sem comissão de app. Posso te mandar como ficou?
-Se preferir não receber, responde SAIR.
+Criei o MyFoodLink depois de 15 anos tocando restaurante. Com ele, quem já conhece a pizzaria pode pedir pelo site da casa, com delivery ou retirada.
+Posso te mostrar como fica esse pedido?
+Se não quiser receber mais mensagens, responde SAIR.
 ---
-Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos dentro de restaurante em POA.
+Opa, aqui é o João, do MyFoodLink. Trabalhei 15 anos com restaurante aqui em Porto Alegre.
 {sinal}
-Tô mostrando pra donos de pizzaria da região, porque a opinião de quem vive o delivery vale mais que a minha. Ele atende o WhatsApp, monta o pedido, manda pra cozinha e não cobra comissão por pedido.
-Posso te mandar o Instagram pra tu dar uma olhada e me dizer o que achou?
-Se não quiser mais mensagens, responde SAIR.
+Se o WhatsApp da pizzaria fica cheio no fim de semana, dá pra deixar o cardápio no menu automático e a equipe assume quando precisa.
+Posso te mostrar como fica pro cliente?
+Se não quiser receber mais mensagens, responde SAIR.
