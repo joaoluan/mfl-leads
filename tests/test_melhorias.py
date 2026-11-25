@@ -113,6 +113,16 @@ def test_leads_filtra_e_pagina(tmp_path, monkeypatch):
     assert "Bar Três" in sem and "Pizza Um" not in sem
     assert "Bar Três" not in cliente.get("/leads?whatsapp=1&pagina=2").get_data(as_text=True)
     assert "Pizza Um" in cliente.get("/leads?bairro=centro").get_data(as_text=True)
+    # iFood que o Maps já procurou e não achou
+    loja = criar_lead(con, "Xis Só iFood", None, municipio="Porto Alegre", status="enriquecimento")
+    buscada = criar_lead(con, "Xis Ainda Não Buscado", None, municipio="Porto Alegre", status="enriquecimento")
+    for i, eid in enumerate((loja, buscada)):
+        con.execute("INSERT INTO source_record(source,source_key,entity_id,raw_json,captured_at,hash)"
+                    " VALUES ('ifood',?,?,'{}','2026-11-24','h')", (f"u{i}", eid))
+    con.execute("INSERT INTO queue(entity_id,kind,next_at,tries) VALUES (?,'maps_ifood','2026-11-25',1)", (loja,))
+    con.commit()
+    sem_maps = cliente.get("/leads?fonte=ifood_sem_maps").get_data(as_text=True)
+    assert "Xis Só iFood" in sem_maps and "Xis Ainda Não Buscado" not in sem_maps and "Pizza Um" not in sem_maps
 
 
 def test_ficha_aceita_whatsapp_digitado(tmp_path):

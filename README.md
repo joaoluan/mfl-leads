@@ -33,7 +33,7 @@ Telas: fila do dia, ficha (/lead/<id>), respostas, painel e config (tetos, pesos
 
 ## iFood
 
-Maps e iFood rodam juntos no timer das **01h30** (`mfl maps-noturno`): até 12 bairros,
+Maps e iFood rodam juntos no timer das **00h00** (`mfl maps-noturno`): até 20 bairros,
 sem iniciar etapa nova depois das 04h.
 Por bairro, o Maps faz a coleta geral; o iFood usa um endereço comercial já coletado no bairro para descobrir outras lojas;
 o Maps busca pelo nome/cidade as descobertas sem telefone, em lotes de 10 e até 30 nomes por noite.

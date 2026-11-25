@@ -90,7 +90,8 @@ def test_tela_de_revisao_funde(con, tmp_path):
     maps.ingerir(con, arquivo(tmp_path, [lugar("P8", "Bella Napoli Pizzas", cep="90570-123")]), BAIRRO, MUNICIPIOS, [])
     caminho = tmp_path / "t.db"
     cliente = ui.criar_app(caminho).test_client()
-    assert "Bella Napoli Pizzas" in cliente.get("/revisao").get_data(as_text=True)
+    tela = cliente.get("/revisao").get_data(as_text=True)
+    assert "Bella Napoli Pizzas" in tela and "veio de" in tela and "Google Maps" in tela and "Porto Alegre" in tela
     (rid,) = con.execute("SELECT id FROM revisao").fetchone()
     cliente.post(f"/revisao/{rid}", data={"decisao": "mesmo"})
     assert tuple(con.execute("SELECT place_id, categoria FROM entity WHERE cnpj='22222222000155'").fetchone()) == (

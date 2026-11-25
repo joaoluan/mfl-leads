@@ -256,7 +256,11 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         if bairro := a.get("bairro", "").strip():
             filtros.append("bairro LIKE :bairro")
             p["bairro"] = f"%{bairro}%"
-        if (fonte := a.get("fonte", "")) in ("cnpj", "maps", "instagram", "ifood"):
+        if a.get("fonte") == "ifood_sem_maps":  # o Maps já procurou pelo nome e não achou: telefone só à mão
+            filtros.append("e.place_id IS NULL AND EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id"
+                           " AND s.source='ifood') AND EXISTS (SELECT 1 FROM queue q WHERE q.entity_id=e.entity_id"
+                           " AND q.kind='maps_ifood' AND q.tries>0)")
+        elif (fonte := a.get("fonte", "")) in ("cnpj", "maps", "instagram", "ifood"):
             filtros.append("EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id AND s.source=:fonte)")
             p["fonte"] = fonte
         if a.get("whatsapp"):
@@ -328,7 +332,10 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         pares = con().execute("SELECT * FROM revisao WHERE decidido=0 ORDER BY score DESC LIMIT 50").fetchall()
         lead = lambda i: con().execute("SELECT * FROM entity WHERE entity_id=?", (i,)).fetchone()
         itens = [(p, lead(p["a"]), lead(p["b"])) for p in pares]
-        return render_template("revisao.html", itens=[i for i in itens if i[1] and i[2]])
+        fontes = lambda i: [r[0] for r in con().execute(
+            "SELECT DISTINCT source FROM source_record WHERE entity_id=? ORDER BY source", (i,))]
+        return render_template("revisao.html", itens=[(p, a, b, fontes(a["entity_id"]), fontes(b["entity_id"]))
+                                                      for p, a, b in itens if a and b])
 
     @app.post("/revisao/<int:revisao_id>")
     def decidir(revisao_id: int):
