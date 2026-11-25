@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Coleta{% endblock %}
 {% block corpo %}
-{% if algum_rodando %}<meta http-equiv="refresh" content="15">{% endif %}
+{% if algum_rodando or request.args.get('aviso') == 'disparado' %}<meta http-equiv="refresh" content="15;url={{ url_for('coleta', cidade=cidade, log=log) }}">{% endif %}
 <style>
 .duas { display:grid; grid-template-columns:minmax(0, 5fr) minmax(0, 7fr); gap:28px; align-items:start; }
 .barrinha { height:6px; background:var(--linha); border-radius:3px; overflow:hidden; min-width:60px; }

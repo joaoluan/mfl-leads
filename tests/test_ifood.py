@@ -16,7 +16,7 @@ HOJE = date(2026, 11, 24)
 @pytest.fixture
 def elementos(monkeypatch):
     alvos = {}
-    monkeypatch.setattr(ifood, "_elemento", lambda aba, seletor: alvos.setdefault(seletor, Mock()))
+    monkeypatch.setattr(ifood, "_elemento", lambda aba, seletor, **kw: alvos.setdefault(seletor, Mock()))
     return alvos
 
 
@@ -360,10 +360,12 @@ def test_js_usa_sintaxe_do_protocolo_ativo(conectado):
 def test_comando_nativo_reconecta_webdriver_sem_clique_js(monkeypatch):
     aba = Mock()
     aba.is_connected.return_value = False
-    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood, "_js", lambda *a: False)
+    alvo = Mock()
+    aba.driver.find_elements.return_value = [alvo]
     ifood._elemento(aba, "button").click()
     aba.driver.connect.assert_called_once()
-    aba.driver.find_element.return_value.click.assert_called_once()
+    alvo.click.assert_called_once()
     aba.execute_script.assert_not_called()
 
 
@@ -421,7 +423,20 @@ def test_checkpoint_impede_clique_nativo(monkeypatch):
     monkeypatch.setattr(ifood, "_js", lambda aba, expr: expr == ifood.JS_CHECKPOINT)
     with pytest.raises(ifood.DetalhesBloqueados, match="HUMAN"):
         ifood._elemento(aba, "button").click()
-    aba.driver.find_element.assert_not_called()
+    aba.driver.find_elements.assert_not_called()
+
+
+def test_elemento_aguarda_visibilidade_habilitacao_e_recriacao(monkeypatch):
+    aba = Mock()
+    oculto, desabilitado, antigo, pronto = (Mock() for _ in range(4))
+    oculto.is_displayed.return_value = False
+    desabilitado.is_enabled.return_value = False
+    antigo.is_displayed.side_effect = ifood.StaleElementReferenceException("renderizando")
+    aba.driver.find_elements.side_effect = [[oculto, desabilitado], [antigo], [pronto]]
+    monkeypatch.setattr(ifood, "_js", lambda *a: False)
+    monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
+    assert ifood._elemento(aba, "button") is pronto
+    assert aba.driver.find_elements.call_count == 3
 
 
 def test_endereco_usa_teclado_e_cliques_nativos(monkeypatch, elementos):
@@ -436,7 +451,8 @@ def test_endereco_usa_teclado_e_cliques_nativos(monkeypatch, elementos):
     campo.click.assert_called_once()
     campo.send_keys.assert_called_once_with("Rua Fictícia, 10, Porto Alegre")
     elementos[".btn-address--full-size"].click.assert_called_once()
-    assert elementos["[data-mfl-click]"].click.call_count == 2
+    for texto in ("Confirmar localização", "Salvar endereço"):
+        elementos[f'//button[normalize-space(.)="{texto}"]'].click.assert_called_once()
 
 
 def test_checkpoint_apos_lista_preserva_lojas_sem_detalhar(monkeypatch, elementos):

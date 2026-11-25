@@ -18,9 +18,10 @@ from datetime import date, timedelta
 import structlog
 from pydantic import BaseModel, Field
 from seleniumbase import SB
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import StaleElementReferenceException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
 
 from mfl import bairros, cnpj_icp, resolve
 from mfl.classifica import normalizar
@@ -191,19 +192,20 @@ def _driver(aba):
     return aba.driver
 
 
-def _elemento(aba, seletor: str):
-    """Confere o bloqueio antes de enviar cliques e teclas nativos ao navegador."""
-    _esperar(aba, "true")
-    return _driver(aba).find_element(By.CSS_SELECTOR, seletor)
+def _elemento(aba, seletor: str, por: str = By.CSS_SELECTOR):
+    """Espera um alvo visível e habilitado, conferindo o bloqueio a cada leitura."""
+    def pronto(driver):
+        if _js(aba, JS_CHECKPOINT):
+            raise DetalhesBloqueados("iFood pediu verificação HUMAN ou bloqueou o acesso. Lista preservada.")
+        return next((e for e in driver.find_elements(por, seletor) if e.is_displayed() and e.is_enabled()), False)
+
+    return WebDriverWait(_driver(aba), ESPERA, ignored_exceptions=(StaleElementReferenceException,)).until(
+        pronto, "iFood não liberou o campo ou botão esperado a tempo.")
 
 
 def _clicar_botao(aba, texto: str) -> None:
-    """Marca o botão pelo texto para o clique nativo não atingir outro elemento."""
-    _esperar(aba, "(() => {const b=[...document.querySelectorAll('button')].find(b=>"
-             f"b.innerText==={json.dumps(texto)} && !b.disabled && b.getClientRects().length);"
-             "if(!b) return false; document.querySelectorAll('[data-mfl-click]').forEach(e=>"
-             "e.removeAttribute('data-mfl-click')); b.setAttribute('data-mfl-click',''); return true;})()")
-    _elemento(aba, "[data-mfl-click]").click()
+    """Ignora cópias ocultas e espera o botão pelo texto antes do clique nativo."""
+    _elemento(aba, f"//button[normalize-space(.)={json.dumps(texto, ensure_ascii=False)}]", por=By.XPATH).click()
 
 
 def _ler_resposta_info(aba, url: str) -> dict | None:
