@@ -1,17 +1,17 @@
-Oi, pessoal da {nome}! Sou o João, toquei restaurante 15 anos aqui em POA.
+Opa, tudo bem? João aqui. Toquei restaurante 15 anos em POA e hoje crio sistema pra casas como a {nome}.
 {sinal}
-Pizzaria vive de pedido no WhatsApp na sexta à noite. O MyFoodLink atende, monta o pedido e manda pra cozinha, e o delivery é sem comissão.
-Posso liberar 30 dias grátis pra vocês testarem?
-Se não quiser receber, responde SAIR.
+Sexta à noite: forno cheio, telefone tocando e o WhatsApp acumulando pedido. Quem já viveu isso sabe que pizzaria não perde cliente por falta de pizza boa.
+Montei uma coisa pra essa hora. Posso te mandar o Instagram do projeto pra tu ver?
+Se não for o momento, responde SAIR que eu não chamo mais.
 ---
-Oi! Vi a {nome} aí no {bairro}.
+Oi! João aqui, vi a {nome} aí no {bairro} e resolvi te chamar.
 {sinal}
-Pergunta direta: no pico de sexta, vocês conseguem responder todo mundo no WhatsApp a tempo?
-Tenho um sistema que faz isso e libero 30 dias grátis. Topa testar?
+Aprendi uma coisa em 15 anos de restaurante: pizzaria não perde venda na cozinha, perde no WhatsApp, no minuto em que ninguém consegue responder.
+Fiz um sistema que cuida dessa parte e delivery sem comissão de app. Posso te mandar como ficou?
 Se preferir não receber, responde SAIR.
 ---
-Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos tocando restaurante em POA.
+Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos dentro de restaurante em POA.
 {sinal}
-Cardápio digital, pedido pelo WhatsApp e delivery próprio sem taxa de app, pensado pra pizzaria.
-Quer usar 30 dias grátis na {nome}?
+Tô mostrando pra donos de pizzaria da região, porque a opinião de quem vive o delivery vale mais que a minha. Ele atende o WhatsApp, monta o pedido, manda pra cozinha e não cobra comissão por pedido.
+Posso te mandar o Instagram pra tu dar uma olhada e me dizer o que achou?
 Se não quiser mais mensagens, responde SAIR.

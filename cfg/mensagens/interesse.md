@@ -1,3 +1,3 @@
-Show! Dá uma olhada: https://www.myfoodlink.com.br
+Que bom! Dá uma olhada com calma: https://www.myfoodlink.com.br
 
-Se curtir, eu mesmo configuro e te libero 30 dias grátis, sem contrato. Qual o nome da tua casa?
+Se fizer sentido, eu mesmo configuro tudo pra tua casa e tu usa 30 dias sem pagar nada, sem contrato. Com quem eu tô falando, aliás?
