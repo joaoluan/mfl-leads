@@ -67,6 +67,16 @@ def test_nome_provisorio_nao_vai_no_texto_e_ficha_de_conversa_sem_sugestao(tmp_p
     assert "Texto sugerido" not in pagina and "Abrir conversa no WhatsApp" in pagina
 
 
+def test_sem_bairro_usa_variante_que_nao_cita_bairro(tmp_path):
+    from mfl import mensagens
+    con = db.conectar(tmp_path / "t.db")
+    eid = criar_lead(con, "Pizzaria Teste", "+5551999990007", categoria="Pizzaria")
+    con.execute("INSERT INTO touch (entity_id, template_id, texto, enviado_em) VALUES (?, 'pizzaria:0', 'oi', '2026-11-20T10:00:00')", (eid,))
+    lead = con.execute("SELECT * FROM entity WHERE entity_id=?", (eid,)).fetchone()
+    template, texto = mensagens.sugerir(con, lead, "d0", HOJE)
+    assert template == "pizzaria:2" and "aí no" not in texto
+
+
 def test_regras_em_formulario_validam_e_gravam(tmp_path, monkeypatch):
     import shutil
     import tomllib

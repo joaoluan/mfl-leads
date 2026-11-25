@@ -85,7 +85,16 @@ def sugerir(con: sqlite3.Connection, lead: sqlite3.Row, etapa: str, hoje: date) 
     if not nome or PROVISORIO.match(nome):  # "CNPJ 123…" não vai no texto; quem ganhou WhatsApp pelo Instagram tem o @
         nome = f"@{lead['ig_username']}" if lead["ig_username"] else ""
     valores = {"nome": nome, "bairro": lead["bairro"], "sinal": "", "horario": horario(hoje)}
-    return f"{arquivo}:{indice}", preencher(variantes(arquivo)[indice], valores)
+    textos = variantes(arquivo)
+    faltando = {c for c in ("nome", "bairro") if not valores[c]}
+    # "vi a  aí no" quebra a frase: segue o rodízio até uma variante que não cita o que falta
+    ordem = [(indice + k) % len(textos) for k in range(len(textos))]
+    indice = next((i for i in ordem if not faltando & _campos(textos[i])), indice)
+    return f"{arquivo}:{indice}", preencher(textos[indice], valores)
+
+
+def _campos(texto: str) -> set[str]:
+    return {c for _, c, _, _ in string.Formatter().parse(texto) if c}
 
 
 def resposta_sugerida(arquivo: str, hoje: date) -> str:
