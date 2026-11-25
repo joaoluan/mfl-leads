@@ -344,9 +344,9 @@ def cmd_diario() -> None:
 
 
 @app.command("maps-noturno")
-def cmd_maps_noturno(limite: int = typer.Option(12, help="Teto de bairros por noite"),
+def cmd_maps_noturno(limite: int = typer.Option(20, help="Teto de bairros por noite"),
                      ate: str = typer.Option("04:00", help="Não começa bairro novo depois deste horário")) -> None:
-    """Timer das 01:30: Maps e iFood por bairro, sem iniciar etapa depois das 04:00."""
+    """Timer das 00:00: Maps e iFood por bairro, sem iniciar etapa depois das 04:00."""
     cmd_maps_fila(limite=limite, cidade=None, ate=ate)
 
 

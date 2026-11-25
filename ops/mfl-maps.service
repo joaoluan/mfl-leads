@@ -1,5 +1,5 @@
 [Unit]
-Description=mfl-leads: Maps e iFood, até 12 bairros por noite
+Description=mfl-leads: Maps e iFood, até 20 bairros por noite
 After=network-online.target
 
 [Service]

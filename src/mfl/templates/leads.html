@@ -33,6 +33,7 @@ td .fontes { font-size:12px; color:var(--suave); }
   <label class="campo">Veio de<select name="fonte">
     <option value="">Qualquer fonte</option>
     {% for f in ("maps", "cnpj", "instagram", "ifood") %}<option value="{{ f }}" {{ 'selected' if filtros.fonte == f }}>{{ f | rotulo }}</option>{% endfor %}
+    <option value="ifood_sem_maps" {{ 'selected' if filtros.fonte == 'ifood_sem_maps' }}>iFood, o Maps não achou</option>
   </select></label>
   <label class="campo">Ordem<select name="ordem">
     <option value="">Maior score</option>

@@ -2,7 +2,7 @@
 Description=mfl-leads: Maps e iFood por bairro (agenda)
 
 [Timer]
-OnCalendar=*-*-* 01:30
+OnCalendar=*-*-* 00:00
 Persistent=true
 RandomizedDelaySec=10min
 

@@ -171,7 +171,7 @@ def test_coleta_mostra_data_ifood_e_timer_compartilhado(con, tmp_path, monkeypat
     rotinas = {r["job"]: r for r in controle.rotinas(con)}
     assert rotinas["ifood"]["proxima"] == rotinas["maps"]["proxima"] == "2026-11-25 01:30"
     pagina = ui.criar_app(tmp_path / "t.db").test_client().get("/coleta").get_data(as_text=True)
-    assert "Último iFood" in pagina and "24/11/2026" in pagina and "01h30" in pagina
+    assert "Último iFood" in pagina and "24/11/2026" in pagina and "00h" in pagina
 
 
 def test_leitura_aguarda_navegacao_sem_repetir_acao(monkeypatch):
