@@ -4,6 +4,8 @@ Regra da spec: 0,35 CEP5 igual + 0,35 telefone igual + 0,30 similaridade do nome
 >= 0,85 vincula; 0,55–0,85 vai para revisão; abaixo, entidades separadas.
 Ajustes (Parte A): telefone igual sozinho já vincula (é o mesmo WhatsApp), desde que o
 telefone não se repita entre CNPJs (aí é do contador); CEP completo + nome >= 0,85 também vincula.
+Revisão (25/11/2026, 234 pares num dia, ~85% lixo): dois lugares do Maps nunca são o mesmo; palavra de tipo
+("boteco", "delivery") não conta; uma palavra só em comum não basta; mesmo número de porta soma 0,10; corte 0,62.
 """
 
 import re
@@ -15,11 +17,15 @@ from mfl.classifica import normalizar
 from mfl.db import agora, bloqueado
 from mfl.fone import celular
 
-VINCULA, REVISA = 0.85, 0.55
+VINCULA, REVISA = 0.85, 0.62
 SUFIXOS = re.compile(r"\b(ltda|me|eireli|sa|mei|epp)\b")
 # Palavras de tipo de casa não identificam ninguém: "Pizzaria Nova" e "Pizzaria Bella" não são parecidas.
 GENERICAS = re.compile(r"\b(pizzaria|pizza|pizzas|restaurante|lanchonete|lancheria|lanches|bar|cafe|cafeteria|padaria"
                        r"|confeitaria|doceria|hamburgueria|burger|churrascaria|sushi|casa|do|da|de|dos|das|e|o|a)\b")
+# Tipo de casa que só pesa na comparação de nomes (fora de GENERICAS para não mexer na checagem do @ em ig.py).
+TIPO = re.compile(r"\b(delivery|lanches|lancheria|lanchonete|grill|gril|burguer|mercado|minimercado|mini|boteco|buteco"
+                  r"|cozinha|gastronomia|conveniencias?|assados|acai|pastelaria|delicias|sabor|express|food|artesanal"
+                  r"|artesanais|cervejaria|grelhados|bistro|pub|shopping|coffee|cafes|salgados|the|la|le|del|no|na|em)\b")
 PROVISORIO = re.compile(r"^(CNPJ |Marcado como |Contato \()")
 # Campos que a fonte nova preenche quando o lead sobrevivente não tem.
 PREENCHE = ["cnpj", "place_id", "ig_username", "fantasia", "cnae", "categoria", "uf", "municipio", "bairro", "cep",
@@ -35,7 +41,7 @@ def nome_normal(nome: str | None, lugar: set[str] = frozenset()) -> str:
 
 def numero(endereco: str | None) -> str | None:
     """Número do endereço no formato do Maps ("R. X, 905 - ...")."""
-    achado = re.search(r",\s*(\d+)\b", endereco or "")
+    achado = re.search(r",\s*(\d+)\b(?!-\d)", endereco or "")  # sem número, ", 90050-022" é o CEP
     return achado.group(1) if achado else None
 
 
@@ -46,8 +52,11 @@ def telefones_compartilhados(con: sqlite3.Connection) -> set[str]:
 
 
 def pontuar(a: dict, b: sqlite3.Row | dict, compartilhados: set[str]) -> float:
-    if a.get("cnpj") and (cnpj_b := dict(b).get("cnpj")) and a["cnpj"] != cnpj_b:
+    b = dict(b)
+    if a.get("cnpj") and b.get("cnpj") and a["cnpj"] != b["cnpj"]:
         return 0.0
+    if a.get("place_id") and b.get("place_id") and a["place_id"] != b["place_id"]:
+        return 0.0  # duas fichas do Maps são dois lugares
     tels_a = {t for t in (a.get("tel1"), a.get("tel2")) if t and t not in compartilhados}
     tels_b = {t for t in (b["tel1"], b["tel2"]) if t and t not in compartilhados}
     if tels_a & tels_b:
@@ -56,11 +65,19 @@ def pontuar(a: dict, b: sqlite3.Row | dict, compartilhados: set[str]) -> float:
     lugar = set(normalizar(f"{a.get('bairro') or ''} {a.get('municipio') or ''} poa").split())
     nome_a = nome_normal(a.get("fantasia") or a.get("nome"), lugar)
     nome_b = nome_normal(b["fantasia"] or b["nome"], lugar)
-    similar = fuzz.token_set_ratio(nome_a, nome_b) / 100 if nome_a and nome_b else 0.0
-    mesmo_cep5 = len(cep_a) >= 5 and cep_a[:5] == cep_b[:5]
-    nota = 0.35 * mesmo_cep5 + 0.30 * similar
     # CEP do Maps e da Receita costumam diferir no fim; o número da porta não.
     mesma_porta = numero(a.get("endereco")) in re.findall(r"\b\d+\b", b["endereco"] or "")
+    similar = fuzz.token_set_ratio(nome_a, nome_b) / 100 if nome_a and nome_b else 0.0
+    curto_a, curto_b = TIPO.sub(" ", nome_a).split(), TIPO.sub(" ", nome_b).split()
+    if not (curto_a and curto_b):
+        similar = 0.0  # nome só de tipo ("Mini Mercado") não identifica ninguém
+    else:
+        similar = min(similar, fuzz.token_set_ratio(" ".join(curto_a), " ".join(curto_b)) / 100)
+        if min(len(curto_a), len(curto_b)) == 1 and set(curto_a) != set(curto_b) and not mesma_porta:
+            # "Helena burger" x "Santa Helena": uma palavra em comum só vale se o nome inteiro parece
+            similar = min(similar, fuzz.token_sort_ratio(nome_a, nome_b) / 100)
+    mesmo_cep5 = len(cep_a) >= 5 and cep_a[:5] == cep_b[:5]
+    nota = 0.35 * mesmo_cep5 + 0.30 * similar + 0.10 * (mesma_porta and similar >= 0.5)
     if similar >= 0.85 and ((len(cep_a) == 8 and cep_a == cep_b) or (mesmo_cep5 and mesma_porta)):
         nota = max(nota, VINCULA)
     return round(nota, 3)

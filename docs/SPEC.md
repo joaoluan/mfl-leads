@@ -92,6 +92,7 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - Consultas em `cfg/maps_consultas.txt`. A v1.20.0 às vezes não sai do processo após terminar: o wrapper encerra 15 s depois de "scrapemate exited"; teto de 1800 s.
 - Ingestão idempotente por place_id. Descarta fechado e fora dos municípios do recorte (franquia entra e só perde pontos). Telefone celular válido → `novo` (apto para a fila); fixo ou sem telefone → `enriquecimento`. E-mail só se o domínio tem MX.
 - Resolução: regra da spec (0,35 CEP5 + 0,35 telefone + 0,30 nome) com ajustes: telefone igual vincula sozinho, exceto telefone repetido entre CNPJs (contador); CEP completo + nome ≥ 0,85 vincula; palavras genéricas (pizzaria, restaurante…) fora da comparação. 0,55–0,85 vai para a tela Revisão.
+- Revisão mais estrita (25/11/2026: 234 pares num dia, ~85% lixo): duas fichas do Maps nunca são o mesmo lugar; palavra de tipo (boteco, delivery, burguer, mercado…) não conta; uma palavra só em comum exige nome inteiro parecido ou mesma porta; mesmo número de porta soma 0,10; corte da Revisão 0,55 → 0,62. Nos 234 pares: 37 continuariam na Revisão (24 reais), 6 reais ficariam de fora (viram leads separados).
 
 ### Score (fase 6)
 - `src/mfl/score.py`, pesos em `cfg/icp.toml` (editável em /config). Recalcula tudo em ~2 s: `make score`, e sozinho depois de `maps` e `resolver`. Sinais gravados em `entity.sinais` (etiquetas na fila).

@@ -126,3 +126,22 @@ def test_pontuar_porta_e_bairro():
     assert resolve.pontuar({**maps_, "endereco": "Av. Cristóvão Colombo, 17 - X"}, cnpj, set()) < resolve.VINCULA
     outro = {**cnpj, "fantasia": "The Chefs Hamburgueria - Moinhos", "nome": "x"}
     assert resolve.pontuar({**maps_, "fantasia": "Moinhos Pizzaria"}, outro, set()) < resolve.REVISA  # "Moinhos" não conta
+
+
+def test_pontuar_corta_lixo_da_revisao():
+    base = {"tel1": None, "tel2": None, "cep": "90040270", "cnpj": "33333333000155", "place_id": None,
+            "endereco": "RUA JACINTO GOMES 394"}
+    maps_ = {"cep": "90040193", "bairro": "Farroupilha", "municipio": "Porto Alegre", "place_id": "PX",
+             "endereco": "Av. Venâncio Aires, 827 - Farroupilha, Porto Alegre - RS, 90040-193"}
+    # uma palavra em comum, nome inteiro diferente
+    assert resolve.pontuar({**maps_, "nome": "Lua burger"}, {**base, "fantasia": "SANTA LUA BAR E LANCHERIA", "nome": "x"},
+                           set()) < resolve.REVISA
+    # só palavra de tipo em comum
+    assert resolve.pontuar({**maps_, "nome": "Boteco Tal"}, {**base, "fantasia": "BOTECO QUAL", "nome": "x"}, set()) < resolve.REVISA
+    # duas fichas do Maps nunca são o mesmo lugar, mesmo com nome igual
+    assert resolve.pontuar({**maps_, "nome": "Lua Nova"}, {**base, "cnpj": None, "place_id": "PY", "fantasia": "Lua Nova",
+                                                           "nome": "Lua Nova"}, set()) == 0.0
+    # nome igual no mesmo CEP5 continua indo para revisão
+    assert resolve.pontuar({**maps_, "nome": "Lua Nova"}, {**base, "fantasia": "LUA NOVA", "nome": "x"}, set()) >= resolve.REVISA
+    # sem número no endereço o CEP não vira porta
+    assert resolve.numero("Cidade Baixa, Porto Alegre - RS, 90050-022") is None
