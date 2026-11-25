@@ -107,3 +107,16 @@ def test_noite_do_maps_revisita_por_rendimento_horario_e_bloqueio(con, monkeypat
     monkeypatch.setattr(cli, "_maps_bairro", termina_tarde)
     cli._maps_fila(con, 12, None, ate="04:00", agora=lambda: hora["valor"])
     assert rodados == ["d"]  # às 04:00 não começa outro
+
+
+def test_falha_do_maps_diz_bairro_e_motivo(con, monkeypatch):
+    from mfl import cli, maps
+    monkeypatch.setattr(cli.bairros, "carregar", lambda: {"arq": {"municipio": "Porto Alegre", "nome": "Arquipélago"}})
+    monkeypatch.setattr(cli.score, "recalcular", lambda *a: None)
+    def estoura(chave, info):
+        raise RuntimeError(f"{maps.Incompleto(None, 60)} (12 lugares aproveitados, 3 novos)")
+    monkeypatch.setattr(cli, "_maps_bairro", estoura)
+    with pytest.raises(RuntimeError) as erro:
+        cli._maps_fila(con, 5, None)
+    assert str(erro.value) == ("1 problema(s) no Maps. Arquipélago: passou do limite de 60 min e foi interrompido; "
+                               "volta na próxima noite (12 lugares aproveitados, 3 novos)")

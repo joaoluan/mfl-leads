@@ -46,9 +46,9 @@ def job(con: sqlite3.Connection, nome: str):
         try:
             yield
         except Exception as erro:
-            con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"job:{nome}", f"erro: {erro}"[:300], agora()))
+            con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"job:{nome}", f"erro: {erro}"[:1000], agora()))
             con.commit()
-            log.error("job_falhou", rotina=nome, motivo=str(erro).splitlines()[0][:300] if str(erro) else type(erro).__name__)
+            log.error("job_falhou", rotina=nome, motivo=str(erro).splitlines()[0][:1000] if str(erro) else type(erro).__name__)
             raise
         con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"job:{nome}", "ok", agora()))
         con.commit()
