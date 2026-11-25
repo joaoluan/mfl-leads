@@ -67,9 +67,11 @@ def test_backup_local_ssd_e_poda(con, tmp_path, monkeypatch):
 
 def test_faixa_de_rotina_com_erro(con, tmp_path):
     con.execute("INSERT INTO estado VALUES ('job:maps', 'erro: bairros com falha: centro', '2026-11-24T02:00')")
+    con.execute("INSERT INTO estado VALUES ('job:ifood', 'erro: rotina que saiu', '2026-11-24T02:00')")
     con.commit()
     cliente = ui.criar_app(tmp_path / "t.db").test_client()
-    assert "Rotina com erro: maps" in cliente.get("/").get_data(as_text=True)
+    pagina = cliente.get("/").get_data(as_text=True)
+    assert "Rotina com erro: maps." in pagina  # job:ifood não é rotina atual e fica fora da faixa
     assert "bairros com falha: centro" in cliente.get("/coleta").get_data(as_text=True)
 
 

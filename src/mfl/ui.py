@@ -95,8 +95,10 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         ig_checkpoint = con().execute("SELECT 1 FROM estado WHERE chave='ig_checkpoint'").fetchone() is not None
         return {"evolution_ok": estado is None or estado[0] == "open", "pendentes": pendentes, "revisoes": revisoes,
                 "ig_checkpoint": ig_checkpoint,
+                # rotina removida (ex.: ifood) pode ter deixado erro antigo em `estado`; só as atuais contam
                 "jobs_com_erro": [r[0][4:] for r in con().execute(
-                    "SELECT chave FROM estado WHERE chave LIKE 'job:%' AND valor LIKE 'erro%'")]}
+                    "SELECT chave FROM estado WHERE chave LIKE 'job:%' AND valor LIKE 'erro%'")
+                    if r[0][4:] in controle.ROTINAS]}
 
     @app.get("/")
     def fila() -> str:
