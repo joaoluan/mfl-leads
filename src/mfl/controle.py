@@ -45,6 +45,7 @@ EVENTOS = {"maps_ingerido": "Bairro raspado", "maps_bairro_falhou": "Bairro falh
            "ig_rodado": "Perfis do Instagram visitados", "ig_checkpoint": "Instagram pediu verificação",
            "ig_em_checkpoint": "Instagram parado (verificação)", "ig_handles": "@ do Instagram achados",
            "score_recalculado": "Score recalculado", "job_ja_rodando": "Já estava rodando", "backup": "Backup",
+           "job_falhou": "A coleta falhou",
            "bairros_gerados": "Lista de bairros gerada", "cidade": "Bairros da cidade lidos"}
 LOGS = {"maps": "Maps + iFood", "ig": "Instagram", "ifood": "iFood manual", "ops": "Rotinas", "score": "Score", "cnpj": "CNPJ", "evolution": "WhatsApp"}
 

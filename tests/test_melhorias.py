@@ -158,3 +158,14 @@ def test_coleta_dispara_so_acoes_conhecidas(tmp_path, monkeypatch):
         assert "Rodando desde" in cliente.get("/coleta").get_data(as_text=True)
     assert len(disparos) == 2
     assert con.execute("SELECT valor FROM estado WHERE chave='job:ig'").fetchone()[0] == "ok"
+
+
+def test_coleta_atualiza_apos_disparo_antes_de_job_registrar_pid(tmp_path, monkeypatch):
+    from mfl import controle
+    monkeypatch.setattr(controle, "_proximas", lambda: {})
+    cliente = ui.criar_app(tmp_path / "t.db").test_client()
+    pagina = cliente.get("/coleta?aviso=disparado&log=ifood").get_data(as_text=True)
+    assert 'http-equiv="refresh"' in pagina
+    meta = next(l for l in pagina.splitlines() if 'http-equiv="refresh"' in l)
+    assert "log=ifood" in meta and "aviso=" not in meta
+    assert 'http-equiv="refresh"' not in cliente.get("/coleta?log=ifood").get_data(as_text=True)

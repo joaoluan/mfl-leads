@@ -109,7 +109,8 @@ com os defeitos locais corrigidos.
   reconectado quando necessário para enviar eventos nativos e ler a rede.
 - O campo de endereço recebe cliques e teclas nativos do Selenium. A primeira
   sugestão é selecionada explicitamente; os botões são identificados pelo texto,
-  marcados no DOM e clicados pelo driver. A rolagem usa a tecla End nativa.
+  aguardados até ficarem visíveis/habilitados e clicados pelo driver. A rolagem
+  usa a tecla End nativa.
 - O detector cobre o modal `px-captcha-modal`, títulos de iframe HUMAN/challenge
   e o texto “Press & Hold”. Ele é consultado antes de comandos e durante as
   esperas, inclusive a espera da resposta da loja. Se o desafio aparecer durante
@@ -134,3 +135,28 @@ sintética também validou os cinco cenários do detector e 19 eventos nativos
 local também capturou uma resposta `merchant-info/graphql` sintética e extraiu
 endereço e CNPJ pelo fluxo real de navegação, logs e leitura do corpo. Essas
 validações não são evidência de liberação pelo iFood.
+
+## Coleta manual das 22h25 e retorno na tela
+
+A coleta manual falhou às 22h25 de 24/11/2026 no clique em “Salvar endereço”, com
+`ElementNotInteractableException`. A existência de retângulos no DOM não provava
+que o botão já estava visível e disponível para interação. Nenhuma importação
+foi concluída nessa execução; a consulta posterior encontrou 143 registros de
+iFood, todos sem endereço/CNPJ e sem `detalhes_em` na fonte.
+
+A espera agora procura o primeiro elemento visível e habilitado com o seletor
+pedido, relendo a página caso o React recrie o elemento. Os botões são localizados
+por XPath de texto normalizado, sem marcar elementos transitórios no DOM. O
+detector de HUMAN é consultado em cada leitura, antes de enviar eventos.
+
+Havia dois problemas de retorno: uma exceção podia atualizar somente o estado
+do job, sem evento no histórico; e a primeira carga da tela após `systemd-run`
+podia ocorrer antes de o job registrar seu PID, deixando a página sem atualização.
+Falhas agora também geram `job_falhou` no JSONL, exibido como “A coleta falhou”.
+A página atualiza após o disparo mesmo antes do PID e retira o aviso de disparo
+da URL nessa atualização, para não continuar atualizando após o término.
+
+Validação: 137 testes automatizados passaram, incluindo espera por visibilidade,
+habilitação e recriação do elemento, erro visível no histórico e atualização
+após o disparo antes do PID. A coleta real do operador permanece registrada como
+falha; corrigir o código não transforma essa execução anterior em sucesso.
