@@ -2,6 +2,7 @@ import json
 import sqlite3
 import uuid
 from datetime import date
+from unittest.mock import Mock
 
 import pytest
 from typer.testing import CliRunner
@@ -10,6 +11,13 @@ from conftest import criar_lead
 from mfl import cadencia, cli, controle, db, ifood, log, ops, resolve, score, ui, whatsapp
 
 HOJE = date(2026, 11, 24)
+
+
+@pytest.fixture
+def elementos(monkeypatch):
+    alvos = {}
+    monkeypatch.setattr(ifood, "_elemento", lambda aba, seletor: alvos.setdefault(seletor, Mock()))
+    return alvos
 
 
 def item(n=1, nome="Cantina Teste Azul", cidade="porto-alegre-rs", **campos):
@@ -282,7 +290,7 @@ def test_recoleta_incompletos_usa_data_dos_detalhes(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("bloqueado", [False, True])
-def test_lote_segue_sem_detalhes_mas_respeita_bloqueio(monkeypatch, bloqueado):
+def test_lote_segue_sem_detalhes_mas_respeita_bloqueio(monkeypatch, bloqueado, elementos):
     monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
     monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
     monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
@@ -327,8 +335,127 @@ def test_merchant_info_parcial_vale_e_ausencia_bloqueia(monkeypatch):
         ifood.ler_detalhes("aba", loja(), ["Porto Alegre"])
 
 
+def evento_info(status=200):
+    return {"message": json.dumps({"message": {"method": "Network.responseReceived", "params": {
+        "requestId": "pedido-sintetico", "response": {
+            "url": "https://exemplo.test/merchant-info/graphql", "status": status,
+        },
+    }}})}
+
+
+@pytest.mark.parametrize("conectado", [True, False])
+def test_js_usa_sintaxe_do_protocolo_ativo(conectado):
+    aba = Mock()
+    aba.is_connected.return_value = conectado
+    aba.execute_script.return_value = aba.cdp.evaluate.return_value = {"ok": True}
+    assert ifood._js(aba, "({ok:true})") == {"ok": True}
+    if conectado:
+        aba.execute_script.assert_called_once_with("return (({ok:true}));")
+        aba.cdp.evaluate.assert_not_called()
+    else:
+        aba.cdp.evaluate.assert_called_once_with("(({ok:true}))")
+        aba.execute_script.assert_not_called()
+
+
+def test_comando_nativo_reconecta_webdriver_sem_clique_js(monkeypatch):
+    aba = Mock()
+    aba.is_connected.return_value = False
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    ifood._elemento(aba, "button").click()
+    aba.driver.connect.assert_called_once()
+    aba.driver.find_element.return_value.click.assert_called_once()
+    aba.execute_script.assert_not_called()
+
+
+def test_resposta_pendente_nao_perde_request_id_nem_repete_requisicao(monkeypatch):
+    aba = Mock()
+    aba.driver.get_log.side_effect = [[], [evento_info()], []]
+    aba.driver.execute_cdp_cmd.side_effect = [
+        ifood.WebDriverException("corpo ainda não disponível"), {"body": json.dumps(INFO)},
+    ]
+    monkeypatch.setattr(ifood, "_ir", lambda *a: None)
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    assert ifood._ler_resposta_info(aba, loja().url) == INFO
+    assert aba.driver.execute_cdp_cmd.call_count == 2
+    assert all(c.args == ("Network.getResponseBody", {"requestId": "pedido-sintetico"})
+               for c in aba.driver.execute_cdp_cmd.call_args_list)
+    aba.refresh.assert_not_called()
+
+
+@pytest.mark.parametrize("status", [403, 429])
+def test_bloqueio_confirmado_nao_recarrega_nem_le_corpo(monkeypatch, status):
+    aba = Mock()
+    aba.driver.get_log.side_effect = [[], [evento_info(status)]]
+    monkeypatch.setattr(ifood, "_ir", lambda *a: None)
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    with pytest.raises(ifood.DetalhesBloqueados, match=f"HTTP {status}"):
+        ifood._ler_resposta_info(aba, loja().url)
+    aba.refresh.assert_not_called()
+    aba.driver.execute_cdp_cmd.assert_not_called()
+
+
+def test_recarrega_uma_vez_quando_uc_nao_expoe_primeira_resposta(monkeypatch):
+    aba = Mock()
+    aba.driver.get_log.side_effect = [[], [], [evento_info()]]
+    aba.driver.execute_cdp_cmd.return_value = {"body": json.dumps(INFO)}
+    monkeypatch.setattr(ifood, "_ir", lambda *a: None)
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    assert ifood._ler_resposta_info(aba, loja().url) == INFO
+    aba.refresh.assert_called_once()
+
+
+def test_resposta_invalida_informa_erro_sem_inventar_403(monkeypatch):
+    aba = Mock()
+    aba.driver.get_log.side_effect = [[], [evento_info()]]
+    aba.driver.execute_cdp_cmd.return_value = {"body": "{"}
+    monkeypatch.setattr(ifood, "_ir", lambda *a: None)
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    with pytest.raises(ifood.DetalhesBloqueados, match="inválida") as erro:
+        ifood._ler_resposta_info(aba, loja().url)
+    assert "403" not in str(erro.value)
+    aba.refresh.assert_not_called()
+
+
+def test_checkpoint_impede_clique_nativo(monkeypatch):
+    aba = Mock()
+    monkeypatch.setattr(ifood, "_js", lambda aba, expr: expr == ifood.JS_CHECKPOINT)
+    with pytest.raises(ifood.DetalhesBloqueados, match="HUMAN"):
+        ifood._elemento(aba, "button").click()
+    aba.driver.find_element.assert_not_called()
+
+
+def test_endereco_usa_teclado_e_cliques_nativos(monkeypatch, elementos):
+    monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
+    monkeypatch.setattr(ifood, "_fechar", lambda *a: None)
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
+    monkeypatch.setattr(ifood, "_js", lambda aba, js: [item()] if js == ifood.JS_LISTA else True)
+    lojas, bloqueio = ifood.coletar("Rua Fictícia, 10, Porto Alegre", 1, set(), ["Porto Alegre"], detalhar=False)
+    assert len(lojas) == 1 and bloqueio is None
+    campo = elementos['input[placeholder="Endereço de entrega e número"]']
+    campo.click.assert_called_once()
+    campo.send_keys.assert_called_once_with("Rua Fictícia, 10, Porto Alegre")
+    elementos[".btn-address--full-size"].click.assert_called_once()
+    assert elementos["[data-mfl-click]"].click.call_count == 2
+
+
+def test_checkpoint_apos_lista_preserva_lojas_sem_detalhar(monkeypatch, elementos):
+    monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
+    monkeypatch.setattr(ifood, "_fechar", lambda *a: None)
+    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)
+    monkeypatch.setattr(ifood, "_js", lambda aba, js: [item()] if js == ifood.JS_LISTA else True)
+    elementos["body"] = Mock()
+    elementos["body"].send_keys.side_effect = ifood.DetalhesBloqueados("HUMAN pediu verificação")
+    detalhes = Mock()
+    monkeypatch.setattr(ifood, "ler_detalhes", detalhes)
+    lojas, bloqueio = ifood.coletar("Rua Fictícia, 10, Porto Alegre", 2, set(), ["Porto Alegre"])
+    assert len(lojas) == 1 and bloqueio == "HUMAN pediu verificação"
+    detalhes.assert_not_called()
+
+
 @pytest.mark.parametrize("erro", [ifood.DetalhesBloqueados, TimeoutError])
-def test_bloqueio_persiste_e_outros_processos_so_descobrem_novas(tmp_path, monkeypatch, erro):
+def test_bloqueio_persiste_e_outros_processos_so_descobrem_novas(tmp_path, monkeypatch, erro, elementos):
     caminho = tmp_path / "t.db"
     con = db.conectar(caminho)
     monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
@@ -351,7 +478,7 @@ def test_bloqueio_persiste_e_outros_processos_so_descobrem_novas(tmp_path, monke
     assert con.execute("SELECT count(*) FROM source_record WHERE source='ifood'").fetchone()[0] == 3
 
 
-def test_lojas_novas_tem_prioridade_sobre_incompletas(monkeypatch):
+def test_lojas_novas_tem_prioridade_sobre_incompletas(monkeypatch, elementos):
     monkeypatch.setattr(ifood, "_abrir", lambda: "aba")
     monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
     monkeypatch.setattr(ifood.time, "sleep", lambda *a: None)

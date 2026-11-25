@@ -175,8 +175,8 @@ def test_coleta_mostra_data_ifood_e_timer_compartilhado(con, tmp_path, monkeypat
 
 
 def test_leitura_aguarda_navegacao_sem_repetir_acao(monkeypatch):
-    resultados = iter([False, False, "carregou"])
-    monkeypatch.setattr(ifood, "_js", lambda *args: next(resultados))
+    resultados = iter([False, "carregou"])
+    monkeypatch.setattr(ifood, "_js", lambda aba, expr: False if expr == ifood.JS_CHECKPOINT else next(resultados))
     monkeypatch.setattr(ifood.time, "sleep", lambda *_: None)
     assert ifood._esperar("aba", "somente leitura") == "carregou"
 
