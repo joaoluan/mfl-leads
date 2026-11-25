@@ -376,7 +376,7 @@ def test_resposta_pendente_nao_perde_request_id_nem_repete_requisicao(monkeypatc
         ifood.WebDriverException("corpo ainda não disponível"), {"body": json.dumps(INFO)},
     ]
     monkeypatch.setattr(ifood, "_ir", lambda *a: None)
-    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood, "_verificar", lambda *a: 0)
     assert ifood._ler_resposta_info(aba, loja().url) == INFO
     assert aba.driver.execute_cdp_cmd.call_count == 2
     assert all(c.args == ("Network.getResponseBody", {"requestId": "pedido-sintetico"})
@@ -389,7 +389,7 @@ def test_bloqueio_confirmado_nao_recarrega_nem_le_corpo(monkeypatch, status):
     aba = Mock()
     aba.driver.get_log.side_effect = [[], [evento_info(status)]]
     monkeypatch.setattr(ifood, "_ir", lambda *a: None)
-    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood, "_verificar", lambda *a: 0)
     with pytest.raises(ifood.DetalhesBloqueados, match=f"HTTP {status}"):
         ifood._ler_resposta_info(aba, loja().url)
     aba.refresh.assert_not_called()
@@ -401,7 +401,7 @@ def test_recarrega_uma_vez_quando_uc_nao_expoe_primeira_resposta(monkeypatch):
     aba.driver.get_log.side_effect = [[], [], [evento_info()]]
     aba.driver.execute_cdp_cmd.return_value = {"body": json.dumps(INFO)}
     monkeypatch.setattr(ifood, "_ir", lambda *a: None)
-    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood, "_verificar", lambda *a: 0)
     assert ifood._ler_resposta_info(aba, loja().url) == INFO
     aba.refresh.assert_called_once()
 
@@ -411,7 +411,7 @@ def test_resposta_invalida_informa_erro_sem_inventar_403(monkeypatch):
     aba.driver.get_log.side_effect = [[], [evento_info()]]
     aba.driver.execute_cdp_cmd.return_value = {"body": "{"}
     monkeypatch.setattr(ifood, "_ir", lambda *a: None)
-    monkeypatch.setattr(ifood, "_esperar", lambda *a: True)
+    monkeypatch.setattr(ifood, "_verificar", lambda *a: 0)
     with pytest.raises(ifood.DetalhesBloqueados, match="inválida") as erro:
         ifood._ler_resposta_info(aba, loja().url)
     assert "403" not in str(erro.value)
@@ -420,6 +420,7 @@ def test_resposta_invalida_informa_erro_sem_inventar_403(monkeypatch):
 
 def test_checkpoint_impede_clique_nativo(monkeypatch):
     aba = Mock()
+    aba._mfl_ao_verificar = None
     monkeypatch.setattr(ifood, "_js", lambda aba, expr: expr == ifood.JS_CHECKPOINT)
     with pytest.raises(ifood.DetalhesBloqueados, match="HUMAN"):
         ifood._elemento(aba, "button").click()

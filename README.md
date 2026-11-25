@@ -43,9 +43,17 @@ Cada fonte tem sua data de visita: o iFood também roda nos bairros onde o Maps 
 Sem endereço comercial válido, o bairro fica pendente no iFood, com aviso no log.
 
 Em **Coleta → iFood**, informe rua, número e cidade de um ponto de entrega comercial e clique em **Coletar iFood**.
-Também pelo terminal, com o camofox-browser em `127.0.0.1:9377`:
+Deixe marcada **Aguardar minha verificação e retomar endereço/CNPJ** para a coleta assistida.
+Se aparecer uma verificação, o Chrome permanece aberto por até 10 minutos e a tela mostra que está aguardando você.
+Resolva o desafio nessa janela: o código continua sozinho na mesma sessão. Não feche o navegador.
+A opção também retoma explicitamente detalhes suspensos. Vale para essa execução manual; não reserva a janela para a noite.
+Também pelo terminal:
 
     uv run mfl ifood "Rua, número, cidade - RS" --limite 30
+
+Para aguardar sua verificação no Chrome pelo terminal:
+
+    uv run mfl ifood "Rua, número, cidade - RS" --aguardar-verificacao --retomar-detalhes
 
 Visita até 30 lojas por padrão (limite ajustável de 1 a 1000), priorizando novas, e marca `vende_ifood`.
 Abre “Ver mais” para ler endereço, bairro, CEP e CNPJ no painel Sobre. Repetir a coleta completa as lojas antigas sem duplicar;

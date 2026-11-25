@@ -14,6 +14,7 @@ import time
 import uuid
 from urllib.parse import urlsplit
 from datetime import date, timedelta
+from collections.abc import Callable
 
 import structlog
 from pydantic import BaseModel, Field
@@ -21,7 +22,6 @@ from seleniumbase import SB
 from selenium.common.exceptions import StaleElementReferenceException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
 
 from mfl import bairros, cnpj_icp, resolve
 from mfl.classifica import normalizar
@@ -29,6 +29,7 @@ from mfl.db import LOTE, agora
 
 log = structlog.get_logger()
 ESPERA = 30
+ESPERA_VERIFICACAO = 600
 LIMITE_MAX = 1000
 # Captcha do Cloudflare é clicado via PyAutoGUI, que precisa de tela: headed por padrão (Xvfb no timer).
 HEADLESS = os.getenv("MFL_IFOOD_HEADLESS") == "1"
@@ -41,7 +42,7 @@ JS_CHECKPOINT = """(() => {
     return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden';
   };
   return [...document.querySelectorAll(seletores)].some(visivel)
-    || /access denied|acesso negado/i.test(document.title)
+    || /access denied|acesso negado|um momento|just a moment/i.test(document.title)
     || /press\\s*(?:&|and)\\s*hold|before we continue|confirm you are (?:a )?human|confirme que voc[eê] [eé] humano/i
          .test(document.body?.innerText || '');
 })()"""
@@ -145,12 +146,17 @@ def ponto_de_entrega(con: sqlite3.Connection, bairro: dict) -> str | None:
     return None
 
 
-def _abrir():
+def _abrir(ao_verificar: Callable[[bool], None] | None = None):
     """Abre o Chrome em modo UC (passa pelo Cloudflare) numa sessão própria do iFood."""
-    cm = SB(uc=True, locale="pt-BR", headless=HEADLESS, log_cdp=True)
+    cm = SB(uc=True, locale="pt-BR", headless=False if ao_verificar else HEADLESS, log_cdp=True)
     aba = cm.__enter__()
     aba._mfl_cm = cm  # guardado para _fechar devolver o contexto do SeleniumBase
-    _ir(aba, "https://www.ifood.com.br/")
+    aba._mfl_ao_verificar = ao_verificar
+    try:
+        _ir(aba, "https://www.ifood.com.br/")
+    except BaseException:
+        _fechar(aba)
+        raise
     return aba
 
 
@@ -158,14 +164,17 @@ def _fechar(aba) -> None:
     aba._mfl_cm.__exit__(None, None, None)
 
 
-def _ir(aba, url: str) -> None:
+def _ir(aba, url: str) -> float:
     """Navega e resolve o captcha do Cloudflare quando ele aparece."""
     aba.uc_open_with_reconnect(url, reconnect_time=6)
+    if getattr(aba, "_mfl_ao_verificar", None):
+        return _verificar(aba)
     if "Um momento" in aba.get_title():
         aba.uc_gui_click_captcha()
         aba.sleep(4)
     if "Um momento" in aba.get_title():
         raise DetalhesBloqueados("iFood não liberou o acesso (verificação do Cloudflare). Lista preservada.")
+    return 0
 
 
 def _js(aba, expressao: str):
@@ -174,12 +183,32 @@ def _js(aba, expressao: str):
     return aba.execute_script(f"return ({expressao});")
 
 
-def _esperar(aba, expressao: str):
+def _verificar(aba) -> float:
+    """Na coleta assistida, só observa o desafio enquanto o operador o resolve."""
+    if not _js(aba, JS_CHECKPOINT):
+        return 0
+    ao_verificar = getattr(aba, "_mfl_ao_verificar", None)
+    if not ao_verificar:
+        raise DetalhesBloqueados("iFood pediu verificação HUMAN ou bloqueou o acesso. Lista preservada.")
+    inicio = time.monotonic()
+    log.warning("ifood_aguardando_verificacao", limite_minutos=ESPERA_VERIFICACAO // 60)
+    ao_verificar(True)
+    try:
+        while _js(aba, JS_CHECKPOINT):
+            if time.monotonic() - inicio >= ESPERA_VERIFICACAO:
+                raise DetalhesBloqueados("Verificação manual do iFood não concluída em 10 minutos. Lista preservada.")
+            time.sleep(1)
+    finally:
+        ao_verificar(False)
+    log.info("ifood_verificacao_concluida")
+    return time.monotonic() - inicio
+
+
+def _esperar(aba, expressao: str | Callable[[], object]):
     fim = time.monotonic() + ESPERA
     while time.monotonic() < fim:
-        if _js(aba, JS_CHECKPOINT):
-            raise DetalhesBloqueados("iFood pediu verificação HUMAN ou bloqueou o acesso. Lista preservada.")
-        if resultado := _js(aba, expressao):
+        fim += _verificar(aba)
+        if resultado := expressao() if callable(expressao) else _js(aba, expressao):
             return resultado
         time.sleep(1)
     raise TimeoutError("iFood não carregou a etapa esperada. Confira o endereço ou tente mais tarde.")
@@ -194,13 +223,12 @@ def _driver(aba):
 
 def _elemento(aba, seletor: str, por: str = By.CSS_SELECTOR):
     """Espera um alvo visível e habilitado, conferindo o bloqueio a cada leitura."""
-    def pronto(driver):
-        if _js(aba, JS_CHECKPOINT):
-            raise DetalhesBloqueados("iFood pediu verificação HUMAN ou bloqueou o acesso. Lista preservada.")
-        return next((e for e in driver.find_elements(por, seletor) if e.is_displayed() and e.is_enabled()), False)
-
-    return WebDriverWait(_driver(aba), ESPERA, ignored_exceptions=(StaleElementReferenceException,)).until(
-        pronto, "iFood não liberou o campo ou botão esperado a tempo.")
+    def pronto():
+        try:
+            return next((e for e in _driver(aba).find_elements(por, seletor) if e.is_displayed() and e.is_enabled()), False)
+        except StaleElementReferenceException:
+            return False
+    return _esperar(aba, pronto)
 
 
 def _clicar_botao(aba, texto: str) -> None:
@@ -211,13 +239,19 @@ def _clicar_botao(aba, texto: str) -> None:
 def _ler_resposta_info(aba, url: str) -> dict | None:
     """Lê a resposta merchant-info/graphql que a própria página da loja recebe (CNPJ e endereço)."""
     _driver(aba).get_log("performance")  # descarta somente eventos da página anterior
-    _ir(aba, url)
+    if _ir(aba, url):
+        _driver(aba).get_log("performance")  # descarta respostas anteriores à intervenção manual
     limite = time.monotonic() + ESPERA
     pendentes: set[str] = set()
     recarregou = False
     while time.monotonic() < limite:
-        _esperar(aba, "true")
+        pausa = _verificar(aba)
+        limite += pausa
         driver = _driver(aba)
+        if pausa:
+            driver.get_log("performance")
+            pendentes.clear()
+            recarregou = False
         for entrada in driver.get_log("performance"):
             msg = json.loads(entrada["message"])["message"]
             if msg.get("method") != "Network.responseReceived":
@@ -275,9 +309,10 @@ def ler_detalhes(aba, loja: Loja, municipios: list[str]) -> Loja:
 
 
 def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[str], *,
-            revisitar: set[str] | None = None, detalhar: bool = True) -> tuple[list[Loja], str | None]:
+            revisitar: set[str] | None = None, detalhar: bool = True,
+            ao_verificar: Callable[[bool], None] | None = None) -> tuple[list[Loja], str | None]:
     """Prioriza descobertas; devolve o motivo da suspensão junto da lista preservada."""
-    aba = _abrir()
+    aba = _abrir(ao_verificar) if ao_verificar else _abrir()
     try:
         _esperar(aba, "!!document.querySelector('input[placeholder=\"Endereço de entrega e número\"]')")
         time.sleep(3)  # aguarda a hidratação antes de preencher o input do React
@@ -417,7 +452,7 @@ def ingerir(con: sqlite3.Connection, lojas: list[Loja], franquias: list[str]) ->
     return total
 
 
-def rodar(con: sqlite3.Connection, endereco: str, limite: int = 30) -> dict[str, int]:
+def rodar(con: sqlite3.Connection, endereco: str, limite: int = 30, *, aguardar_verificacao: bool = False) -> dict[str, int]:
     if not endereco.strip() or len(endereco) > 300 or not 1 <= limite <= LIMITE_MAX:
         raise ValueError(f"Informe um endereço com até 300 caracteres e limite entre 1 e {LIMITE_MAX} lojas.")
     from mfl.score import config
@@ -434,7 +469,24 @@ def rodar(con: sqlite3.Connection, endereco: str, limite: int = 30) -> dict[str,
         completo = all(dados.get(c) for c in ("endereco", "cep", "cnpj"))
         if not motivo and not completo and (dados.get("detalhes_em") or "")[:10] <= vencido:
             revisitar.add(registro["source_key"])
-    lojas, bloqueio = coletar(endereco, limite, conhecidos, municipios, revisitar=revisitar, detalhar=not motivo)
+
+    def verificacao(aguardando: bool) -> None:
+        if aguardando:
+            con.execute("INSERT OR REPLACE INTO estado VALUES ('ifood_verificacao',?,?)",
+                        ("Aguardando sua verificação: conclua o desafio na janela do iFood em até 10 minutos. "
+                         "A coleta continuará na mesma janela. Não feche o navegador.", agora()))
+        else:
+            con.execute("DELETE FROM estado WHERE chave='ifood_verificacao'")
+        con.commit()
+
+    if aguardar_verificacao:
+        verificacao(False)
+    try:
+        opcoes = {"ao_verificar": verificacao} if aguardar_verificacao else {}
+        lojas, bloqueio = coletar(endereco, limite, conhecidos, municipios, revisitar=revisitar, detalhar=not motivo, **opcoes)
+    finally:
+        if aguardar_verificacao:
+            verificacao(False)
     if bloqueio:
         suspender_detalhes(con, bloqueio)
     return ingerir(con, lojas, cnpj_icp.termos_franquia())

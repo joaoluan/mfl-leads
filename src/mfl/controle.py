@@ -39,6 +39,8 @@ EVENTOS = {"maps_ingerido": "Bairro raspado", "maps_bairro_falhou": "Bairro falh
            "ifood_ingerido": "Lojas do iFood importadas", "ifood_sem_endereco": "iFood não mostrou endereço das lojas",
            "ifood_detalhes_bloqueados": "Detalhes do iFood suspensos", "ifood_cnpj_divergente": "CNPJ divergente: conferir vínculo",
            "ifood_detalhes_suspensos": "Detalhes suspensos: coleta somente lojas novas",
+           "ifood_aguardando_verificacao": "Aguardando sua verificação na janela do iFood",
+           "ifood_verificacao_concluida": "Verificação concluída: coleta retomada",
            "ifood_maps_parcial": "Busca parcial no Maps: resultados salvos",
            "ifood_sem_ponto": "Bairro sem ponto de entrega: iFood pendente", "ifood_bairro_falhou": "Coleta do iFood falhou",
            "ifood_maps_completado": "Descobertas do iFood buscadas no Maps", "ifood_maps_falhou": "Busca das lojas no Maps falhou",
@@ -95,6 +97,9 @@ def rotinas(con: sqlite3.Connection) -> list[dict]:
 
 def _andamento(con: sqlite3.Connection, job: str) -> str:
     """O que dá para mostrar enquanto roda: o Maps só grava no fim do bairro, então lê o log do raspador."""
+    if job == "ifood":
+        linha = con.execute("SELECT valor FROM estado WHERE chave='ifood_verificacao'").fetchone()
+        return linha[0] if linha else ""
     if job == "maps":
         logs = sorted((RAIZ / "logs" / "maps").glob("*.log"), key=lambda p: p.stat().st_mtime)
         if not logs:

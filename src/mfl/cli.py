@@ -319,15 +319,16 @@ def cmd_backup() -> None:
 @app.command("ifood")
 def cmd_ifood(endereco: str = typer.Argument(..., help="Rua, número e cidade de um ponto de entrega"),
               limite: int = typer.Option(30, min=1, max=ifood.LIMITE_MAX, help="Lojas novas ou incompletas por execução"),
-              retomar_detalhes: bool = typer.Option(False, help="Retoma endereço/CNPJ após resolver o bloqueio no iFood")) -> None:
-    """Coleta lojas do iFood pelo camofox e recalcula o score. Não envia mensagens."""
+              retomar_detalhes: bool = typer.Option(False, help="Retoma endereço/CNPJ após resolver o bloqueio no iFood"),
+              aguardar_verificacao: bool = typer.Option(False, help="Mantém a janela aberta por até 10 min para você verificar")) -> None:
+    """Coleta lojas do iFood pelo Chrome e recalcula o score. Não envia mensagens."""
     log.configurar("ifood")
     con = db.conectar()
     with ops.job(con, "ifood"):
         if retomar_detalhes:
             con.execute("DELETE FROM estado WHERE chave='ifood_detalhes_bloqueados'")
             con.commit()
-        ifood.rodar(con, endereco, limite)
+        ifood.rodar(con, endereco, limite, aguardar_verificacao=aguardar_verificacao)
         score.recalcular(con, date.today())
 
 

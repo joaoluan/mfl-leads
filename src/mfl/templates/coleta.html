@@ -18,6 +18,7 @@ tr[aria-current] td { background:var(--realce); }
 <h1>Coleta</h1>
 <p class="sub">De onde os leads vêm, o que está rodando agora e o que deu erro. Você pode disparar qualquer coleta na hora.</p>
 {% if aviso %}<div class="faixa ok" role="status">{{ aviso }}</div>{% endif %}
+{% for r in rotinas if r.job == 'ifood' and r.andamento %}<div class="faixa" role="status">{{ r.andamento }}</div>{% endfor %}
 {% if ig_checkpoint %}<div class="faixa erro">O Instagram pediu login ou verificação: a coleta de perfis está parada. Rode <code>baixar-insta --login</code> e depois <code>mfl ig --retomar</code>.</div>{% endif %}
 {% if ifood_suspenso %}<div class="faixa" role="status">Endereço e CNPJ do iFood estão suspensos: {{ ifood_suspenso }}
   A lista continua coletando lojas novas. Após resolver o acesso, retome pelo comando <code>mfl ifood "endereço" --retomar-detalhes</code>.</div>{% endif %}
@@ -95,8 +96,11 @@ tr[aria-current] td { background:var(--realce); }
   <input type="hidden" name="acao" value="ifood">
   <label class="campo">Endereço de entrega<input name="endereco" required maxlength="300" placeholder="Rua, número, cidade - RS" style="width:min(480px,80vw)"></label>
   <label class="campo">Lojas novas<input type="number" name="limite" value="30" min="1" max="{{ limite_ifood }}" required></label>
+  <label><input type="checkbox" name="verificacao_manual" value="1" checked> Aguardar minha verificação e retomar endereço/CNPJ</label>
   <button>Coletar iFood</button>
 </form>
+<p class="suave">Com a opção marcada, o Chrome fica aberto por até 10 minutos se pedir verificação. Resolva o desafio nessa janela:
+  a coleta continua sozinha na mesma sessão. Não feche o navegador. Essa espera vale só para a coleta manual.</p>
 
 <h2>O que aconteceu</h2>
 <p class="suave">Registro das últimas execuções. “Bairro raspado” mostra quantos lugares eram novos, quantos já existiam (vinculados),

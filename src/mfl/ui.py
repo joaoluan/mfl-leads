@@ -316,6 +316,8 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
             if not endereco or len(endereco) > 300 or not 1 <= limite <= ifood.LIMITE_MAX:
                 abort(400)
             job, args = "ifood", ["ifood", endereco, "--limite", str(limite)]
+            if request.form.get("verificacao_manual") == "1":
+                args.extend(["--aguardar-verificacao", "--retomar-detalhes"])
         else:
             abort(400)
         estado = con().execute("SELECT valor FROM estado WHERE chave=?", (f"job:{job}",)).fetchone()
