@@ -1,9 +1,9 @@
-Oi, pessoal da {nome}! Sou o João, toquei restaurante 15 anos aqui em POA.
-Vi que vocês já recebem pedido por um sistema. Criei o MyFoodLink pra quem quer pedido pelo WhatsApp com atendimento automático e delivery sem comissão.
-Se um dia pensarem em trocar, libero 30 dias grátis pra comparar lado a lado. Posso te mostrar?
+Oi, tudo bem? João aqui, 15 anos tocando restaurante em POA.
+Vi que a {nome} já trabalha com sistema de pedido, e isso diz muito: casa que leva o digital a sério. Não tô te chamando pra largar o que funciona.
+Criei o MyFoodLink e queria a opinião de quem já usa algo parecido. Posso te mandar o Instagram pra tu ver e me dizer o que achou?
 Se não quiser receber, responde SAIR.
 ---
-Oi! Vi a {nome} aí no {bairro}.
-Vocês já usam sistema de pedido, né? Pergunta sincera: tá atendendo bem no pico ou ainda escapa pedido no WhatsApp?
-Tenho um sistema feito por quem tocou restaurante e libero 30 dias grátis pra testar junto com o atual. Topa?
+Oi! João aqui, vi a {nome} aí no {bairro}.
+Dono que já usa sistema sabe melhor que ninguém o que falta nele. Fiz o MyFoodLink com o olhar de quem tocou restaurante e queria te mostrar sem compromisso, até pra rodar junto do que tu já tem.
+Posso te mandar como ficou?
 Se preferir não receber, responde SAIR.

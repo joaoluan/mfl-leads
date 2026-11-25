@@ -1,17 +1,17 @@
-Oi, pessoal da {nome}! Sou o João, 15 anos de restaurante em POA.
+Opa, tudo bem? João aqui. 15 anos de restaurante em POA, hoje crio sistema pra casas como a {nome}.
 {sinal}
-Hamburgueria paga caro em comissão de app. Com o MyFoodLink o cliente pede direto pelo WhatsApp e o delivery é sem comissão.
-Posso liberar 30 dias grátis pra vocês testarem?
+Hamburgueria costuma ter o produto que o cliente adora e uma parte do lucro indo embora em comissão de app. Criei um jeito do cliente fiel pedir direto no WhatsApp da casa, sem comissão.
+Posso te mandar o Instagram do projeto pra tu ver como ficou?
 Se não quiser receber, responde SAIR.
 ---
-Oi! Vi a {nome} aí no {bairro}.
+Oi! João aqui, vi a {nome} aí no {bairro} e resolvi te chamar.
 {sinal}
-Pergunta rápida: quanto do delivery de vocês hoje passa por app com comissão?
-Tenho um jeito de trazer esse pedido pro WhatsApp de vocês, e libero 30 dias grátis pra testar. Topa?
+Uma coisa que aprendi: cliente que pede no app é do app. O que pede direto no teu WhatsApp é teu, volta mais e não paga comissão.
+Fiz um sistema pra trazer esse pedido pra dentro da casa. Posso te mandar como funciona?
 Se preferir não receber, responde SAIR.
 ---
 Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos tocando restaurante.
 {sinal}
-Cardápio com foto, combos, pedido pelo WhatsApp e pagamento online, sem taxa por pedido.
-Quer usar 30 dias grátis na {nome}?
+Tô mostrando pra donos de hamburgueria da região e queria a opinião de quem vive isso: cardápio com foto, combo, pedido pelo WhatsApp e pagamento online, sem taxa por pedido.
+Posso te mandar o Instagram pra tu dar uma olhada?
 Se não quiser mais mensagens, responde SAIR.

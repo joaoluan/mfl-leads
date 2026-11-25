@@ -1,17 +1,17 @@
-Oi, pessoal da {nome}! Sou o João, toquei restaurante 15 anos em POA.
+Opa, tudo bem? João aqui. Toquei restaurante 15 anos em POA e hoje crio sistema pra casas como a {nome}.
 {sinal}
-Churrascaria vive de reserva e de cliente que volta. O MyFoodLink atende reserva pelo WhatsApp e tem fidelidade pra trazer o cliente de novo.
-Posso liberar 30 dias grátis pra vocês testarem?
-Se não quiser receber, responde SAIR.
+Churrascaria vive de mesa cheia no fim de semana, e reserva confirmada na mão, por áudio e mensagem solta, é por onde mais escapa mesa.
+O MyFoodLink recebe a reserva pelo WhatsApp e ainda traz o cliente de volta com fidelidade. Posso te mandar o Instagram do projeto?
+Se não for o momento, responde SAIR que eu não chamo mais.
 ---
-Oi! Vi a {nome} aí no {bairro}.
+Oi! João aqui, vi a {nome} aí no {bairro} e resolvi te chamar.
 {sinal}
-Pergunta direta: as reservas de fim de semana chegam pelo WhatsApp e alguém confirma na mão?
-Tenho um sistema que faz isso sozinho e libero 30 dias grátis. Topa testar?
+Domingo, mesa de doze, três mensagens de reserva em lugares diferentes e nenhuma anotada no mesmo caderno. Quem já tocou salão conhece a cena.
+Fiz um sistema que organiza isso sozinho. Posso te mandar como ficou?
 Se preferir não receber, responde SAIR.
 ---
 Oi, tudo bem? João aqui, criei o MyFoodLink depois de 15 anos tocando restaurante.
 {sinal}
-Reserva, cardápio digital, fidelidade e delivery sem comissão, tudo pelo WhatsApp da casa.
-Quer usar 30 dias grátis na {nome}?
+Tô mostrando pra donos de churrascaria da região e queria a tua opinião: reserva, cardápio digital, fidelidade e delivery sem comissão, tudo pelo WhatsApp da casa.
+Posso te mandar o Instagram pra tu dar uma olhada?
 Se não quiser mais mensagens, responde SAIR.
