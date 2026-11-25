@@ -58,6 +58,7 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - 8 grupos com 3 variantes cada: pizzaria, hamburgueria, churrascaria, japonês, restaurante/marmita, lanchonete/café, padaria/doceria, bar. A categoria vem do Maps.
 - Mais os textos de troca de concorrente e iFood.
 - O inbox mostra a resposta sugerida para "quanto custa" e "já tenho".
+- Direção comercial (25/11/2026): toda variante D0 parte do atendimento automático do restaurante no WhatsApp e completa com os recursos úteis ao tipo de casa (cardápio, reservas, pedidos online, encomendas, fidelidade, fila de espera). O conjunto explica registro de contatos e histórico, alertas e lembretes para a equipe e melhoria das respostas a partir das conversas, com aprovação humana. Objetivo: ajudar a evitar oportunidades perdidas por demora, sem promessa de venda garantida ou aprendizado sem revisão. Catálogo em `docs/MENSAGENS.md`. A prospecção do João continua manual.
 
 ### UI e LGPD
 - Ficha mostra a fonte e a data da coleta ("de onde tirou meu número?").

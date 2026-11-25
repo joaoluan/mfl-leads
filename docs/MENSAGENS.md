@@ -2,7 +2,11 @@
 
 O João aborda e responde pelo WhatsApp Web. A fila sugere os textos conforme o tipo de casa e a etapa da conversa.
 
-O primeiro contato parte da experiência do João na gestão de restaurantes em Porto Alegre. Apresente um uso do MyFoodLink que faça sentido pra casa e peça permissão pra mostrar. Traga preço e teste grátis depois que a pessoa responder. Use o jeito do João de falar: “opa”, “tu”, “tua casa” e frases curtas.
+O primeiro contato parte da experiência do João na gestão de restaurantes em Porto Alegre. Toda variante D0 apresenta o atendimento automático no WhatsApp e completa com o que faz sentido pro tipo de casa: cardápio digital, reservas, pedido online, encomendas, fidelidade ou fila de espera. Peça permissão pra mostrar. Traga preço e teste grátis depois que a pessoa responder. Use o jeito do João de falar: “opa”, “tu”, “tua casa” e frases curtas.
+
+A essência do MyFoodLink é começar o atendimento sem depender de alguém pegar o celular, registrar o contato e o histórico e avisar a equipe quando precisa de uma pessoa. O bot pausa quando a equipe assume; se o cliente continua esperando atendimento humano, há lembrete pra equipe. As dúvidas não resolvidas alimentam a revisão de respostas, que podem ser publicadas para uso automático depois de aprovadas pelo restaurante. O objetivo comercial é ajudar a evitar oportunidades perdidas por demora na resposta.
+
+As variantes distribuem esse ciclo sem listar todos os recursos em cada abordagem. D3 aprofunda alertas, contatos e aprendizado; D7 encerra a rodada; as respostas prontas explicam o conjunto e os planos. “Contato registrado” não significa venda concluída nem autorização para marketing. Aprendizado tem revisão humana. Evite prometer “nunca perde venda”, “responde qualquer pergunta” ou “aprende sozinho”. A disponibilidade depende do plano, da configuração e da conexão do WhatsApp.
 
 Os blocos de texto abaixo correspondem, na mesma ordem, às variantes em `cfg/mensagens/`. Preserve os IDs existentes ao editar, sincronize as duas cópias e rode `uv run pytest`. Pra comparar a reação aos textos novos, filtre os envios pela data da troca, pois versões anteriores usaram os mesmos IDs. Conte respostas humanas, interesse e pedidos de saída separadamente.
 
@@ -60,7 +64,7 @@ As duas primeiras variantes usam o nome da casa. A segunda usa também o bairro.
 ```text
 Opa, tudo bem? Aqui é o João. Trabalhei 15 anos na gestão de restaurantes em Porto Alegre e vi a {nome}.
 {sinal}
-Na sexta à noite, responder cardápio e prazo toma tempo de quem tá cuidando dos pedidos. No MyFoodLink, o WhatsApp já pode mostrar o cardápio pra quem chama.
+No pico da noite, o MyFoodLink responde automaticamente no WhatsApp e leva o cliente ao cardápio digital e ao pedido pelo site. Se precisa da equipe, avisa pra alguém assumir. Ajuda a não deixar uma venda esfriar esperando resposta.
 Posso te mostrar como funciona?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
@@ -70,8 +74,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Criei o MyFoodLink depois de 15 anos tocando restaurante. Com ele, quem já conhece a pizzaria pode pedir pelo site da casa, com delivery ou retirada.
-Posso te mostrar como fica esse pedido?
+Criei o MyFoodLink depois de 15 anos tocando restaurante. Ele começa o atendimento sozinho no WhatsApp e registra o contato e a conversa. A pizzaria também pode receber pedidos de delivery e retirada pelo próprio site, com pagamento online.
+Posso te mostrar esse caminho, da conversa ao pedido?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -80,7 +84,7 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, aqui é o João, do MyFoodLink. Trabalhei 15 anos com restaurante aqui em Porto Alegre.
 {sinal}
-Se o WhatsApp da pizzaria fica cheio no fim de semana, dá pra deixar o cardápio no menu automático e a equipe assume quando precisa.
+O MyFoodLink responde automaticamente às dúvidas de rotina no WhatsApp. As que precisam da equipe ficam registradas e podem virar respostas automáticas depois da tua aprovação. A pizzaria ainda tem fidelidade por selos pra quem volta.
 Posso te mostrar como fica pro cliente?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
@@ -94,9 +98,9 @@ Se não quiser receber mais mensagens, responde SAIR.
 #### Variante 0 — `hamburgueria:0`
 
 ```text
-Opa, tudo bem? Aqui é o João. Vi a {nome} e lembrei do corre de atender no pico. Trabalhei 15 anos com restaurante em Porto Alegre.
+Opa, tudo bem? Aqui é o João. Vi a {nome}. Trabalhei 15 anos com restaurante em Porto Alegre.
 {sinal}
-No MyFoodLink, quem chama no WhatsApp já encontra o cardápio e pode falar com a equipe se precisar.
+No pico dos pedidos, o MyFoodLink responde automaticamente no WhatsApp e mostra o cardápio digital. Se o cliente precisa de alguém, avisa a equipe pra assumir. A ideia é evitar que ele desista enquanto espera uma resposta.
 Posso te mostrar como fica?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
@@ -106,8 +110,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Criei o MyFoodLink pra facilitar a rotina de quem toca restaurante. A hamburgueria pode receber pedido de delivery e retirada pelo próprio site.
-Posso te mostrar como o cliente faz o pedido?
+Criei o MyFoodLink pra começar o atendimento sozinho no WhatsApp e guardar o contato e o histórico da conversa. O cliente também pode pedir delivery ou retirada pelo site da hamburgueria e pagar online.
+Posso te mostrar como funciona, do WhatsApp ao pedido?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -116,8 +120,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, tudo bem? João aqui, do MyFoodLink. Passei 15 anos tocando restaurante.
 {sinal}
-Uma ideia pra quem já compra hambúrguer direto da casa é ter um cartão de fidelidade por selos no celular.
-Posso te mostrar como o cliente ganha e usa os selos?
+O MyFoodLink atende automaticamente no WhatsApp e reúne as dúvidas que a equipe precisou resolver. Depois de aprovadas, as respostas podem ser usadas pelo bot. E a casa tem fidelidade por selos no celular pra incentivar o cliente a voltar.
+Posso te mostrar como isso fica na hamburgueria?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -132,8 +136,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, aqui é o João. Vi a {nome}. Trabalhei 15 anos com gestão de restaurantes em Porto Alegre.
 {sinal}
-No MyFoodLink, a casa define as regras de reserva e o WhatsApp pode confirmar os horários disponíveis.
-Posso te mostrar como fica pra quem quer reservar?
+O MyFoodLink responde automaticamente no WhatsApp, informa horários e leva o cliente à reserva, com confirmação conforme as vagas e as regras da casa. Se precisa da equipe, manda um alerta pra ela assumir.
+Posso te mostrar esse atendimento e a reserva?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -142,8 +146,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Domingo com salão cheio já dá trabalho. No MyFoodLink, as reservas feitas pelo WhatsApp ficam numa agenda que a equipe pode consultar.
-Posso te mostrar essa agenda?
+Domingo com salão cheio já dá trabalho. No MyFoodLink, o atendimento começa sozinho no WhatsApp, o contato fica registrado e as reservas vão pra agenda. A casa também tem cardápio digital no QR Code, sem a equipe mandar o mesmo link toda hora.
+Posso te mostrar como fica essa rotina?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -152,7 +156,7 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, aqui é o João, do MyFoodLink. Trabalhei 15 anos com restaurante em Porto Alegre.
 {sinal}
-Pra casa que enche no fim de semana, dá pra organizar a fila de espera no QR Code e avisar pelo WhatsApp quando a mesa libera.
+O MyFoodLink responde automaticamente às perguntas de rotina no WhatsApp e avisa quando a equipe precisa assumir. As respostas da equipe podem ser usadas pelo bot depois de aprovadas. Pra casa cheia, também tem fila de espera por QR Code e aviso de mesa pelo WhatsApp.
 Posso te mostrar como funciona?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
@@ -166,9 +170,9 @@ Se não quiser receber mais mensagens, responde SAIR.
 #### Variante 0 — `japones:0`
 
 ```text
-Opa, aqui é o João. Vi a {nome} e queria te mostrar o MyFoodLink. Trabalhei 15 anos com restaurante aqui em Porto Alegre.
+Opa, aqui é o João. Vi a {nome}. Trabalhei 15 anos com restaurante aqui em Porto Alegre.
 {sinal}
-Com o menu do WhatsApp, quem chama já consegue abrir o cardápio com fotos antes de perguntar pelos pratos.
+O MyFoodLink responde automaticamente no WhatsApp e mostra o cardápio digital com fotos dos pratos e combinados. Quando precisa de uma pessoa, avisa a equipe. Ajuda a não deixar o cliente esperando enquanto o salão e os pedidos estão no pico.
 Posso te mostrar como fica?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
@@ -178,8 +182,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-No MyFoodLink, o cliente pode escolher os itens no cardápio da casa, pedir delivery ou retirada pelo site e pagar online.
-Posso te mostrar esse caminho?
+O MyFoodLink começa o atendimento sozinho no WhatsApp e registra o contato e a conversa. O cliente também pode escolher os itens no cardápio, pedir delivery ou retirada pelo site da casa e pagar online.
+Posso te mostrar esse caminho, da conversa ao pedido?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -188,7 +192,7 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, tudo bem? João aqui, do MyFoodLink. Vim da gestão de restaurantes aqui em Porto Alegre.
 {sinal}
-Quando alguém chama pra perguntar o que tem no combinado, a equipe pode ter o link do cardápio já no menu do WhatsApp e assumir a conversa quando precisar.
+O MyFoodLink atende automaticamente no WhatsApp e leva o cliente ao cardápio ou à reserva. As dúvidas que a equipe resolve ficam registradas e podem virar respostas do bot depois da tua aprovação. O atendimento vai evoluindo com as perguntas reais da casa.
 Posso te mostrar como fica?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
@@ -204,8 +208,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, aqui é o João. Vi a {nome}. Trabalhei 15 anos com restaurante em Porto Alegre e criei o MyFoodLink.
 {sinal}
-Pra quem trabalha com bolo e torta por encomenda, dá pra receber o pedido pelo site da casa, com cardápio e pagamento online.
-Posso te mostrar como o cliente encomenda?
+O MyFoodLink responde automaticamente no WhatsApp e leva o cliente ao cardápio digital e às encomendas pelo site. Se a conversa precisa da equipe, manda um alerta pra ela assumir, mesmo com o balcão cheio.
+Posso te mostrar esse atendimento e como o cliente encomenda?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -214,8 +218,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Quando o balcão tá cheio, o menu do WhatsApp pode mostrar o cardápio logo de cara. Se alguém quiser tirar uma dúvida, a equipe assume.
-Posso te mostrar como fica no MyFoodLink?
+Quando alguém chama no WhatsApp, o MyFoodLink inicia o atendimento sozinho e registra o contato e a conversa. A casa também pode receber encomendas pelo site, com data agendada e pagamento online.
+Posso te mostrar como fica, da conversa à encomenda?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -224,8 +228,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, tudo bem? João aqui, do MyFoodLink. Vim da gestão de restaurantes.
 {sinal}
-Pra quem tem cliente que passa toda semana no balcão, dá pra usar um cartão de selos no celular da pessoa.
-Posso te mostrar como funciona a fidelidade?
+O MyFoodLink responde automaticamente às dúvidas de rotina no WhatsApp. O que a equipe precisou explicar pode virar resposta do bot depois de aprovado. E quem passa toda semana no balcão pode ter um cartão de fidelidade por selos no celular.
+Posso te mostrar como funciona esse atendimento e a fidelidade?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -240,8 +244,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, aqui é o João. Vi {nome}. Passei 15 anos na gestão de restaurantes em Porto Alegre.
 {sinal}
-No MyFoodLink, quem chama no WhatsApp pode consultar o cardápio ou reservar mesa. A casa define quais horários ficam disponíveis.
-Posso te mostrar como fica a reserva?
+O MyFoodLink responde automaticamente no WhatsApp, mostra o cardápio digital e leva o cliente à reserva nos horários da casa. Se precisa de alguém, avisa a equipe pra assumir, mesmo com o balcão cheio.
+Posso te mostrar esse atendimento e a reserva?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -250,7 +254,7 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Oi, aqui é o João. Vi {nome} no bairro {bairro}.
 {sinal}
-Quando o balcão tá cheio, uma reserva perdida no meio da conversa dá retrabalho. No MyFoodLink, os horários reservados ficam numa agenda pra equipe.
+No MyFoodLink, o atendimento começa sozinho no WhatsApp, o contato fica registrado e as reservas vão pra agenda da equipe. A casa ainda tem fidelidade por selos no celular pra incentivar quem já veio a voltar.
 Posso te mostrar como fica?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
@@ -260,7 +264,7 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, aqui é o João, do MyFoodLink. Trabalhei 15 anos com restaurante.
 {sinal}
-Se costuma formar fila na porta, dá pra colocar o cliente na fila pelo QR Code e avisar no WhatsApp quando a mesa fica livre.
+O MyFoodLink atende automaticamente no WhatsApp. As dúvidas que a equipe resolve podem virar respostas do bot depois de aprovadas. Se forma fila na porta, também dá pra entrar nela pelo QR Code e receber o aviso de mesa pelo WhatsApp.
 Posso te mostrar como funciona?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
@@ -276,8 +280,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, tudo bem? Aqui é o João. Vi a {nome}. Trabalhei 15 anos com restaurante em Porto Alegre.
 {sinal}
-Criei o MyFoodLink pra facilitar coisas simples da rotina. Uma delas é o cartão de selos que fica no celular do cliente.
-Posso te mostrar como ele ganha e troca os selos?
+O MyFoodLink responde automaticamente no WhatsApp e mostra o cardápio digital enquanto a equipe cuida do balcão. Quando o cliente precisa de uma pessoa, avisa pra alguém assumir. Ajuda a não perder o pedido por demora na resposta.
+Posso te mostrar como fica esse atendimento?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -286,8 +290,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Se a equipe vive mandando o mesmo cardápio pelo WhatsApp, dá pra colocar o link no menu automático. A equipe segue atendendo por ali quando precisa.
-Posso te mostrar como fica no MyFoodLink?
+O MyFoodLink começa o atendimento sozinho no WhatsApp e registra o contato e a conversa. Se vocês recebem pedidos pra buscar no balcão, o cliente também pode pedir pelo site da casa e pagar online.
+Posso te mostrar esse caminho, da conversa à retirada?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -296,8 +300,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, aqui é o João, do MyFoodLink. Vim da gestão de restaurantes em Porto Alegre.
 {sinal}
-Se tu recebe pedido pra buscar no balcão, dá pra abrir a retirada pelo site da casa e deixar o cliente pagar online.
-Posso te mostrar como fica pra quem pede?
+O MyFoodLink responde automaticamente às dúvidas de rotina no WhatsApp e reúne as que a equipe precisou resolver. Depois de aprovadas, as respostas podem ser usadas pelo bot. Pra quem volta pro café ou lanche toda semana, tem fidelidade por selos no celular.
+Posso te mostrar como fica na tua casa?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -312,8 +316,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, tudo bem? Aqui é o João. Vi a {nome}. Trabalhei 15 anos na gestão de restaurantes em Porto Alegre.
 {sinal}
-No almoço, toda pergunta de cardápio tira alguém do que tá fazendo. No MyFoodLink, quem chama no WhatsApp já encontra o link do cardápio.
-Posso te mostrar como fica?
+Na hora do almoço, o MyFoodLink responde automaticamente no WhatsApp e mostra o cardápio digital. Se o cliente precisa da equipe, manda um alerta pra ela assumir. Ajuda a não deixar um pedido esfriar esperando alguém pegar o celular.
+Posso te mostrar como fica esse atendimento?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -322,8 +326,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Oi, aqui é o João. Vi a {nome} no bairro {bairro}.
 {sinal}
-Criei o MyFoodLink depois de 15 anos tocando restaurante. Se vocês recebem reservas pelo WhatsApp, dá pra confirmar nos horários que a casa libera e ver tudo numa agenda.
-Posso te mostrar como funciona?
+Criei o MyFoodLink depois de 15 anos tocando restaurante. Ele inicia o atendimento sozinho no WhatsApp e registra o contato e a conversa. Se a casa recebe reservas, o cliente pode reservar com confirmação conforme as vagas e as regras de vocês.
+Posso te mostrar esse atendimento e a agenda?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -332,8 +336,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 ```text
 Opa, tudo bem? João aqui, do MyFoodLink. Vim da gestão de restaurantes.
 {sinal}
-Pra casa que vende marmita, dá pra oferecer pedido direto pelo site, com entrega ou retirada e pagamento online.
-Posso te mostrar como fica pro cliente?
+O MyFoodLink atende automaticamente no WhatsApp. As dúvidas resolvidas pela equipe podem virar respostas do bot depois de aprovadas. Pra casa que vende marmita, também tem pedido pelo site, com entrega ou retirada e pagamento online.
+Posso te mostrar como fica, da conversa ao pedido?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -353,8 +357,8 @@ O sinal ajuda a escolher o assunto. A abordagem oferece um recurso complementar 
 
 ```text
 Opa, aqui é o João. Trabalhei 15 anos com restaurante em Porto Alegre.
-Vi que a {nome} já tem um canal de pedido. Criei o MyFoodLink e pensei que talvez faça sentido mostrar outra parte do que a gente faz, como reservas pelo WhatsApp ou fidelidade por selos.
-Alguma dessas duas coisas te interessa?
+Vi que a {nome} já tem um canal de pedido. Queria te mostrar o atendimento do MyFoodLink: ele responde automaticamente no WhatsApp, registra o contato e avisa quando a equipe precisa assumir. Também tem cardápio digital, reservas e fidelidade.
+Posso te mostrar como esse atendimento funciona?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -362,8 +366,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 
 ```text
 Oi, aqui é o João, do MyFoodLink. Vim da gestão de restaurantes.
-Se vocês já têm um sistema de pedidos, posso te mostrar separadamente como funciona o atendimento pelo WhatsApp no número da casa.
-Faz sentido te mostrar essa parte?
+Pra quem já tem sistema de pedidos, vale olhar também o atendimento: o MyFoodLink responde sozinho no WhatsApp e guarda a conversa. As dúvidas que a equipe resolve podem virar respostas do bot depois de aprovadas. A casa ainda tem reservas e cardápio digital.
+Posso te mostrar essa parte e tu avalia o que faz falta hoje?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -377,8 +381,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 
 ```text
 Opa, aqui é o João. Trabalhei 15 anos com restaurante em Porto Alegre e vi a {nome}.
-O MyFoodLink ajuda a ter um canal direto pra quem já conhece a casa. A pessoa pode pedir pelo teu site, com entrega ou retirada, enquanto tu mantém o iFood.
-Posso te mostrar como fica esse pedido?
+Pra quem já vende no iFood, o MyFoodLink atende automaticamente quem chama no WhatsApp e leva ao cardápio e ao pedido pelo site da casa. O contato fica registrado e a equipe recebe alerta quando precisa assumir. Dá pra manter o iFood e cuidar também do canal direto.
+Posso te mostrar como fica, da conversa ao pedido?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -386,8 +390,8 @@ Se não quiser receber mais mensagens, responde SAIR.
 
 ```text
 Oi, aqui é o João, do MyFoodLink. Vim da gestão de restaurantes.
-Se tu usa iFood e quer receber também pelo site da casa, o MyFoodLink cobra mensalidade, sem comissão do MyFoodLink por pedido. O meio de pagamento tem as próprias taxas.
-Posso te mostrar como o cliente pede e paga?
+O MyFoodLink começa o atendimento sozinho no WhatsApp, registra a conversa e oferece pedido pelo site, com entrega ou retirada e pagamento online. As respostas da equipe podem ser usadas pelo bot depois de aprovadas. A cobrança é por mensalidade, sem comissão do MyFoodLink por pedido; o meio de pagamento tem as próprias taxas.
+Posso te mostrar esse atendimento e o pedido direto?
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -406,24 +410,24 @@ O D3 traz uma sugestão prática. O D7 encerra o contato atual e deixa a convers
 #### Variante 0 — `d3:0`
 
 ```text
-Opa, João aqui de novo. Se tu já tem cardápio online, vale deixar o link no perfil do WhatsApp. Quem chama pode achar o cardápio antes de perguntar.
-Se quiser ver como isso fica no menu do MyFoodLink, me chama.
+Opa, João aqui de novo. Responder rápido é uma parte; quando o cliente precisa de alguém, a equipe também precisa saber. No MyFoodLink, o bot inicia o atendimento, manda o alerta e lembra a equipe se a conversa continua esperando.
+Se quiser ver como fica junto do cardápio e das reservas, me chama.
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
 #### Variante 1 — `d3:1`
 
 ```text
-Oi, tudo bem? No WhatsApp Business, dá pra salvar as respostas que mais se repetem, tipo cardápio, horário e endereço. Ajuda quando tem muita conversa aberta.
-Se quiser ver o atendimento do MyFoodLink, tô por aqui.
+Oi, tudo bem? No MyFoodLink, quem chama no WhatsApp vira um contato com histórico. O atendimento começa automaticamente e a equipe vê o que já foi conversado quando precisa assumir, sem pedir pro cliente contar tudo de novo.
+Se quiser ver como isso acompanha o cardápio, a reserva ou o pedido da casa, tô por aqui.
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
 #### Variante 2 — `d3:2`
 
 ```text
-Opa, João aqui. Se vocês pegam reservas no WhatsApp, vale pedir dia, horário e número de pessoas na mesma mensagem. Já economiza algumas idas e vindas.
-Se quiser ver como o MyFoodLink organiza as reservas, me chama.
+Opa, João aqui. As perguntas reais dos clientes ajudam a melhorar o atendimento. No MyFoodLink, a equipe revisa o que o bot não resolveu e aprova respostas pra usar automaticamente nas próximas dúvidas parecidas.
+Assim o atendimento vai ficando mais preparado pra rotina da casa. Se quiser ver como funciona, me chama.
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -436,21 +440,21 @@ Se não quiser receber mais mensagens, responde SAIR.
 #### Variante 0 — `d7:0`
 
 ```text
-Opa, João aqui. Vou deixar esse assunto por aqui. Se tu quiser ver como ficaria o atendimento do MyFoodLink no WhatsApp da casa, é só me chamar.
+Opa, João aqui. Vou deixar esse assunto por aqui. Se quiser ver o MyFoodLink atendendo automaticamente no WhatsApp e avisando tua equipe quando precisa de alguém, é só me chamar. Te mostro com o cardápio e a rotina da casa.
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
 #### Variante 1 — `d7:1`
 
 ```text
-Oi, tudo bem? Passando só pra fechar esse contato. Se quiser conversar sobre cardápio, reservas ou pedido direto mais pra frente, pode falar comigo por aqui.
+Oi, tudo bem? Fechando esse contato por aqui. Se mais pra frente tu quiser automatizar o atendimento no WhatsApp e juntar cardápio, reservas e pedido direto, pode falar comigo. A ideia é ajudar a não perder oportunidade por demora na resposta.
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
 #### Variante 2 — `d7:2`
 
 ```text
-Valeu, vou encerrar por aqui. Se em outro momento tu quiser experimentar o MyFoodLink, me chama e te explico como começar.
+Valeu, vou encerrar por aqui. Se quiser ver como o MyFoodLink atende sozinho no WhatsApp, registra os contatos e chama a equipe quando precisa, me chama. A gente olha junto o que faz sentido pra tua casa.
 Se não quiser receber mais mensagens, responde SAIR.
 ```
 
@@ -480,10 +484,14 @@ Responda primeiro à dúvida. Se fizer sentido para a casa, convide a testar o S
 #### Variante 0 — `interesse:0`
 
 ```text
-Claro! No MyFoodLink, quem chama no WhatsApp da casa pode abrir o cardápio, fazer uma reserva ou falar com a equipe. Se tu quer vender pelo próprio site, o Pro inclui pedidos e pagamento online.
+Claro! O MyFoodLink começa o atendimento sozinho no WhatsApp da casa, responde perguntas de rotina e leva o cliente ao cardápio, à reserva ou ao pedido. O contato e o histórico ficam registrados.
+
+Quando precisa de uma pessoa, avisa a equipe e lembra se o cliente continua esperando. As dúvidas que o bot não resolveu podem virar respostas automáticas depois de revisadas e aprovadas por vocês.
+
+Junto disso, tem cardápio digital com QR Code, reservas, avaliações, fidelidade e fila de espera. No Pro, também tem delivery, retirada e encomendas pelo site, com pagamento online.
 Aqui dá pra conhecer melhor: https://www.myfoodlink.com.br
 
-O que tu quer ver primeiro? Se fizer sentido pra tua casa, te ajudo a configurar e tu pode testar por 30 dias grátis, sem contrato mínimo.
+O que tu quer ver primeiro na rotina da tua casa? Se fizer sentido, te ajudo a configurar e tu pode testar por 30 dias grátis, sem contrato mínimo.
 ```
 
 ### Quando pergunta preço (`cfg/mensagens/preco.md`)
@@ -495,10 +503,10 @@ O que tu quer ver primeiro? Se fizer sentido pra tua casa, te ajudo a configurar
 #### Variante 0 — `preco:0`
 
 ```text
-O Start fica R$ 149 por mês e inclui atendimento e reservas no WhatsApp, cardápio digital e fidelidade.
-O Pro fica R$ 299 por mês e inclui também delivery, retirada e encomendas pelo site, com pagamento online.
+O Start fica R$ 149 por mês. Inclui atendimento automático no teu WhatsApp, contatos com histórico e alertas pra equipe, além de cardápio digital com QR Code, reservas, avaliações, fidelidade e fila de espera. As respostas da equipe podem ser usadas pelo bot depois de aprovadas.
+O Pro fica R$ 299 por mês. Tem tudo do Start e também delivery, retirada e encomendas pelo site, com pagamento online.
 
-São 30 dias grátis pra testar, sem taxa de implantação e sem contrato mínimo. Tu tá procurando mais ajuda com o atendimento ou quer receber pedidos pelo site também?
+São 30 dias grátis pra testar, sem taxa de implantação e sem contrato mínimo. Tu quer começar automatizando o atendimento ou receber pedidos pelo site também?
 ```
 
 ### Quando já tem sistema (`cfg/mensagens/ja_tenho.md`)
@@ -510,7 +518,7 @@ São 30 dias grátis pra testar, sem taxa de implantação e sem contrato mínim
 #### Variante 0 — `ja_tenho:0`
 
 ```text
-Boa! Qual sistema vocês usam hoje? Se ele já resolve os pedidos, posso te mostrar só a parte que fizer sentido pra tua casa, como reservas pelo WhatsApp ou fidelidade por selos.
+Boa! Qual sistema vocês usam hoje e como fica o atendimento no WhatsApp? No MyFoodLink, o bot responde automaticamente às dúvidas de rotina, registra os contatos e avisa quando a equipe precisa assumir. As respostas que vocês revisam e aprovam podem ser usadas pelo bot nas próximas dúvidas parecidas. Também tem cardápio digital, reservas e fidelidade; te mostro o que fizer sentido pra tua casa.
 ```
 
 ---
@@ -521,12 +529,18 @@ Use estes exemplos manualmente, conforme o que a pessoa respondeu.
 
 **Quando a pessoa só diz “pode mandar”**
 
-> Claro, aqui tá o site: https://www.myfoodlink.com.br. Se tu quiser, te mostro a parte que comentei e como ela ficaria na tua casa.
+> Claro, aqui tá o site: https://www.myfoodlink.com.br. Te mostro como o cliente chama no WhatsApp, o MyFoodLink começa a atender e a equipe é avisada quando precisa assumir. Junto disso, a gente olha o cardápio, a reserva ou o pedido que faz sentido pra tua casa.
 
 **Quando a pessoa quer testar**
 
-> Fechou. Por onde tu quer começar? Posso te ajudar a montar o cardápio e o atendimento ou configurar o pedido online, se for o que a tua casa precisa.
+> Fechou. A gente configura o atendimento no teu WhatsApp, as informações da casa e quem recebe os alertas. Depois junta o cardápio, as reservas e, se tu precisa, o pedido online. Qual parte da rotina tu quer resolver primeiro?
+
+**Quando pergunta como o bot aprende**
+
+> As dúvidas que ele não resolveu ficam pra revisão junto do que a equipe respondeu. Vocês ajustam e aprovam uma resposta, e o bot pode usar nas próximas perguntas parecidas. Assim ele vai ficando mais preparado pras dúvidas da tua casa, com vocês no controle.
 
 **Quando a pessoa pergunta por PDV**
 
-> Aí tem o Gestor, que fica R$ 499 por mês. Ele inclui caixa, salão e cozinha. A implantação é assistida e usa um servidor local na casa. Me conta como vocês usam o caixa e as comandas hoje pra eu entender se encaixa.
+> Aí tem o Gestor, que fica R$ 499 por mês. Ele mantém o atendimento automático, os recursos do Pro e acrescenta caixa, salão, comandas, cozinha, estoque e financeiro. A implantação é assistida e usa um servidor local na casa. Me conta como vocês usam o caixa e as comandas hoje pra eu entender se encaixa.
+
+Referências do produto: [atendimento, aprendizado, alertas e jornadas](https://github.com/joaoluan/myfoodlink-router/blob/main/docs/OPERACAO.md), [CRM e registro de contatos](https://github.com/joaoluan/myfoodlink-router/blob/main/contacts-store.js) e [recursos por plano](https://github.com/joaoluan/frontend-platform/blob/main/apps/public-web/app/%28marketing%29/plans.ts). Revisão de código e documentação em 25/11/2026; não é verificação de ativação em cada restaurante.
