@@ -3,7 +3,6 @@
 import base64
 import logging
 import os
-import sqlite3
 import subprocess
 import time
 import uuid
@@ -14,7 +13,7 @@ import structlog
 import typer
 from dotenv import load_dotenv
 
-from mfl import bairros, cadencia, cnpj_baixar, cnpj_etl, cnpj_icp, db, ifood, ig, maps, ops, resolve, score, evolution, export, log, ui, webhook, whatsapp
+from mfl import bairros, cadencia, cnpj_baixar, cnpj_etl, cnpj_icp, db, ig, maps, ops, resolve, score, evolution, export, log, ui, webhook, whatsapp
 from mfl.fone import de_jid, para_e164
 
 app = typer.Typer(no_args_is_help=True)
@@ -163,7 +162,7 @@ def _maps_bairro(chave: str, info: dict) -> dict:
 
 @app.command("maps")
 def cmd_maps(bairro: str = typer.Argument(..., help="chave em cfg/bairros.toml, ex.: moinhos-de-vento")) -> None:
-    """Coleta um bairro no Maps e no iFood, depois busca no Maps as descobertas sem telefone."""
+    """Coleta um bairro no Maps e recalcula o score."""
     log.configurar("maps")
     todos = bairros.carregar()
     if bairro not in todos:
@@ -171,8 +170,6 @@ def cmd_maps(bairro: str = typer.Argument(..., help="chave em cfg/bairros.toml, 
     con = db.conectar()
     with ops.job(con, "maps"):  # mesma trava do timer: nunca duas raspagens ao mesmo tempo
         _maps_bairro(bairro, todos[bairro])
-        _ifood_bairro(con, bairro, todos[bairro])
-        maps.completar_ifood(con, bairro, todos[bairro])
         score.recalcular(con, date.today())
 
 
@@ -203,77 +200,24 @@ def pendentes_maps(con, hoje: date, cidade: str | None = None) -> list[tuple[str
                   key=lambda kv: (kv[0] in feitos, ordem.get(kv[1]["municipio"], 2), kv[1]["municipio"], kv[0]))
 
 
-def pendentes_ifood(con: sqlite3.Connection, hoje: date, cidade: str | None = None) -> list[tuple[str, dict]]:
-    feitos = {r[0][13:]: r[1] for r in con.execute("SELECT chave,valor FROM estado WHERE chave LIKE 'ifood_bairro:%'")}
-    tentativas = {r[0][16:]: r[1] for r in con.execute("SELECT chave,valor FROM estado WHERE chave LIKE 'ifood_tentativa:%'")}
-    return sorted(((k, info) for k, info in bairros.carregar().items()
-                   if (cidade is None or info["municipio"] == cidade)
-                   and (k not in feitos or feitos[k] <= (hoje - timedelta(days=60)).isoformat())),
-                  key=lambda item: tentativas.get(item[0], ""))
-
-
-def _ifood_bairro(con, chave: str, info: dict) -> bool:
-    con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"ifood_tentativa:{chave}", db.agora(), db.agora()))
-    con.commit()
-    endereco = ifood.ponto_de_entrega(con, info)
-    if not endereco:
-        logger.warning("ifood_sem_ponto", bairro=chave)
-        return False  # continua pendente, sem usar endereço inventado
-    with ops.job(con, "ifood"):
-        ifood.rodar(con, endereco, 30)
-        con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)",
-                    (f"ifood_bairro:{chave}", date.today().isoformat(), db.agora()))
-        con.commit()
-    return True
-
-
 def _maps_fila(con, limite: int, cidade: str | None, ate: str | None = None, agora=None) -> None:
-    """Cada fonte roda se estiver pendente; erro de uma não impede a outra. O horário limita cada etapa."""
+    """Raspa os bairros pendentes no Maps; erro de um bairro não para a noite. O horário limita cada etapa."""
     agora = agora or (lambda: datetime.now(db.FUSO).strftime("%H:%M"))
-    pendentes = dict(pendentes_maps(con, date.today(), cidade))
-    mapas = set(pendentes)
-    comida = dict(pendentes_ifood(con, date.today(), cidade))
-    pendentes.update(comida)
-    alvos = {bairros.slug(l["municipio"]) for l in maps.alvos_ifood(con)}
-    buscas = {}
-    for chave, info in bairros.carregar().items():
-        municipio = bairros.slug(info["municipio"])
-        if municipio in alvos and (cidade is None or info["municipio"] == cidade):
-            buscas[chave] = info
-            alvos.remove(municipio)
-    pendentes = {**buscas, **pendentes}  # tentativas vencidas não esperam a revisita do bairro em 45–120 dias
+    pendentes = pendentes_maps(con, date.today(), cidade)
     falhas, feitos, vazios = [], 0, 0
-    buscas_restantes = 30
-    ifood_disponivel = maps_disponivel = True
-    for chave, info in list(pendentes.items())[:limite]:
+    for chave, info in pendentes[:limite]:
         if ate and agora() >= ate:
             logger.info("maps_horario_limite", ate=ate)
             break
         feitos += 1
-        if maps_disponivel and chave in mapas:
-            try:
-                vazios = vazios + 1 if _maps_bairro(chave, info)["lugares"] == 0 else 0
-            except Exception as erro:  # um bairro com problema não para a noite; fica pendente para amanhã
-                logger.error("maps_bairro_falhou", bairro=chave, erro=str(erro))
-                falhas.append(chave)
-            if vazios >= 2:
-                falhas.append("dois bairros seguidos sem nenhum lugar (o Google pode estar bloqueando); Maps interrompido")
-                maps_disponivel = False
-        if ifood_disponivel and chave in comida and (not ate or agora() < ate):
-            try:
-                _ifood_bairro(con, chave, info)
-            except Exception as erro:
-                logger.error("ifood_bairro_falhou", bairro=chave, erro=str(erro))
-                falhas.append(f"iFood:{chave}")
-                ifood_disponivel = False  # bloqueio não provoca novas tentativas em cada bairro
-        if maps_disponivel and buscas_restantes > 0 and (not ate or agora() < ate):
-            tamanho_lote = min(maps.LOTE_IFOOD, buscas_restantes)
-            try:
-                buscas_restantes -= maps.completar_ifood(con, chave, info, tamanho_lote)
-            except Exception as erro:
-                buscas_restantes -= tamanho_lote  # reserva conservadora também quando o processo falha
-                logger.error("ifood_maps_falhou", bairro=chave, erro=str(erro))
-                falhas.append(f"Maps/iFood:{chave}")
+        try:
+            vazios = vazios + 1 if _maps_bairro(chave, info)["lugares"] == 0 else 0
+        except Exception as erro:  # um bairro com problema não para a noite; fica pendente para amanhã
+            logger.error("maps_bairro_falhou", bairro=chave, erro=str(erro))
+            falhas.append(chave)
+        if vazios >= 2:
+            falhas.append("dois bairros seguidos sem nenhum lugar (o Google pode estar bloqueando); Maps interrompido")
+            break
     score.recalcular(con, date.today())
     logger.info("maps_fila", feitos=feitos, restantes=len(pendentes) - feitos)
     if falhas:
@@ -316,22 +260,6 @@ def cmd_backup() -> None:
         ops.backup(con, date.today())
 
 
-@app.command("ifood")
-def cmd_ifood(endereco: str = typer.Argument(..., help="Rua, número e cidade de um ponto de entrega"),
-              limite: int = typer.Option(30, min=1, max=ifood.LIMITE_MAX, help="Lojas novas ou incompletas por execução"),
-              retomar_detalhes: bool = typer.Option(False, help="Retoma endereço/CNPJ após resolver o bloqueio no iFood"),
-              aguardar_verificacao: bool = typer.Option(False, help="Mantém a janela aberta por até 10 min para você verificar")) -> None:
-    """Coleta lojas do iFood pelo Chrome e recalcula o score. Não envia mensagens."""
-    log.configurar("ifood")
-    con = db.conectar()
-    with ops.job(con, "ifood"):
-        if retomar_detalhes:
-            con.execute("DELETE FROM estado WHERE chave='ifood_detalhes_bloqueados'")
-            con.commit()
-        ifood.rodar(con, endereco, limite, aguardar_verificacao=aguardar_verificacao)
-        score.recalcular(con, date.today())
-
-
 @app.command("diario")
 def cmd_diario() -> None:
     """Rotina diária (timer): cadência, score e backup."""
@@ -347,7 +275,7 @@ def cmd_diario() -> None:
 @app.command("maps-noturno")
 def cmd_maps_noturno(limite: int = typer.Option(20, help="Teto de bairros por noite"),
                      ate: str = typer.Option("04:00", help="Não começa bairro novo depois deste horário")) -> None:
-    """Timer das 00:00: Maps e iFood por bairro, sem iniciar etapa depois das 04:00."""
+    """Timer das 00:00: Maps por bairro, sem iniciar bairro novo depois das 04:00."""
     cmd_maps_fila(limite=limite, cidade=None, ate=ate)
 
 

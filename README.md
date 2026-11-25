@@ -31,40 +31,7 @@ Firewall: `sudo ufw allow in on mfl-evo to 172.31.250.1 port 8001 proto tcp`.
 
 Telas: fila do dia, ficha (/lead/<id>), respostas, painel e config (tetos, pesos e textos em `cfg/`).
 
-## iFood
+## Rotina noturna
 
-Maps e iFood rodam juntos no timer das **00h00** (`mfl maps-noturno`): até 20 bairros,
-sem iniciar etapa nova depois das 04h.
-Por bairro, o Maps faz a coleta geral; o iFood usa um endereço comercial já coletado no bairro para descobrir outras lojas;
-o Maps busca pelo nome/cidade as descobertas sem telefone, em lotes de 10 e até 30 nomes por noite.
-Lote que esgota os 5 minutos salva o parcial e deixa as pendências para amanhã, sem falhar a rotina.
-Instagram roda às 04h e score/backup às 05h.
-Cada fonte tem sua data de visita: o iFood também roda nos bairros onde o Maps já está em dia e revisita após 60 dias.
-Sem endereço comercial válido, o bairro fica pendente no iFood, com aviso no log.
-
-Em **Coleta → iFood**, informe rua, número e cidade de um ponto de entrega comercial e clique em **Coletar iFood**.
-Deixe marcada **Aguardar minha verificação e retomar endereço/CNPJ** para a coleta assistida.
-Se aparecer uma verificação, o Chrome permanece aberto por até 10 minutos e a tela mostra que está aguardando você.
-Resolva o desafio nessa janela: o código continua sozinho na mesma sessão. Não feche o navegador.
-A opção também retoma explicitamente detalhes suspensos. Vale para essa execução manual; não reserva a janela para a noite.
-Também pelo terminal:
-
-    uv run mfl ifood "Rua, número, cidade - RS" --limite 30
-
-Para aguardar sua verificação no Chrome pelo terminal:
-
-    uv run mfl ifood "Rua, número, cidade - RS" --aguardar-verificacao --retomar-detalhes
-
-Visita até 30 lojas por padrão (limite ajustável de 1 a 1000), priorizando novas, e marca `vende_ifood`.
-Abre “Ver mais” para ler endereço, bairro, CEP e CNPJ no painel Sobre. Repetir a coleta completa as lojas antigas sem duplicar;
-leituras parciais preservam os dados já conhecidos. Sem bloqueio, as vagas restantes completam lojas antigas, com 7 dias entre tentativas.
-Depois de 403, painel vazio ou tempo esgotado nos detalhes, grava a suspensão no banco: os próximos bairros/processos continuam
-descobrindo lojas novas e não abrem nenhuma loja para detalhes. A tela Coleta mostra a suspensão. Resolva o acesso antes de retomar explicitamente:
-
-    uv run mfl ifood "Rua, número, cidade - RS" --retomar-detalhes
-
-Não há retomada automática dos detalhes. A data de leitura fica em `detalhes_em`; regravar só esse metadado não conta como dado atualizado.
-Veja o resultado em **Leads → Veio de → iFood**. Sem telefone, a casa aguarda Maps/Instagram.
-Nome parecido sem endereço suficiente vai para **Revisão**. Um link do Maps com o UUID exato da loja no iFood confirma o vínculo,
-mesmo se o iFood esconder o endereço. Buscas sem resultado suficiente voltam após 7 dias; falhas de execução, no dia seguinte.
-O iFood pode bloquear detalhes ou a coleta: o log e a situação aparecem em Coleta. Uma fonte com erro não impede a outra de coletar.
+Timer das **00h00** (`mfl maps-noturno`): Maps por bairro, até 20 bairros, sem iniciar bairro novo depois das 04h.
+Instagram roda às 04h e score/backup às 05h. O iFood não é raspado: "vende no iFood" vem dos links e menções no Maps/Instagram.

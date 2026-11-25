@@ -18,13 +18,10 @@ tr[aria-current] td { background:var(--realce); }
 <h1>Coleta</h1>
 <p class="sub">De onde os leads vêm, o que está rodando agora e o que deu erro. Você pode disparar qualquer coleta na hora.</p>
 {% if aviso %}<div class="faixa ok" role="status">{{ aviso }}</div>{% endif %}
-{% for r in rotinas if r.job == 'ifood' and r.andamento %}<div class="faixa" role="status">{{ r.andamento }}</div>{% endfor %}
 {% if ig_checkpoint %}<div class="faixa erro">O Instagram pediu login ou verificação: a coleta de perfis está parada. Rode <code>baixar-insta --login</code> e depois <code>mfl ig --retomar</code>.</div>{% endif %}
-{% if ifood_suspenso %}<div class="faixa" role="status">Endereço e CNPJ do iFood estão suspensos: {{ ifood_suspenso }}
-  A lista continua coletando lojas novas. Após resolver o acesso, retome pelo comando <code>mfl ifood "endereço" --retomar-detalhes</code>.</div>{% endif %}
 
 <h2>Rotinas</h2>
-<p class="suave">Maps e iFood rodam juntos na rodada da 00h, bairro por bairro. Instagram completa os perfis às 04h,
+<p class="suave">O Maps roda na rodada da 00h, bairro por bairro. Instagram completa os perfis às 04h,
   e score e backup rodam às 05h. O CNPJ atualiza a base mensal às 23h.
   As coletas manuais rodam em segundo plano: pode fechar a página.</p>
 <table>
@@ -40,16 +37,15 @@ tr[aria-current] td { background:var(--realce); }
     <td>{{ r.proxima | quando }}</td>
     <td>{% if r.job in ("ig", "diario") %}<form method="post" action="/coleta/rodar"><input type="hidden" name="acao" value="{{ r.job }}">
         <button {{ 'disabled' if r.situacao == 'rodando' }}>Rodar agora</button></form>
-        {% elif r.job in ("maps", "ifood") %}<a href="#{{ r.job }}" class="suave">escolha abaixo</a>{% endif %}</td>
+        {% elif r.job == "maps" %}<a href="#{{ r.job }}" class="suave">escolha abaixo</a>{% endif %}</td>
   </tr>{% endfor %}
 </table>
 <form method="post" action="/coleta/rodar" class="linha-acao"><input type="hidden" name="acao" value="score"><input type="hidden" name="cidade" value="{{ cidade }}">
   <button>Recalcular score agora</button><span class="suave">Leva poucos segundos. Use depois de mudar a pontuação ou marcar clientes.</span></form>
 
-<h2 id="maps">Maps + iFood por bairro</h2>
+<h2 id="maps">Maps por bairro</h2>
 <p class="suave" style="max-width:80ch">O Maps é de onde vem quase todo telefone. Cada bairro é dividido em quadradinhos, e em cada um o raspador
-  busca comida no Google Maps. Depois, um endereço comercial já coletado no bairro serve de ponto de entrega para raspar o iFood.
-  O iFood também cria leads novos, e o Maps busca pelo nome e cidade os que ficaram sem telefone. Lugar novo vira lead; lugar que já existe (mesmo telefone,
+  busca comida no Google Maps. Lugar novo vira lead; lugar que já existe (mesmo telefone,
   ou nome e endereço parecidos com o CNPJ) só é completado. Raspar de novo um bairro já feito só acrescenta lugares
   que apareceram no Maps depois da última vez; os que já estavam são pulados (não duplicam nem são atualizados). O resultado aparece aqui quando o bairro termina.</p>
 <div class="duas">
@@ -69,14 +65,13 @@ tr[aria-current] td { background:var(--realce); }
       <input type="hidden" name="acao" value="maps_cidade"><input type="hidden" name="cidade" value="{{ cidade }}">
       <label class="campo">Bairros<input type="number" name="limite" value="3" min="1" max="20"></label>
       <button class="primario">Raspar os próximos de {{ cidade }}</button>
-      <span class="suave">Pega bairros pendentes de Maps ou iFood. Cada fonte tem seu controle: Maps volta em 45–120 dias; iFood, em 60 dias.</span>
+      <span class="suave">Pega os bairros pendentes: nunca raspados primeiro; depois revisita em 45 dias se rendeu, 120 se veio vazio.</span>
     </form>
     {% if bairros_cidade %}<div class="lista-bairros"><table>
-      <tr><th>Bairro</th><th>Último Maps</th><th>Último iFood</th><th></th></tr>
+      <tr><th>Bairro</th><th>Último Maps</th><th></th></tr>
       {% for b in bairros_cidade %}<tr>
         <td>{{ b.nome }}</td>
         <td>{% if b.feito %}{{ b.feito[8:10] }}/{{ b.feito[5:7] }}/{{ b.feito[:4] }}{% else %}<span class="suave">nunca</span>{% endif %}</td>
-        <td>{% if b.ifood_feito %}{{ b.ifood_feito[8:10] }}/{{ b.ifood_feito[5:7] }}/{{ b.ifood_feito[:4] }}{% else %}<span class="suave">pendente</span>{% endif %}</td>
         <td><form method="post" action="/coleta/rodar"><input type="hidden" name="acao" value="maps_bairro">
           <input type="hidden" name="bairro" value="{{ b.chave }}"><input type="hidden" name="cidade" value="{{ cidade }}">
           <button>Raspar agora</button></form></td>
@@ -84,23 +79,6 @@ tr[aria-current] td { background:var(--realce); }
     </table></div>{% else %}<p class="suave">Nenhum bairro cadastrado para esta cidade.</p>{% endif %}
   </section>
 </div>
-
-<h2 id="ifood">iFood</h2>
-<p class="suave">A coleta automática usa um endereço comercial do bairro já vindo de Maps ou CNPJ. Sem endereço válido, fica pendente.
-  Para coletar outro ponto manualmente, informe rua, número e cidade abaixo. A lista varia conforme esse endereço.
-  Lojas novas têm prioridade. Sem bloqueio, as vagas restantes completam dados antigos, com pelo menos 7 dias entre tentativas.
-  Depois de um bloqueio, as próximas coletas leem só a lista até você retomar os detalhes.
-  Casas sem telefone ficam em enriquecimento até o Maps ou Instagram completar.
-  Se faltar endereço da loja, confira os possíveis duplicados em Revisão. Bloqueio dos detalhes mantém somente a descoberta pela lista.</p>
-<form method="post" action="/coleta/rodar" class="linha-acao">
-  <input type="hidden" name="acao" value="ifood">
-  <label class="campo">Endereço de entrega<input name="endereco" required maxlength="300" placeholder="Rua, número, cidade - RS" style="width:min(480px,80vw)"></label>
-  <label class="campo">Lojas novas<input type="number" name="limite" value="30" min="1" max="{{ limite_ifood }}" required></label>
-  <label><input type="checkbox" name="verificacao_manual" value="1" checked> Aguardar minha verificação e retomar endereço/CNPJ</label>
-  <button>Coletar iFood</button>
-</form>
-<p class="suave">Com a opção marcada, o Chrome fica aberto por até 10 minutos se pedir verificação. Resolva o desafio nessa janela:
-  a coleta continua sozinha na mesma sessão. Não feche o navegador. Essa espera vale só para a coleta manual.</p>
 
 <h2>O que aconteceu</h2>
 <p class="suave">Registro das últimas execuções. “Bairro raspado” mostra quantos lugares eram novos, quantos já existiam (vinculados),

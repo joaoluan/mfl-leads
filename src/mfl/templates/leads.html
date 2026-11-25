@@ -15,7 +15,7 @@ td .fontes { font-size:12px; color:var(--suave); }
   <span class="suave"><b>{{ "{:,}".format(total).replace(",", ".") }}</b> lead(s){% if filtros %} com esses filtros{% endif %}</span>
 </div>
 
-{% if sem_telefone %}<div class="faixa">{{ "{:,}".format(sem_telefone).replace(",", ".") }} leads ainda estão sem telefone. Fontes como CNPJ e iFood identificam a casa,
+{% if sem_telefone %}<div class="faixa">{{ "{:,}".format(sem_telefone).replace(",", ".") }} leads ainda estão sem telefone. Fontes como o CNPJ identificam a casa,
   mas não fornecem WhatsApp validado. O telefone chega quando o Google Maps raspa o bairro
   da casa ({{ bairros_feitos }} de {{ bairros_total }} bairros feitos) ou quando o Instagram acha o WhatsApp na bio. Marque “Só com WhatsApp” para ver só quem já dá para abordar.</div>{% endif %}
 <form class="filtros" method="get" action="/leads">
@@ -32,8 +32,7 @@ td .fontes { font-size:12px; color:var(--suave); }
   <label class="campo">Bairro<input name="bairro" value="{{ filtros.bairro or '' }}" autocomplete="off"></label>
   <label class="campo">Veio de<select name="fonte">
     <option value="">Qualquer fonte</option>
-    {% for f in ("maps", "cnpj", "instagram", "ifood") %}<option value="{{ f }}" {{ 'selected' if filtros.fonte == f }}>{{ f | rotulo }}</option>{% endfor %}
-    <option value="ifood_sem_maps" {{ 'selected' if filtros.fonte == 'ifood_sem_maps' }}>iFood, o Maps não achou</option>
+    {% for f in ("maps", "cnpj", "instagram") %}<option value="{{ f }}" {{ 'selected' if filtros.fonte == f }}>{{ f | rotulo }}</option>{% endfor %}
   </select></label>
   <label class="campo">Ordem<select name="ordem">
     <option value="">Maior score</option>

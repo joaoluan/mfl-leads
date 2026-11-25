@@ -113,16 +113,6 @@ def test_leads_filtra_e_pagina(tmp_path, monkeypatch):
     assert "Bar Três" in sem and "Pizza Um" not in sem
     assert "Bar Três" not in cliente.get("/leads?whatsapp=1&pagina=2").get_data(as_text=True)
     assert "Pizza Um" in cliente.get("/leads?bairro=centro").get_data(as_text=True)
-    # iFood que o Maps já procurou e não achou
-    loja = criar_lead(con, "Xis Só iFood", None, municipio="Porto Alegre", status="enriquecimento")
-    buscada = criar_lead(con, "Xis Ainda Não Buscado", None, municipio="Porto Alegre", status="enriquecimento")
-    for i, eid in enumerate((loja, buscada)):
-        con.execute("INSERT INTO source_record(source,source_key,entity_id,raw_json,captured_at,hash)"
-                    " VALUES ('ifood',?,?,'{}','2026-11-24','h')", (f"u{i}", eid))
-    con.execute("INSERT INTO queue(entity_id,kind,next_at,tries) VALUES (?,'maps_ifood','2026-11-25',1)", (loja,))
-    con.commit()
-    sem_maps = cliente.get("/leads?fonte=ifood_sem_maps").get_data(as_text=True)
-    assert "Xis Só iFood" in sem_maps and "Xis Ainda Não Buscado" not in sem_maps and "Pizza Um" not in sem_maps
 
 
 def test_ficha_aceita_whatsapp_digitado(tmp_path):
@@ -164,8 +154,8 @@ def test_coleta_atualiza_apos_disparo_antes_de_job_registrar_pid(tmp_path, monke
     from mfl import controle
     monkeypatch.setattr(controle, "_proximas", lambda: {})
     cliente = ui.criar_app(tmp_path / "t.db").test_client()
-    pagina = cliente.get("/coleta?aviso=disparado&log=ifood").get_data(as_text=True)
+    pagina = cliente.get("/coleta?aviso=disparado&log=maps").get_data(as_text=True)
     assert 'http-equiv="refresh"' in pagina
     meta = next(l for l in pagina.splitlines() if 'http-equiv="refresh"' in l)
-    assert "log=ifood" in meta and "aviso=" not in meta
-    assert 'http-equiv="refresh"' not in cliente.get("/coleta?log=ifood").get_data(as_text=True)
+    assert "log=maps" in meta and "aviso=" not in meta
+    assert 'http-equiv="refresh"' not in cliente.get("/coleta?log=maps").get_data(as_text=True)

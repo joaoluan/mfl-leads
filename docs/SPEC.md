@@ -37,7 +37,7 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - **CNPJ**: filtro (ativa, CNAE, unidade única, porte) e sinal (abertura). Atualização mensal.
 - **Maps**: binário `gosom/google-maps-scraper` com versão fixa e SHA conferido. Só as avaliações que vêm por padrão. Cada bairro é raspado de novo a cada 60 dias.
 - **Instagram**: via o **camofox-browser já instalado** (`127.0.0.1:9377`, conta secundária), não a biblioteca `camoufox`. Até ~30 perfis por dia. O @ vem só do Maps ou do site; sem busca dentro do Instagram. Não fica restrito a score >= 55.
-- **iFood** (revoga "não raspe iFood" da seção 4): sinal "vende no iFood" (texto próprio: pedido direto sem comissão) e também fonte de leads novos. Casamento por endereço.
+- **iFood**: só sinal "vende no iFood" (texto próprio: pedido direto sem comissão). Não é fonte de leads.
 - **Grupo de donos: removido em 24/11** por decisão do operador (não importa participantes, sem texto nem peso no score). Os 12 leads já contatados ficaram, sem a marca; os cruzados com CNPJ/Maps voltaram a essas fontes; os demais foram apagados. Opt-outs continuam bloqueados.
 
 ### Recorte
@@ -110,27 +110,13 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 - shortcut: telefone que só aparece no botão "Contato" (exige clique) e links encurtados (wa.link, contate.me) não são lidos.
 
 ### iFood (fase 8)
-- Diagnóstico e validações do navegador: [investigação de 24/11/2026](IFOOD_DIAGNOSTICO.md). O experimento antigo usou camofox; a correção final preserva SeleniumBase/Chrome.
-- Decisão atualizada pelo operador: o iFood também é fonte de leads novos e roda junto com o Maps. O timer existente das 00h00 (`mfl maps-noturno`) coleta as duas fontes por bairro. Continuam disponíveis `mfl ifood "Rua, número, cidade - RS" --limite 30` (1–1000) e o formulário manual em Coleta. O máximo vem de `ifood.LIMITE_MAX`, compartilhado por coletor, CLI, validação HTTP e campo da tela.
-- Decisão atualizada pelo operador (reverte a regra anterior de não resolver CAPTCHA nem ler API): usa o SeleniumBase em modo UC (Chrome), sessão própria sem conta, para passar pelo Cloudflare — clica no captcha quando aparece. Seleciona endereço pelas telas públicas, lê os cartões e, em cada loja, lê CNPJ/endereço da resposta `merchant-info/graphql` que a própria página recebe (não do DOM). O clique no captcha usa PyAutoGUI e precisa de tela: headed por padrão, Xvfb no timer; `MFL_IFOOD_HEADLESS=1` força headless. Sem cardápio, avaliações ou dados de consumidores.
-- Seleção de endereço e rolagem usam cliques e teclas nativos do Selenium. O desafio HUMAN “Press & Hold” é detectado antes de agir e interrompe a etapa. Se surgir durante a listagem, preserva as lojas já lidas. A captura de `merchant-info` mantém o requestId enquanto o corpo ainda não terminou de chegar, sem repetir a requisição. Só recarrega uma vez se a navegação UC não expôs a resposta; HTTP 403/429 confirmado encerra a leitura sem recarregar.
-- Os cliques aguardam elementos visíveis e habilitados, ignorando cópias ocultas e relendo elementos recriados pelo React. Falhas dos jobs aparecem também no histórico da Coleta; após um disparo manual, a tela atualiza mesmo se a primeira carga ocorrer antes do registro do PID.
-- Coleta assistida, por decisão do operador: em Coleta → iFood, a opção “Aguardar minha verificação e retomar endereço/CNPJ” vem marcada. Abre Chrome visível e retoma os detalhes explicitamente. No terminal, `--aguardar-verificacao --retomar-detalhes`. Se pedir verificação, grava `estado.ifood_verificacao`, mostra aviso e aguarda até 10 minutos na mesma janela, apenas lendo o estado da página. O operador resolve o desafio; o código não clica nele e continua quando desaparecer. O tempo da intervenção não consome o timeout da etapa. Fecha a janela ao terminar, falhar ou vencer a espera; limpa o aviso. Não preserva a sessão para outra execução. A rotina noturna mantém a parada imediata diante de HUMAN.
-- Guarda só UUID da loja, nome, categoria, município, bairro/endereço/CEP/CNPJ quando disponíveis, URL, data e hash. CNPJ fica sem pontuação, com dígitos verificadores conferidos. Não guarda endereço de entrega, HTML, cardápio, avaliações ou dados de consumidores.
-- UUID evita duplicatas entre pontos de entrega. Novas lojas têm prioridade; incompletas só usam vagas restantes quando detalhes estão liberados, com pelo menos 7 dias desde `detalhes_em`. Franquias são filtradas antes de ocupar as vagas. Loja já importada é completada por upsert sem apagar valores conhecidos numa leitura parcial. Atualizar só metadados/data não conta em `atualizados`.
-- 403/verificação não resolvida, merchant-info ausente ou tempo esgotado na leitura de detalhes preserva a lista e grava `estado.ifood_detalhes_bloqueados`. A suspensão vale para todos os processos/bairros e sobrevive a reinícios: segue descobrindo lojas novas, sem abrir páginas de loja nem gastar vagas com registros antigos. Não retoma sozinha. Após resolver o acesso, o operador usa `mfl ifood "endereço" --retomar-detalhes`. A Coleta mostra o motivo da suspensão.
-- CNPJ exato vincula à Receita mesmo com nome fantasia diferente. Descoberta provisória sem conversa é absorvida pelo dono do CNPJ, preservando fontes. Se já houve conversa, ou os CNPJs conhecidos divergem, não funde nem sobrescreve CNPJ: encaminha para Revisão quando há outro lead identificado e registra o conflito no log.
-- Só cidades do recorte e sem franquias. Telefone continua vindo do Maps/Instagram: loja nova fica em `enriquecimento`. Endereço/CEP e nome usam a resolução existente; sem endereço suficiente, nome parecido na mesma cidade vai apenas para Revisão, inclusive quando o Maps chega depois. Não altera telefone nem promove o status de um lead existente.
-- Ponto de entrega automático = um endereço comercial com número já coletado por Maps/CNPJ no mesmo bairro/cidade, priorizando Maps. Sem ponto válido, avisa no log e mantém o bairro pendente, sem inventar endereço. Cada fonte controla sua visita: `ifood_bairro:<chave>` só é marcado após sucesso, volta em 60 dias e entra na fila mesmo quando o Maps está em dia. `ifood_tentativa:<chave>` ordena os bairros pendentes para que os sem ponto não prendam a fila nas noites seguintes.
-- Depois do iFood, busca no Maps lojas da cidade ainda em enriquecimento e sem place_id, pelo nome/cidade: lotes de até 10 e teto total de 30 nomes por rodada noturna, inclusive reservando orçamento se o processo falhar. Reutiliza o binário conferido por SHA, sem grade, depth 1 e teto de 5 min por lote. Tempo esgotado salva o parcial, registra aviso e agenda o restante para amanhã, sem marcar o job como erro. Outras falhas continuam sendo erro. Tentativas em `queue`, kind `maps_ifood`: reserva antes da rede para amanhã; busca completa sem vínculo volta em 7 dias. Alvos vencidos entram na rodada mesmo quando as duas fontes estão em dia no bairro. Não repete os mesmos alvos em cada bairro da noite.
-- Link de loja do iFood no site/pedido online do Maps, com domínio e UUID conferidos, comprova identidade e permite completar o mesmo lead sem depender do endereço bloqueado. Vários UUIDs apontando para entidades diferentes não vinculam. Se o Maps já conhecia o place_id, só absorve o lead provisório do iFood (enriquecimento, sem telefone e sem conversa), preservando o lead conhecido. Nome sozinho continua na Revisão.
-- O site pode bloquear detalhes mesmo mostrando cartões: importa a lista, suspende os detalhes no banco e avisa na Coleta. Verificação ou falha antes de obter a lista ainda interrompe o job com erro; falha de detalhes depois da lista preserva as lojas descobertas.
-- O sinal `vende_ifood` (+10) sai também da fonte `ifood`. Continuam valendo link `ifood.com.br` no Maps/Instagram ou "iFood" nas avaliações do Maps/bio, sem somar o sinal duas vezes.
+- Sem raspagem do iFood (removida em 24/11/2026: o PerimeterX bloqueia endereço/CNPJ). O iFood é só sinal.
+- O sinal `vende_ifood` (+10) sai de link `ifood.com.br` no Maps/Instagram ou "iFood" nas avaliações do Maps/bio, sem somar duas vezes.
 - Quem vende no iFood recebe `cfg/mensagens/ifood.md` (pedido direto sem comissão). Ordem do texto D0: concorrente > iFood > categoria.
 
 ### Operação (fase 9)
 - Timers systemd --user (`ops/mfl-*.timer`, `Persistent=true`: o que perdeu com o PC desligado roda ao ligar). Serviços `oneshot` com `Nice=10` e `IOSchedulingClass=idle`:
-  - `mfl-maps` 00:00 (+ até 10 min, depois do CNPJ): `mfl maps-noturno`, Maps + iFood. Até 20 bairros, sem iniciar etapa nova depois das 04:00. Em cada bairro: Maps geral, iFood e busca das descobertas no Maps. Cada fonte roda só se estiver pendente. `-depth 3` com as 11 consultas (medido no Moinhos em 24/11/2026: 87 → 119 lugares; cortar para 4 consultas caiu para 59). Revisita do Maps: 45 dias se rendeu ≥ 10 lugares, 120 se não. Dois bairros seguidos vazios suspendem só o Google naquela rodada, com erro; o iFood segue pelos endereços já coletados. Falha da lista suspende só o iFood naquela rodada. Bloqueio dos detalhes persiste até retomada explícita; a lista segue. Tempo esgotado do Maps geral (60 min) ingere o parcial e deixa o bairro pendente. Falhas não marcam a fonte como feita.
+  - `mfl-maps` 00:00 (+ até 10 min, depois do CNPJ): `mfl maps-noturno`. Até 20 bairros pendentes, sem iniciar bairro novo depois das 04:00. `-depth 3` com as 11 consultas (medido no Moinhos em 24/11/2026: 87 → 119 lugares; cortar para 4 consultas caiu para 59). Revisita: 45 dias se rendeu ≥ 10 lugares, 120 se não. Dois bairros seguidos vazios interrompem a rodada com erro. Tempo esgotado (60 min) ingere o parcial e deixa o bairro pendente. Falha não marca o bairro como feito.
   - `mfl-cnpj` 23:00 (no dia da carga mensal leva ~50 min): `mfl cnpj-mensal`, baixa e processa o mês quando a Receita publicar; uma vez por mês (`estado.cnpj_mes`).
   - `mfl-diario` 05:00 (+ até 10 min): cadência, score, backup.
   - `mfl-ig` 04:00 (+ até 20 min, ~30 min com pausas de 15–45 s e 3–5 min a cada 8 perfis): `mfl ig-diario` (@ novos e até 30 perfis).
@@ -147,7 +133,7 @@ Parte B = especificação original, mantida como base. Onde a Parte A contradiz 
 5. Maps, resolução de entidade, telefone.
 6. Score.
 7. Instagram.
-8. iFood.
+8. Sinal iFood (sem raspagem).
 9. Operação: timers, backup, logs.
 
 Dependências entram na fase que precisa delas. `pymysql` saiu (nada usa MySQL).
@@ -202,7 +188,7 @@ sobre qualidade do lead.
   pinado por versão, chamado via subprocess com timeout. Nunca reimplementar.
 - Camoufox (`camoufox[geoip]`) para Instagram, isolado em módulo próprio.
 - UI local em Flask, `localhost:8000`, sem build step, sem framework JS.
-- Dependências: duckdb, polars, pymysql, camoufox[geoip], playwright, seleniumbase (iFood, modo UC), typer, pydantic,
+- Dependências: duckdb, polars, pymysql, camoufox[geoip], playwright, typer, pydantic,
   tenacity, structlog, phonenumbers, rapidfuzz, unidecode, python-dotenv, flask.
 - Sem Docker, sem Celery/Redis, sem Postgres, sem autenticação, sem deploy.
 
