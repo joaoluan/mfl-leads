@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.14.4",
     "python-dotenv>=1.2.4",
     "rapidfuzz>=3.14.6",
+    "seleniumbase>=4.33",
     "structlog>=26.1.0",
     "tenacity>=9.2.1",
     "typer>=0.29.2",
@@ -30,5 +31,5 @@ testpaths = ["tests"]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.2.0",
+    "pytest>=9.1.1,<9.2",  # seleniumbase fixa pytest==9.1.1
 ]

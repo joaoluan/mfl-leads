@@ -1,59 +1,38 @@
 """Lojas públicas do iFood por endereço de entrega, sem conta e sem coletar cardápio ou avaliações.
 
-Telefone continua vindo do Maps/Instagram. Sem endereço da loja, nome parecido vai só para revisão.
+O Chrome abre em modo UC (SeleniumBase) para passar pelo Cloudflare; CNPJ e endereço vêm da
+resposta merchant-info/graphql que a própria página recebe. Telefone continua vindo do
+Maps/Instagram. Sem endereço da loja, nome parecido vai só para revisão.
 """
 
 import hashlib
 import json
+import os
 import re
 import sqlite3
 import time
-import urllib.error
 import uuid
 from urllib.parse import urlsplit
 from datetime import date, timedelta
 
 import structlog
 from pydantic import BaseModel, Field
-from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from seleniumbase import SB
 
 from mfl import bairros, cnpj_icp, resolve
-from mfl.camofox import api
 from mfl.classifica import normalizar
 from mfl.db import LOTE, agora
 
 log = structlog.get_logger()
-USUARIO = "mfl-ifood"  # sessão separada da conta secundária do Instagram
 ESPERA = 30
 LIMITE_MAX = 1000
+# Captcha do Cloudflare é clicado via PyAutoGUI, que precisa de tela: headed por padrão (Xvfb no timer).
+HEADLESS = os.getenv("MFL_IFOOD_HEADLESS") == "1"
+RESPOSTA_INFO = "/merchant-info/graphql"
 JS_LISTA = """[...document.querySelectorAll('a[href*="/delivery/"]')].map(a => ({
   url: a.href, nome: a.querySelector('.merchant-v2__name')?.textContent?.trim() || '',
   categoria: a.querySelector('[aria-label^="Categoria "]')?.textContent?.trim() || null
 })).filter(l => l.nome)"""
-JS_DETALHES = """(() => {
-  for (const s of document.querySelectorAll('script[type="application/ld+json"]')) {
-    let d; try { d=JSON.parse(s.textContent); } catch { continue; }
-    for (const r of (Array.isArray(d) ? d : (d['@graph'] || [d]))) {
-      if (r['@type'] === 'Restaurant' && r.name && r.address?.streetAddress &&
-          (r.url || r['@id'])?.split('?')[0] === location.origin + location.pathname) {
-        return {endereco:r.address.streetAddress, cep:r.address.postalCode || null,
-                municipio:r.address.addressLocality || null, uf:r.address.addressRegion || null,
-                cnpj:r.taxID || null};
-      }
-    }
-  }
-  return null;
-})()"""
-JS_SOBRE = """(() => {
-  const painel = document.querySelector('.merchant-details-about');
-  if (!painel) return null;
-  const texto = painel.innerText || painel.textContent || '';
-  const endereco = texto.match(/(?:^|\\n)\\s*Endere[cç]o\\s*\\n([\\s\\S]*?)(?=\\n\\s*(?:Outras informa[cç][oõ]es|CNPJ|O iFood é gratuito)|$)/i);
-  const cnpj = texto.match(/\\bCNPJ\\s*:?\\s*(\\d{2}\\.?\\d{3}\\.?\\d{3}\\/?\\d{4}-?\\d{2})\\b/i);
-  const bloqueado = performance.getEntriesByType('resource').some(r =>
-    r.responseStatus === 403 && /merchant-info|catalog/.test(r.name));
-  return {endereco_bloco:endereco?.[1]?.trim() || null, cnpj:cnpj?.[1] || null, bloqueado};
-})()"""
 
 
 class DetalhesBloqueados(RuntimeError):
@@ -101,25 +80,6 @@ def cnpj_valido(bruto: str | None) -> str | None:
         if int(numero[tamanho]) != (0 if resto < 2 else 11 - resto):
             return None
     return numero
-
-
-def detalhes_do_painel(painel: dict | None) -> dict:
-    """Interpreta apenas o painel Sobre; endereço de entrega e rodapé ficam fora."""
-    if not painel:
-        return {}
-    linhas = [l.strip() for l in (painel.get("endereco_bloco") or "").splitlines() if l.strip()]
-    dados = {"cnpj": painel.get("cnpj")}
-    if linhas:
-        dados["endereco"] = linhas[0]
-        bairro = re.split(r"\s+[-–]\s+", linhas[0], maxsplit=1)
-        if len(bairro) == 2:
-            dados["bairro"] = bairro[1]
-        for linha in linhas[1:]:
-            if cep := re.search(r"\bCEP\s*:?\s*(\d{5}-?\d{3})\b", linha, re.I):
-                dados["cep"] = cep.group(1)
-            elif cidade := re.fullmatch(r"(.+?)\s*[-–]\s*([A-Z]{2})", linha):
-                dados["municipio"], dados["uf"] = cidade.groups()
-    return {k: v for k, v in dados.items() if v}
 
 
 def id_da_url(endereco: str) -> str | None:
@@ -173,51 +133,90 @@ def ponto_de_entrega(con: sqlite3.Connection, bairro: dict) -> str | None:
     return None
 
 
-@retry(stop=stop_after_attempt(4), wait=wait_exponential(min=1, max=8), reraise=True,
-       retry=retry_if_exception(lambda e: isinstance(e, urllib.error.HTTPError) and e.code == 503))
-def _abrir() -> str:
-    return api("POST", "/tabs", {"userId": USUARIO, "sessionKey": "coleta",
-                                "url": "https://www.ifood.com.br/"})["tabId"]
+def _abrir():
+    """Abre o Chrome em modo UC (passa pelo Cloudflare) numa sessão própria do iFood."""
+    cm = SB(uc=True, locale="pt-BR", headless=HEADLESS, log_cdp=True)
+    aba = cm.__enter__()
+    aba._mfl_cm = cm  # guardado para _fechar devolver o contexto do SeleniumBase
+    _ir(aba, "https://www.ifood.com.br/")
+    return aba
 
 
-def _js(aba: str, expressao: str):
-    return api("POST", f"/tabs/{aba}/evaluate", {"userId": USUARIO, "expression": expressao}).get("result")
+def _fechar(aba) -> None:
+    aba._mfl_cm.__exit__(None, None, None)
 
 
-def _esperar(aba: str, expressao: str):
+def _ir(aba, url: str) -> None:
+    """Navega e resolve o captcha do Cloudflare quando ele aparece."""
+    aba.uc_open_with_reconnect(url, reconnect_time=6)
+    if "Um momento" in aba.get_title():
+        aba.uc_gui_click_captcha()
+        aba.sleep(4)
+    if "Um momento" in aba.get_title():
+        raise DetalhesBloqueados("iFood não liberou o acesso (verificação do Cloudflare). Lista preservada.")
+
+
+def _js(aba, expressao: str):
+    return aba.execute_script(f"return ({expressao});")
+
+
+def _esperar(aba, expressao: str):
     fim = time.monotonic() + ESPERA
     while time.monotonic() < fim:
-        try:
-            if _js(aba, "!!document.querySelector('#px-captcha, iframe[src*=captcha]') || "
-                   "/access denied|acesso negado/i.test(document.title)"):
-                raise DetalhesBloqueados("iFood pediu verificação ou bloqueou o acesso. Coleta interrompida.")
-            if resultado := _js(aba, expressao):
-                return resultado
-        except urllib.error.HTTPError as erro:
-            if erro.code != 409:  # navegação durante leitura: aguarda a página, sem repetir cliques
-                raise
+        if resultado := _js(aba, expressao):
+            return resultado
         time.sleep(1)
     raise TimeoutError("iFood não carregou a etapa esperada. Confira o endereço ou tente mais tarde.")
 
 
-def ler_detalhes(aba: str, loja: Loja, municipios: list[str]) -> Loja:
-    """Abre Sobre mesmo com JSON-LD: o CNPJ fica no painel visível da loja."""
-    _js(aba, f"(() => {{location.href={json.dumps(loja.url)};return true;}})()")
-    _esperar(aba, f"location.pathname==={json.dumps(urlsplit(loja.url).path)} && !!document.querySelector('.merchant-details__button')")
-    estruturados = _js(aba, JS_DETALHES) or {}
-    _js(aba, "(() => {document.querySelector('.merchant-details__button').click();return true;})()")
-    _esperar(aba, "!!document.querySelector('.merchant-details-about')")
+def _ler_resposta_info(aba, url: str) -> dict | None:
+    """Lê a resposta merchant-info/graphql que a própria página da loja recebe (CNPJ e endereço)."""
+    _ir(aba, url)
+    aba.driver.get_log("performance")  # descarta o que sobrou da página anterior
+    aba.refresh()  # no modo UC o Chrome fica desconectado no 1º load; recarregar expõe as respostas
+    limite = time.time() + ESPERA
+    while time.time() < limite:
+        for entrada in aba.driver.get_log("performance"):
+            msg = json.loads(entrada["message"])["message"]
+            if msg.get("method") != "Network.responseReceived":
+                continue
+            resposta = msg["params"]["response"]
+            if RESPOSTA_INFO in resposta["url"] and resposta["status"] == 200:
+                try:
+                    corpo = aba.driver.execute_cdp_cmd(
+                        "Network.getResponseBody", {"requestId": msg["params"]["requestId"]})["body"]
+                    return json.loads(corpo)
+                except Exception:
+                    pass  # resposta ainda não terminou de chegar; tenta de novo na próxima volta
+        aba.sleep(0.5)
+    return None
+
+
+def _ler_info(info: dict) -> dict:
+    """Extrai do merchant-info só o que o casamento por endereço precisa."""
+    extra = info["data"]["merchantExtra"]
+    end = extra.get("address") or {}
+    rua = " ".join(p for p in [end.get("streetName", ""), end.get("streetNumber", "")] if p)
+    return {k: v for k, v in {
+        "endereco": rua,
+        "bairro": end.get("district"),
+        "cep": re.sub(r"\D", "", end.get("zipCode") or ""),
+        "municipio": end.get("city"),
+        "uf": end.get("state"),
+        "cnpj": ((extra.get("documents") or {}).get("CNPJ") or {}).get("value"),
+    }.items() if v}
+
+
+def ler_detalhes(aba, loja: Loja, municipios: list[str]) -> Loja:
+    """CNPJ e endereço vêm da resposta merchant-info/graphql da loja, não do DOM."""
+    info = _ler_resposta_info(aba, loja.url)
+    if not info:
+        raise DetalhesBloqueados("iFood não liberou os dados da loja (403 ou verificação). Lista preservada.")
     try:
-        _esperar(aba, "(() => {const s=" + JS_SOBRE + ";return !!s && !!(s.endereco_bloco || s.cnpj || s.bloqueado);})()")
-    except TimeoutError:
-        pass  # o JSON-LD pode já ter dados úteis mesmo com o painel vazio
-    sobre = _js(aba, JS_SOBRE) or {}
-    painel = detalhes_do_painel(sobre)
-    if sobre.get("bloqueado") and not (painel or estruturados):
-        raise DetalhesBloqueados("iFood bloqueou os detalhes das lojas (403); lista preservada.")
-    completa = analisar({**loja.model_dump(mode="json"), "detalhes": {**estruturados, **painel}}, municipios)
-    if not (painel or estruturados):
-        raise DetalhesBloqueados("Painel Sobre sem dados; leitura de detalhes suspensa.")
+        detalhe = _ler_info(info)
+    except (KeyError, TypeError, ValueError) as erro:
+        raise DetalhesBloqueados(f"merchant-info mudou de formato: {type(erro).__name__}: {erro}") from erro
+    completa = analisar({**loja.model_dump(mode="json"), "detalhes": detalhe}, municipios)
     return (completa or loja).model_copy(update={"detalhes_em": agora()})
 
 
@@ -274,8 +273,8 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
         return escolhidas, bloqueio
     finally:
         try:
-            api("DELETE", f"/tabs/{aba}?userId={USUARIO}")
-        except (OSError, urllib.error.URLError):
+            _fechar(aba)
+        except Exception:
             log.warning("ifood_aba_nao_fechou")
 
 
