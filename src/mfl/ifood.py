@@ -1,6 +1,6 @@
 """Lojas públicas do iFood por endereço de entrega, sem conta e sem coletar cardápio ou avaliações.
 
-O Chrome abre em modo UC (SeleniumBase) para passar pelo Cloudflare; CNPJ e endereço vêm da
+O Chrome abre em modo UC (SeleniumBase); CNPJ e endereço vêm da
 resposta merchant-info/graphql que a própria página recebe. Telefone continua vindo do
 Maps/Instagram. Sem endereço da loja, nome parecido vai só para revisão.
 """
@@ -18,6 +18,9 @@ from datetime import date, timedelta
 import structlog
 from pydantic import BaseModel, Field
 from seleniumbase import SB
+from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
 from mfl import bairros, cnpj_icp, resolve
 from mfl.classifica import normalizar
@@ -29,6 +32,18 @@ LIMITE_MAX = 1000
 # Captcha do Cloudflare é clicado via PyAutoGUI, que precisa de tela: headed por padrão (Xvfb no timer).
 HEADLESS = os.getenv("MFL_IFOOD_HEADLESS") == "1"
 RESPOSTA_INFO = "/merchant-info/graphql"
+JS_CHECKPOINT = """(() => {
+  const seletores = '[id^="px-captcha"], [class*="px-captcha"], iframe[src*="captcha"], '
+    + 'iframe[title*="human" i], iframe[title*="challenge" i], iframe[title*="captcha" i]';
+  const visivel = e => {
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden';
+  };
+  return [...document.querySelectorAll(seletores)].some(visivel)
+    || /access denied|acesso negado/i.test(document.title)
+    || /press\\s*(?:&|and)\\s*hold|before we continue|confirm you are (?:a )?human|confirme que voc[eê] [eé] humano/i
+         .test(document.body?.innerText || '');
+})()"""
 JS_LISTA = """[...document.querySelectorAll('a[href*="/delivery/"]')].map(a => ({
   url: a.href, nome: a.querySelector('.merchant-v2__name')?.textContent?.trim() || '',
   categoria: a.querySelector('[aria-label^="Categoria "]')?.textContent?.trim() || null
@@ -153,37 +168,78 @@ def _ir(aba, url: str) -> None:
 
 
 def _js(aba, expressao: str):
+    if not aba.is_connected():
+        return aba.cdp.evaluate(f"({expressao})")
     return aba.execute_script(f"return ({expressao});")
 
 
 def _esperar(aba, expressao: str):
     fim = time.monotonic() + ESPERA
     while time.monotonic() < fim:
+        if _js(aba, JS_CHECKPOINT):
+            raise DetalhesBloqueados("iFood pediu verificação HUMAN ou bloqueou o acesso. Lista preservada.")
         if resultado := _js(aba, expressao):
             return resultado
         time.sleep(1)
     raise TimeoutError("iFood não carregou a etapa esperada. Confira o endereço ou tente mais tarde.")
 
 
+def _driver(aba):
+    """Reconecta o WebDriver após navegação UC para comandos nativos e leitura da rede."""
+    if not aba.is_connected():
+        aba.driver.connect()
+    return aba.driver
+
+
+def _elemento(aba, seletor: str):
+    """Confere o bloqueio antes de enviar cliques e teclas nativos ao navegador."""
+    _esperar(aba, "true")
+    return _driver(aba).find_element(By.CSS_SELECTOR, seletor)
+
+
+def _clicar_botao(aba, texto: str) -> None:
+    """Marca o botão pelo texto para o clique nativo não atingir outro elemento."""
+    _esperar(aba, "(() => {const b=[...document.querySelectorAll('button')].find(b=>"
+             f"b.innerText==={json.dumps(texto)} && !b.disabled && b.getClientRects().length);"
+             "if(!b) return false; document.querySelectorAll('[data-mfl-click]').forEach(e=>"
+             "e.removeAttribute('data-mfl-click')); b.setAttribute('data-mfl-click',''); return true;})()")
+    _elemento(aba, "[data-mfl-click]").click()
+
+
 def _ler_resposta_info(aba, url: str) -> dict | None:
     """Lê a resposta merchant-info/graphql que a própria página da loja recebe (CNPJ e endereço)."""
+    _driver(aba).get_log("performance")  # descarta somente eventos da página anterior
     _ir(aba, url)
-    aba.driver.get_log("performance")  # descarta o que sobrou da página anterior
-    aba.refresh()  # no modo UC o Chrome fica desconectado no 1º load; recarregar expõe as respostas
-    limite = time.time() + ESPERA
-    while time.time() < limite:
-        for entrada in aba.driver.get_log("performance"):
+    limite = time.monotonic() + ESPERA
+    pendentes: set[str] = set()
+    recarregou = False
+    while time.monotonic() < limite:
+        _esperar(aba, "true")
+        driver = _driver(aba)
+        for entrada in driver.get_log("performance"):
             msg = json.loads(entrada["message"])["message"]
             if msg.get("method") != "Network.responseReceived":
                 continue
             resposta = msg["params"]["response"]
-            if RESPOSTA_INFO in resposta["url"] and resposta["status"] == 200:
-                try:
-                    corpo = aba.driver.execute_cdp_cmd(
-                        "Network.getResponseBody", {"requestId": msg["params"]["requestId"]})["body"]
-                    return json.loads(corpo)
-                except Exception:
-                    pass  # resposta ainda não terminou de chegar; tenta de novo na próxima volta
+            if RESPOSTA_INFO not in resposta["url"]:
+                continue
+            if resposta["status"] in (403, 429):
+                raise DetalhesBloqueados(f"iFood bloqueou os dados da loja (HTTP {resposta['status']}); lista preservada.")
+            if resposta["status"] == 200:
+                pendentes.add(msg["params"]["requestId"])
+        for pedido in pendentes:
+            try:
+                corpo = driver.execute_cdp_cmd("Network.getResponseBody", {"requestId": pedido})["body"]
+            except WebDriverException:
+                continue  # mantém o requestId até o corpo terminar, sem repetir a requisição
+            try:
+                return json.loads(corpo)
+            except (TypeError, ValueError) as erro:
+                raise DetalhesBloqueados("Resposta de dados da loja inválida; lista preservada.") from erro
+        if not pendentes and not recarregou:
+            # UC pode não expor eventos durante a primeira navegação desconectada.
+            aba.refresh()
+            recarregou = True
         aba.sleep(0.5)
     return None
 
@@ -207,7 +263,7 @@ def ler_detalhes(aba, loja: Loja, municipios: list[str]) -> Loja:
     """CNPJ e endereço vêm da resposta merchant-info/graphql da loja, não do DOM."""
     info = _ler_resposta_info(aba, loja.url)
     if not info:
-        raise DetalhesBloqueados("iFood não liberou os dados da loja (403 ou verificação). Lista preservada.")
+        raise DetalhesBloqueados("iFood não disponibilizou os dados da loja. Lista preservada.")
     try:
         detalhe = _ler_info(info)
     except (KeyError, TypeError, ValueError) as erro:
@@ -222,20 +278,19 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
     aba = _abrir()
     try:
         _esperar(aba, "!!document.querySelector('input[placeholder=\"Endereço de entrega e número\"]')")
-        time.sleep(3)  # aguarda a hidratação antes de disparar o input do React
-        _js(aba, "(() => {const e=document.querySelector('input[placeholder=\"Endereço de entrega e número\"]');"
-            "e.click(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,"
-            + json.dumps(endereco) + "); e.dispatchEvent(new Event('input',{bubbles:true})); return true;})()")
+        time.sleep(3)  # aguarda a hidratação antes de preencher o input do React
+        campo = 'input[placeholder="Endereço de entrega e número"]'
+        _elemento(aba, campo).click()
+        _elemento(aba, campo).send_keys(endereco)
         _esperar(aba, "!!document.querySelector('.btn-address--full-size')")
-        _js(aba, "(() => {document.querySelector('.btn-address--full-size').click();return true;})()")
-        _esperar(aba, "[...document.querySelectorAll('button')].some(b=>b.innerText==='Confirmar localização')")
-        _js(aba, "(() => {[...document.querySelectorAll('button')].find(b=>b.innerText==='Confirmar localização').click();return true;})()")
-        _esperar(aba, "[...document.querySelectorAll('button')].some(b=>b.innerText==='Salvar endereço' && !b.disabled)")
-        _js(aba, "(() => {[...document.querySelectorAll('button')].find(b=>b.innerText==='Salvar endereço').click();return true;})()")
+        _elemento(aba, ".btn-address--full-size").click()
+        _clicar_botao(aba, "Confirmar localização")
+        _clicar_botao(aba, "Salvar endereço")
         _esperar(aba, f"({JS_LISTA}).length")
         lojas: dict[str, Loja] = {}
         antigas: dict[str, Loja] = {}
         sem_novas = 0
+        bloqueio = None
         for _ in range(20):
             antes = len(lojas)
             for item in _js(aba, JS_LISTA):
@@ -250,14 +305,18 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
             sem_novas = sem_novas + 1 if len(lojas) == antes else 0
             if sem_novas >= 3:
                 break
-            _js(aba, "(() => {window.scrollTo(0, document.body.scrollHeight);return true;})()")
+            try:
+                _elemento(aba, "body").send_keys(Keys.END)
+            except DetalhesBloqueados as erro:
+                bloqueio = str(erro)
+                log.warning("ifood_detalhes_bloqueados", motivo=bloqueio)
+                break
             time.sleep(2)
         escolhidas = [*lojas.values(), *antigas.values()][:limite]
-        bloqueio = None
-        for i, loja in enumerate(escolhidas if detalhar else []):
+        for i, loja in enumerate(escolhidas if detalhar and not bloqueio else []):
             try:
                 completa = ler_detalhes(aba, loja, municipios)
-            except (DetalhesBloqueados, TimeoutError) as erro:
+            except (DetalhesBloqueados, TimeoutError, WebDriverException) as erro:
                 bloqueio = str(erro)
                 log.warning("ifood_detalhes_bloqueados", motivo=bloqueio)
                 break
