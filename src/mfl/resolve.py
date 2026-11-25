@@ -74,14 +74,6 @@ def melhor_candidato(con: sqlite3.Connection, novo: dict, compartilhados: set[st
                               (novo["cnpj"], ignorar)).fetchone()
         if empresa is not None:
             return empresa, 1.0
-    ids_ifood = novo.get("_ifood_ids") or []
-    if ids_ifood:
-        lojas = con.execute(
-            f"SELECT DISTINCT e.* FROM entity e JOIN source_record s ON s.entity_id=e.entity_id"
-            f" WHERE s.source='ifood' AND s.source_key IN ({','.join('?' * len(ids_ifood))}) AND e.entity_id IS NOT ?",
-            (*ids_ifood, ignorar)).fetchall()
-        if len(lojas) == 1:
-            return lojas[0], 1.0
     cep5 = (novo.get("cep") or "")[:5]
     tels = [t for t in (novo.get("tel1"), novo.get("tel2")) if t] or [""]
     marcas = ",".join("?" * len(tels))
@@ -90,21 +82,7 @@ def melhor_candidato(con: sqlite3.Connection, novo: dict, compartilhados: set[st
         " AND entity_id IS NOT ?",
         (cep5, cep5, cep5[:-1] + chr(ord(cep5[-1]) + 1) if cep5 else "", *tels, *tels, ignorar),
     ).fetchall()
-    melhor = max(((l, pontuar(novo, l, compartilhados)) for l in linhas), key=lambda x: x[1], default=(None, 0.0))
-    if melhor[1] < VINCULA and novo.get("municipio"):
-        # iFood pode mostrar só nome/cidade. Serve para revisão, nunca para vínculo automático.
-        cidade = novo["municipio"]
-        nome = nome_normal(novo.get("fantasia") or novo.get("nome"))
-        if len(nome) >= 3:
-            candidatos = con.execute(
-                "SELECT e.* FROM entity e WHERE lower(municipio) IN (lower(?),lower(?)) AND entity_id IS NOT ?"
-                " AND (?='ifood' OR EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id AND s.source='ifood'))",
-                (cidade, normalizar(cidade), ignorar, novo.get("_fonte")))
-            for linha in candidatos:
-                outro = nome_normal(linha["fantasia"] or linha["nome"])
-                if outro and fuzz.ratio(nome, outro) >= 85 and melhor[1] < REVISA:
-                    melhor = linha, REVISA
-    return melhor
+    return max(((l, pontuar(novo, l, compartilhados)) for l in linhas), key=lambda x: x[1], default=(None, 0.0))
 
 
 def preencher(con: sqlite3.Connection, entity_id: str, dados: dict) -> None:

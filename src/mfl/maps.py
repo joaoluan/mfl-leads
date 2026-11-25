@@ -12,12 +12,11 @@ import sqlite3
 import subprocess
 import time
 import uuid
-from datetime import date, timedelta
 from pathlib import Path
 
 import structlog
 
-from mfl import cnpj_icp, ifood, resolve
+from mfl import resolve
 from mfl.classifica import normalizar
 from mfl.db import LOTE, RAIZ, agora, bloqueado
 from mfl.fone import celular as e_celular, para_e164, whatsapp_em
@@ -28,7 +27,6 @@ SHA = RAIZ / "bin" / "SHA256SUMS"
 CONSULTAS = RAIZ / "cfg" / "maps_consultas.txt"
 TIMEOUT = 3600  # depth 3: bairro grande (até 81 células) passa de 30 min
 PROFUNDIDADE = 3  # rolagens por busca; medido no Moinhos: depth 1 = 87 lugares, depth 3 = 119 (24/11/2026)
-LOTE_IFOOD = 10
 ESPERA_SAIDA, INTERVALO = 15, 3  # segundos (variáveis para o teste)
 FECHADO = re.compile(r"fechad[oa] (permanentemente|temporariamente)", re.I)
 EMAIL = re.compile(r"^[\w.+-]+@[\w-]+(\.[\w-]+)+$")
@@ -116,7 +114,6 @@ def _dados(lugar: dict, bairro: dict) -> dict:
     titulo = (lugar.get("title") or "").strip()
     return {
         "_fonte": "maps", "_celular": celular, "_whatsapp": bool(zap), "place_id": lugar["place_id"], "nome": titulo, "fantasia": titulo,
-        "_ifood_ids": _ids_ifood(lugar),
         "categoria": lugar.get("category") or None, "uf": "RS", "municipio": endereco.get("city") or bairro["municipio"],
         "bairro": endereco.get("borough") or bairro["nome"],
         "cep": re.sub(r"\D", "", endereco.get("postal_code") or "") or None,
@@ -124,23 +121,6 @@ def _dados(lugar: dict, bairro: dict) -> dict:
         "tel1": tel, "tel2": fone if zap and fone != zap else None, "site": lugar.get("web_site") or None, "nota": lugar.get("review_rating"),
         "avaliacoes": lugar.get("review_count"),
     }
-
-
-def _ids_ifood(lugar: dict) -> list[str]:
-    links = [lugar.get("web_site") or "", *[o.get("link") or "" for o in lugar.get("order_online") or []]]
-    return sorted({identificador for link in links if (identificador := ifood.id_da_url(link))})
-
-
-def _unir_ifood(con: sqlite3.Connection, lugar: dict, existente: sqlite3.Row) -> None:
-    """UUID exato permite absorver descoberta provisória, preservando o lead já conhecido no Maps."""
-    ids = _ids_ifood(lugar)
-    if not ids:
-        return
-    candidato, _ = resolve.melhor_candidato(con, {"_ifood_ids": ids}, set(), existente["entity_id"])
-    if candidato is not None and candidato["status"] == "enriquecimento" and candidato["tel1"] is None and not candidato["opt_out"]:
-        if not con.execute("SELECT 1 FROM touch WHERE entity_id=? UNION ALL SELECT 1 FROM reply WHERE entity_id=?",
-                           (candidato["entity_id"], candidato["entity_id"])).fetchone():
-            resolve.fundir(con, existente["entity_id"], candidato["entity_id"])
 
 
 def _descarte(lugar: dict, dados: dict, municipios: set[str], franquias: re.Pattern | None) -> str | None:
@@ -167,7 +147,6 @@ def ingerir(con: sqlite3.Connection, arquivo: Path, bairro: dict, municipios: li
             continue
         existente = con.execute("SELECT entity_id FROM source_record WHERE source='maps' AND source_key=?", (lugar["place_id"],)).fetchone()
         if existente:
-            _unir_ifood(con, lugar, existente)
             contagem["repetidos"] += 1
             continue
         dados = _dados(lugar, bairro)
@@ -211,56 +190,3 @@ def ingerir(con: sqlite3.Connection, arquivo: Path, bairro: dict, municipios: li
     con.commit()
     log.info("maps_ingerido", bairro=bairro["nome"], **contagem)
     return contagem
-
-
-def alvos_ifood(con: sqlite3.Connection, cidade: str | None = None, limite: int = LOTE_IFOOD) -> list[sqlite3.Row]:
-    """Alvos vencidos também entram na noite quando os bairros das duas fontes estão em dia."""
-    hoje = date.fromisoformat(agora()[:10])
-    return con.execute(
-        "SELECT e.entity_id,coalesce(e.fantasia,e.nome) AS nome,e.municipio,q.id AS fila_id"
-        " FROM entity e LEFT JOIN queue q ON q.entity_id=e.entity_id AND q.kind='maps_ifood'"
-        " WHERE e.status='enriquecimento' AND e.opt_out=0 AND e.place_id IS NULL"
-        " AND (? IS NULL OR lower(e.municipio) IN (lower(?),lower(?)))"
-        " AND EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id AND s.source='ifood')"
-        " AND (q.id IS NULL OR (q.done=0 AND q.next_at<=?)) ORDER BY coalesce(q.next_at,''),e.entity_id LIMIT ?",
-        (cidade, cidade, normalizar(cidade or ""), hoje.isoformat(), min(limite, LOTE_IFOOD) if cidade else -1)).fetchall()
-
-
-def completar_ifood(con: sqlite3.Connection, chave: str, bairro: dict, limite: int = LOTE_IFOOD) -> int:
-    """Lotes de até 10 nomes cabem no orçamento de 5 min; parcial volta amanhã sem perder resultados."""
-    hoje = date.fromisoformat(agora()[:10])
-    leads = alvos_ifood(con, bairro["municipio"], limite)
-    if not leads:
-        return 0
-    filas = []
-    for lead in leads:
-        fila_id = lead["fila_id"]
-        if fila_id is None:
-            fila_id = con.execute("INSERT INTO queue(entity_id,kind,next_at) VALUES (?,'maps_ifood',?)",
-                                  (lead["entity_id"], hoje.isoformat())).lastrowid
-        filas.append(fila_id)
-    # Reserva antes da rede: outro bairro não repete os mesmos alvos se a busca cair.
-    con.executemany("UPDATE queue SET tries=tries+1,next_at=? WHERE id=?",
-                    [((hoje + timedelta(days=1)).isoformat(), i) for i in filas])
-    con.commit()
-    pasta = RAIZ / "data" / "maps" / "ifood" / hoje.isoformat()
-    pasta.mkdir(parents=True, exist_ok=True)
-    consultas = pasta / f"{chave}.txt"
-    consultas.write_text("\n".join(" ".join(f"{l['nome']} {l['municipio']} RS".split()) for l in leads) + "\n", encoding="utf-8")
-    municipios, franquias = cnpj_icp.recorte()["municipios"], cnpj_icp.termos_franquia()
-    parcial = False
-    try:
-        saida = rodar(bairro, pasta / f"{chave}.json", RAIZ / "logs" / "maps" / f"ifood-{chave}.log", consultas)
-    except Incompleto as erro:
-        saida, parcial = erro.saida, True
-    ingerir(con, saida, bairro, municipios, franquias)
-    con.executemany(
-        "UPDATE queue SET next_at=?,done=EXISTS (SELECT 1 FROM entity e WHERE e.entity_id=queue.entity_id"
-        " AND (e.place_id IS NOT NULL OR e.status<>'enriquecimento' OR e.opt_out=1)) WHERE id=?",
-        [((hoje + timedelta(days=1 if parcial else 7)).isoformat(), i) for i in filas])
-    con.commit()
-    if parcial:
-        log.warning("ifood_maps_parcial", bairro=chave, buscados=len(leads), motivo="Tempo do lote esgotado; resultados salvos, pendências voltam amanhã")
-    else:
-        log.info("ifood_maps_completado", bairro=chave, buscados=len(leads))
-    return len(leads)

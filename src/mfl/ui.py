@@ -9,7 +9,7 @@ from pathlib import Path
 
 from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
 
-from mfl import ajustes, bairros, cadencia, cnpj_icp, controle, db, ifood, mensagens, resolve, score, whatsapp
+from mfl import ajustes, bairros, cadencia, cnpj_icp, controle, db, mensagens, resolve, score, whatsapp
 from mfl.db import FUSO, agora
 from mfl.fone import legivel, para_e164
 
@@ -256,11 +256,7 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         if bairro := a.get("bairro", "").strip():
             filtros.append("bairro LIKE :bairro")
             p["bairro"] = f"%{bairro}%"
-        if a.get("fonte") == "ifood_sem_maps":  # o Maps já procurou pelo nome e não achou: telefone só à mão
-            filtros.append("e.place_id IS NULL AND EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id"
-                           " AND s.source='ifood') AND EXISTS (SELECT 1 FROM queue q WHERE q.entity_id=e.entity_id"
-                           " AND q.kind='maps_ifood' AND q.tries>0)")
-        elif (fonte := a.get("fonte", "")) in ("cnpj", "maps", "instagram", "ifood"):
+        if (fonte := a.get("fonte", "")) in ("cnpj", "maps", "instagram"):
             filtros.append("EXISTS (SELECT 1 FROM source_record s WHERE s.entity_id=e.entity_id AND s.source=:fonte)")
             p["fonte"] = fonte
         if a.get("whatsapp"):
@@ -289,8 +285,6 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         cidades, lista = controle.progresso_maps(con(), cidade)
         rotinas = controle.rotinas(con())
         return render_template("coleta.html", rotinas=rotinas, cidades=cidades, cidade=cidade, bairros_cidade=lista,
-                               limite_ifood=ifood.LIMITE_MAX,
-                               ifood_suspenso=ifood.detalhes_suspensos(con()),
                                log=log, logs=controle.LOGS, eventos=controle.eventos(log),
                                aviso=AVISOS_COLETA.get(request.args.get("aviso", "")),
                                algum_rodando=any(r["situacao"] == "rodando" for r in rotinas))
@@ -310,14 +304,6 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
             job, args = "maps", ["maps-fila", "--limite", str(limite), "--cidade", cidade]
         elif acao in ("ig", "diario"):
             job, args = acao, ["ig-diario" if acao == "ig" else "diario"]
-        elif acao == "ifood":
-            endereco = request.form.get("endereco", "").strip()
-            limite = request.form.get("limite", 30, type=int)
-            if not endereco or len(endereco) > 300 or not 1 <= limite <= ifood.LIMITE_MAX:
-                abort(400)
-            job, args = "ifood", ["ifood", endereco, "--limite", str(limite)]
-            if request.form.get("verificacao_manual") == "1":
-                args.extend(["--aguardar-verificacao", "--retomar-detalhes"])
         else:
             abort(400)
         estado = con().execute("SELECT valor FROM estado WHERE chave=?", (f"job:{job}",)).fetchone()

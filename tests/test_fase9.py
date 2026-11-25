@@ -32,13 +32,13 @@ def test_job_registra_ok_erro_e_trava(con):
 def test_falha_da_coleta_aparece_no_historico(con, tmp_path, monkeypatch):
     monkeypatch.setattr(controle, "RAIZ", tmp_path)
     monkeypatch.setenv("MFL_LOGS", str(tmp_path / "logs"))
-    log.configurar("ifood")
-    with pytest.raises(ValueError), ops.job(con, "ifood"):
+    log.configurar("maps")
+    with pytest.raises(ValueError), ops.job(con, "maps"):
         raise ValueError("Falha sintética no botão")
-    eventos = controle.eventos("ifood")
+    eventos = controle.eventos("maps")
     assert eventos[0]["evento"] == "A coleta falhou" and eventos[0]["nivel"] == "error"
     assert "Falha sintética no botão" in eventos[0]["extra"]
-    pagina = ui.criar_app(tmp_path / "t.db").test_client().get("/coleta?log=ifood").get_data(as_text=True)
+    pagina = ui.criar_app(tmp_path / "t.db").test_client().get("/coleta?log=maps").get_data(as_text=True)
     assert "A coleta falhou" in pagina and "Falha sintética no botão" in pagina
 
 
