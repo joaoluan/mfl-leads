@@ -8,3 +8,4 @@ db/*.db-*
 .env
 sess/
 bin/google-maps-scraper
+downloaded_files/

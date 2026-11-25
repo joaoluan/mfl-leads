@@ -39,8 +39,8 @@ def test_ingestao_idempotente_score_fila_e_revisao(tmp_path):
     existente = criar_lead(con, "Cantina Teste Azul", "+5551999990001", municipio="Porto Alegre",
                           cep="90000001", endereco="Rua Fictícia, 10")
     resultado = ifood.ingerir(con, [loja(), loja(2, nome="Cozinha Teste Verde"), loja(3, nome="Rede Falsa")], ["rede falsa"])
-    assert resultado == {"novos": 2, "vinculados": 0, "revisao": 1, "repetidos": 0, "descartados": 1, "atualizados": 0}
-    assert con.execute("SELECT count(*) FROM entity WHERE status='enriquecimento' AND tel1 IS NULL").fetchone()[0] == 2
+    assert resultado == {"novos": 3, "vinculados": 0, "revisao": 1, "repetidos": 0, "descartados": 0, "atualizados": 0}  # franquia entra
+    assert con.execute("SELECT count(*) FROM entity WHERE status='enriquecimento' AND tel1 IS NULL").fetchone()[0] == 3
     assert tuple(con.execute("SELECT b,score FROM revisao").fetchone()) == (existente, resolve.REVISA)
     assert ifood.ingerir(con, [loja()], [])["repetidos"] == 1
     score.recalcular(con, HOJE)

@@ -63,10 +63,6 @@ def suspender_detalhes(con: sqlite3.Connection, motivo: str) -> None:
     con.commit()
 
 
-def _franquias(termos: list[str]) -> re.Pattern | None:
-    return re.compile(r"\b(" + "|".join(re.escape(t) for t in termos) + r")\b") if termos else None
-
-
 def cnpj_valido(bruto: str | None) -> str | None:
     """Dígitos verificadores evitam vincular empresas por erro de leitura."""
     if not isinstance(bruto, str):
@@ -239,13 +235,12 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
         _esperar(aba, f"({JS_LISTA}).length")
         lojas: dict[str, Loja] = {}
         antigas: dict[str, Loja] = {}
-        padrao = _franquias(cnpj_icp.termos_franquia())
         sem_novas = 0
         for _ in range(20):
             antes = len(lojas)
             for item in _js(aba, JS_LISTA):
                 loja = analisar(item, municipios)
-                if loja and not (padrao and padrao.search(normalizar(loja.nome))):
+                if loja:  # franquia entra e só perde pontos no score (sinal "franquia")
                     if str(loja.id) not in conhecidos:
                         lojas[str(loja.id)] = loja
                     elif detalhar and str(loja.id) in (revisitar or set()):
@@ -281,7 +276,6 @@ def coletar(endereco: str, limite: int, conhecidos: set[str], municipios: list[s
 def ingerir(con: sqlite3.Connection, lojas: list[Loja], franquias: list[str]) -> dict[str, int]:
     """Idempotência pelo UUID da loja, endereço para vínculo, nome apenas para revisão."""
     total = {"novos": 0, "vinculados": 0, "revisao": 0, "repetidos": 0, "descartados": 0, "atualizados": 0}
-    padrao = _franquias(franquias)
     compartilhados = resolve.telefones_compartilhados(con)
     momento = agora()
     gravados = 0
@@ -289,9 +283,6 @@ def ingerir(con: sqlite3.Connection, lojas: list[Loja], franquias: list[str]) ->
         for loja in lojas:
             existente = con.execute("SELECT entity_id,raw_json FROM source_record WHERE source='ifood' AND source_key=?",
                                     (str(loja.id),)).fetchone()
-            if padrao and padrao.search(normalizar(loja.nome)):
-                total["descartados"] += 1
-                continue
             dados = {"_fonte": "ifood", "nome": loja.nome, "fantasia": loja.nome, "municipio": loja.municipio,
                      "categoria": loja.categoria, "endereco": loja.endereco, "cep": loja.cep, "bairro": loja.bairro,
                      "cnpj": loja.cnpj, "uf": "RS"}
