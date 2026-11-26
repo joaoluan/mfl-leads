@@ -43,6 +43,7 @@ def job(con: sqlite3.Connection, nome: str):
             raise JaRodando(nome) from None
         con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"job:{nome}", f"rodando pid={os.getpid()}", agora()))
         con.commit()  # a tela Coleta mostra "rodando" enquanto o pid existir
+        log.info("job_iniciado", rotina=nome)
         try:
             yield
         except Exception as erro:
@@ -52,6 +53,7 @@ def job(con: sqlite3.Connection, nome: str):
             raise
         con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"job:{nome}", "ok", agora()))
         con.commit()
+        log.info("job_concluido", rotina=nome)
 
 
 def _podar(pasta: Path, dias: int, hoje: date) -> None:

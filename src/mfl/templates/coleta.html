@@ -31,7 +31,7 @@ tr[aria-current] td { background:var(--realce); }
     <td>{% if r.situacao == "rodando" %}<span class="chip">Rodando desde {{ r.quando | quando }}</span>{% if r.andamento %}<div class="suave">{{ r.andamento }}</div>{% endif %}
         {% elif r.situacao == "ok" %}<span class="chip bom">Terminou bem</span>
         {% elif r.situacao == "erro" %}<span class="chip ruim">Deu erro</span><div class="suave">{{ r.detalhe[6:] }}</div>
-        {% elif r.situacao == "interrompido" %}<span class="chip ruim">Interrompida</span>
+        {% elif r.situacao == "interrompido" %}<span class="chip ruim">Interrompida</span><div class="suave">O processo parou sem registrar o fim.{% if r.job == 'maps' %} Veja o resumo e o histórico abaixo.{% endif %}</div>
         {% else %}<span class="suave">Nunca rodou</span>{% endif %}</td>
     <td>{{ r.quando | quando }}</td>
     <td>{{ r.proxima | quando }}</td>
@@ -43,11 +43,48 @@ tr[aria-current] td { background:var(--realce); }
 <form method="post" action="/coleta/rodar" class="linha-acao"><input type="hidden" name="acao" value="score"><input type="hidden" name="cidade" value="{{ cidade }}">
   <button>Recalcular score agora</button><span class="suave">Leva poucos segundos. Use depois de mudar a pontuação ou marcar clientes.</span></form>
 
+<h2>O que aconteceu</h2>
+{% if resumo_maps %}
+<section aria-labelledby="titulo-resumo">
+  <h3 id="titulo-resumo">Última execução do Google Maps</h3>
+  <div class="faixa {{ 'erro' if resumo_maps.situacao in ('erro', 'interrompido') else 'ok' if resumo_maps.situacao == 'ok' }}" role="status">
+    <b>{{ {'rodando': 'Em andamento', 'ok': 'Concluída', 'erro': 'Falhou', 'interrompido': 'Interrompida'}[resumo_maps.situacao] }}</b>.
+    Início: {{ resumo_maps.inicio | quando }}.
+    {% if resumo_maps.situacao != 'rodando' %}Último registro: {{ resumo_maps.fim | quando }}.{% endif %}
+    {% if resumo_maps.motivo %}<div>{{ resumo_maps.motivo }}</div>{% endif %}
+    <div>Os resultados já gravados continuam no banco, mesmo quando a coleta é interrompida.</div>
+  </div>
+  <dl class="fita">
+    <div><dt>Bairros concluídos</dt><dd>{{ resumo_maps.bairros }}</dd></div>
+    <div><dt>Leads novos</dt><dd>{{ resumo_maps.totais.novos }}</dd></div>
+    <div><dt>Vinculados a existentes</dt><dd>{{ resumo_maps.totais.vinculados }}</dd></div>
+    <div><dt>Repetidos ignorados</dt><dd>{{ resumo_maps.totais.repetidos }}</dd></div>
+    <div><dt>Telefone apto para WhatsApp</dt><dd>{{ resumo_maps.totais.aptos }}</dd></div>
+    <div><dt>Pares para revisão</dt><dd>{{ resumo_maps.totais.revisao }}</dd></div>
+  </dl>
+  <p class="suave">Totais desta execução, registrados ao ingerir cada bairro. Telefone apto não confirma uma conta no WhatsApp;
+    a fila também depende de score, status e exclusões. Pares para revisão já estão incluídos nos leads novos.</p>
+  {% if resumo_maps.pendente %}<div class="cartao">
+    <b>{{ 'Raspando' if resumo_maps.situacao == 'rodando' else 'Bairro pendente:' }} {{ resumo_maps.pendente.nome }}</b>
+    {% if resumo_maps.pendente.arquivo_disponivel %}<p>Arquivo parcial: {{ resumo_maps.pendente.lugares }} lugares com identificador;
+      {{ resumo_maps.pendente.fora_do_banco }} ainda não constam no banco.
+      Apenas os lugares já importados estão incluídos nos totais salvos acima.</p>
+    {% else %}<p>Ainda não há arquivo de resultados disponível para este bairro.</p>{% endif %}
+    {% if resumo_maps.pendente.invalidos %}<p>{{ resumo_maps.pendente.invalidos }} linhas incompletas ou inválidas no arquivo parcial.</p>{% endif %}
+    <p>A nova busca começa do zero. Os lugares já gravados são ignorados; o arquivo anterior é preservado,
+      mas seus resultados ainda não importados não entram no banco automaticamente.</p>
+  </div>{% endif %}
+</section>
+{% endif %}
+
 <h2 id="maps">Maps por bairro</h2>
 <p class="suave" style="max-width:80ch">O Maps é de onde vem quase todo telefone. Cada bairro é dividido em quadradinhos, e em cada um o raspador
   busca comida no Google Maps. Lugar novo vira lead; lugar que já existe (mesmo telefone,
   ou nome e endereço parecidos com o CNPJ) só é completado. Raspar de novo um bairro já feito só acrescenta lugares
   que apareceram no Maps depois da última vez; os que já estavam são pulados (não duplicam nem são atualizados). O resultado aparece aqui quando o bairro termina.</p>
+<p class="faixa"><b>Raspar novamente começa a busca do zero.</b> Não retoma a célula ou a página onde parou.
+  O arquivo anterior fica preservado e os lugares já gravados não duplicam.
+  À noite, nenhum bairro novo começa após 04h; o bairro em andamento pode terminar depois.</p>
 <div class="duas">
   <section aria-label="Cidades">
     <table>
@@ -74,15 +111,15 @@ tr[aria-current] td { background:var(--realce); }
         <td>{% if b.feito %}{{ b.feito[8:10] }}/{{ b.feito[5:7] }}/{{ b.feito[:4] }}{% else %}<span class="suave">nunca</span>{% endif %}</td>
         <td><form method="post" action="/coleta/rodar"><input type="hidden" name="acao" value="maps_bairro">
           <input type="hidden" name="bairro" value="{{ b.chave }}"><input type="hidden" name="cidade" value="{{ cidade }}">
-          <button>Raspar agora</button></form></td>
+          <button aria-label="Raspar {{ b.nome }} desde o início">Raspar agora</button></form></td>
       </tr>{% endfor %}
     </table></div>{% else %}<p class="suave">Nenhum bairro cadastrado para esta cidade.</p>{% endif %}
   </section>
 </div>
 
-<h2>O que aconteceu</h2>
-<p class="suave">Registro das últimas execuções. “Bairro raspado” mostra quantos lugares eram novos, quantos já existiam (vinculados),
-  quantos ficaram para você conferir em Revisão e quantos têm celular (aptos).</p>
+<h2>Histórico de eventos</h2>
+<p class="suave">Início, resultados e falhas das últimas execuções. Inclui encerramentos forçados registrados pelo sistema nos últimos sete dias.
+  “Bairro raspado” significa que os resultados foram gravados. O fim da janela noturna às 04h é uma parada prevista.</p>
 <div class="acoes" role="tablist" aria-label="Log">
   {% for k, nome in logs.items() %}<a class="botao{{ ' primario' if k == log }}" href="/coleta?cidade={{ cidade | urlencode }}&log={{ k }}#log" {{ 'aria-current=page' if k == log }}>{{ nome }}</a>{% endfor %}
 </div>

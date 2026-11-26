@@ -115,6 +115,12 @@ def test_wrapper_confere_sha_e_encerra_processo_pendurado(tmp_path, monkeypatch)
     sha.write_text(hashlib.sha256(falso.read_bytes()).hexdigest() + "  scraper\n")
     saida = maps.rodar(BAIRRO, tmp_path / "nova" / "o.json", tmp_path / "l.log")
     assert json.loads(saida.read_text())["place_id"] == "X"
+    saida.write_text('{"place_id":"PARCIAL_ANTERIOR"}')
+    maps.rodar(BAIRRO, saida, tmp_path / "l.log")
+    anteriores = list(saida.parent.glob("o-*.anterior.json"))
+    assert len(anteriores) == 1
+    assert json.loads(anteriores[0].read_text())["place_id"] == "PARCIAL_ANTERIOR"
+    assert json.loads(saida.read_text())["place_id"] == "X"
 
 
 def test_pontuar_porta_e_bairro():
