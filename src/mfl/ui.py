@@ -97,8 +97,9 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
                 "ig_checkpoint": ig_checkpoint,
                 # rotina removida (ex.: ifood) pode ter deixado erro antigo em `estado`; só as atuais contam
                 "jobs_com_erro": [r[0][4:] for r in con().execute(
-                    "SELECT chave FROM estado WHERE chave LIKE 'job:%' AND valor LIKE 'erro%'")
-                    if r[0][4:] in controle.ROTINAS]}
+                    "SELECT chave, valor FROM estado WHERE chave LIKE 'job:%'")
+                    if r[0][4:] in controle.ROTINAS and
+                    (r[1].startswith("erro") or (r[1].startswith("rodando") and not controle.rodando(r[1])))]}
 
     @app.get("/")
     def fila() -> str:
@@ -286,8 +287,12 @@ def criar_app(caminho_db: Path | None = None) -> Flask:
         log = request.args.get("log") if request.args.get("log") in controle.LOGS else "maps"
         cidades, lista = controle.progresso_maps(con(), cidade)
         rotinas = controle.rotinas(con())
+        registros_maps = controle.registros("maps")
+        resumo_maps = controle.resumo_maps(con(), registros_maps)
         return render_template("coleta.html", rotinas=rotinas, cidades=cidades, cidade=cidade, bairros_cidade=lista,
-                               log=log, logs=controle.LOGS, eventos=controle.eventos(log),
+                               log=log, logs=controle.LOGS,
+                               eventos=controle.eventos(log, dados=registros_maps if log == "maps" else None),
+                               resumo_maps=resumo_maps,
                                aviso=AVISOS_COLETA.get(request.args.get("aviso", "")),
                                algum_rodando=any(r["situacao"] == "rodando" for r in rotinas))
 

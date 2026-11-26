@@ -144,6 +144,8 @@ def _maps_bairro(chave: str, info: dict) -> dict:
     """Raspa e ingere. Grava a data (bairro feito) e quantos lugares vieram (decide quando revisitar)."""
     con = db.conectar()
     pasta = db.RAIZ / "data" / "maps" / date.today().isoformat()
+    logger.info("maps_bairro_iniciado", chave=chave, bairro=info["nome"],
+                arquivo=str((pasta / f"{chave}.json").relative_to(db.RAIZ)))
     ingerir = lambda arquivo: maps.ingerir(con, arquivo, info, cnpj_icp.recorte()["municipios"], cnpj_icp.termos_franquia())
     try:
         saida = maps.rodar(info, pasta / f"{chave}.json", db.RAIZ / "logs" / "maps" / f"{chave}.log")
@@ -156,6 +158,7 @@ def _maps_bairro(chave: str, info: dict) -> dict:
     con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"maps:{chave}", date.today().isoformat(), db.agora()))
     con.execute("INSERT OR REPLACE INTO estado VALUES (?,?,?)", (f"maps_rende:{chave}", str(lugares), db.agora()))
     con.commit()
+    logger.info("maps_bairro_concluido", chave=chave, bairro=info["nome"], lugares=lugares)
     if lugares == 0:
         logger.warning("maps_vazio", bairro=chave)
     return contagem

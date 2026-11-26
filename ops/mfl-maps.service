@@ -8,4 +8,5 @@ WorkingDirectory=%h/Projetos/mfl-leads
 ExecStart=%h/.local/bin/uv run --frozen mfl maps-noturno
 Nice=10
 IOSchedulingClass=idle
-TimeoutStartSec=4h
+# Um bairro iniciado antes das 04h pode levar 60 min, mais ingestão e score.
+TimeoutStartSec=5h30min

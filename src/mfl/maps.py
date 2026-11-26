@@ -52,7 +52,11 @@ def rodar(bairro: dict, saida: Path, log_arquivo: Path, consultas: Path | None =
     """Uma execução por bairro. A v1.20.0 termina o trabalho mas às vezes não sai do processo:
     ao ver 'scrapemate exited' no log, espera um pouco e encerra."""
     conferir_binario()
-    saida.unlink(missing_ok=True)
+    if saida.exists():
+        anterior = saida.with_name(f"{saida.stem}-{time.time_ns()}.anterior.json")
+        saida.replace(anterior)
+        log.info("maps_arquivo_preservado", bairro=bairro["nome"], arquivo=str(anterior.relative_to(RAIZ)
+                 if anterior.is_relative_to(RAIZ) else anterior))
     if consultas is None:
         busca = ["-grid-bbox", bairro["bbox"], "-grid-cell", str(bairro["celula_km"]), "-grid-strict",
                  "-depth", str(PROFUNDIDADE), "-c", "4"]
